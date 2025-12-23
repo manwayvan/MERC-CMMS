@@ -1,6 +1,11 @@
 // MERC-CMMS Enterprise JavaScript Application
 // Comprehensive functionality for Medical Device Management System
 
+// Initialize Supabase Client
+const supabaseUrl = 'https://hmdemsbqiqlqcggwblvl.supabase.co';
+const supabaseKey = 'sb_publishable_Z9oNxTGDCCz3EZnh6NqySg_QzF6amCN';
+const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
 // Global Application State
 const AppState = {
     currentPage: '',
@@ -38,13 +43,13 @@ const MockData = {
                 location: location,
                 manufacturer: manufacturer,
                 model: `Model-${Math.floor(Math.random() * 900) + 100}`,
-                serialNumber: `SN${Math.floor(Math.random() * 900000) + 100000}`,
-                warrantyExpiry: new Date(2025 + Math.floor(Math.random() * 3), Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1),
-                purchaseDate: new Date(2020 + Math.floor(Math.random() * 5), Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1),
-                purchaseCost: Math.floor(Math.random() * 500000) + 10000,
-                lastMaintenance: new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1),
-                nextMaintenance: new Date(2025, Math.floor(Math.random() * 6), Math.floor(Math.random() * 28) + 1),
-                complianceStatus: Math.random() > 0.1 ? 'compliant' : 'needs-attention'
+                serial_number: `SN${Math.floor(Math.random() * 900000) + 100000}`,
+                warranty_expiry: new Date(2025 + Math.floor(Math.random() * 3), Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1).toISOString(),
+                purchase_date: new Date(2020 + Math.floor(Math.random() * 5), Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1).toISOString(),
+                purchase_cost: Math.floor(Math.random() * 500000) + 10000,
+                last_maintenance: new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1).toISOString(),
+                next_maintenance: new Date(2025, Math.floor(Math.random() * 6), Math.floor(Math.random() * 28) + 1).toISOString(),
+                compliance_status: Math.random() > 0.1 ? 'compliant' : 'needs-attention'
             });
         }
         return assets;
@@ -66,16 +71,16 @@ const MockData = {
 
             workOrders.push({
                 id: `WO-${String(i).padStart(4, '0')}`,
-                assetId: `AST-${String(Math.floor(Math.random() * 50) + 1).padStart(4, '0')}`,
+                asset_id: `AST-${String(Math.floor(Math.random() * 50) + 1).padStart(4, '0')}`,
                 type: type,
                 priority: priority,
                 status: status,
                 technician: technician,
-                dueDate: new Date(2025, Math.floor(Math.random() * 3), Math.floor(Math.random() * 28) + 1),
-                createdDate: new Date(2024, 11, Math.floor(Math.random() * 31) + 1),
-                completedDate: status === 'completed' ? new Date(2024, 11, Math.floor(Math.random() * 31) + 1) : null,
-                estimatedHours: Math.floor(Math.random() * 8) + 1,
-                actualHours: status === 'completed' ? Math.floor(Math.random() * 8) + 1 : 0,
+                due_date: new Date(2025, Math.floor(Math.random() * 3), Math.floor(Math.random() * 28) + 1).toISOString(),
+                created_date: new Date(2024, 11, Math.floor(Math.random() * 31) + 1).toISOString(),
+                completed_date: status === 'completed' ? new Date(2024, 11, Math.floor(Math.random() * 31) + 1).toISOString() : null,
+                estimated_hours: Math.floor(Math.random() * 8) + 1,
+                actual_hours: status === 'completed' ? Math.floor(Math.random() * 8) + 1 : 0,
                 description: `${type} for medical equipment`,
                 cost: Math.floor(Math.random() * 5000) + 500
             });
@@ -90,29 +95,29 @@ const MockData = {
                 name: 'FDA 21 CFR Part 820',
                 status: 'compliant',
                 percentage: 98.5,
-                lastAudit: new Date(2024, 10, 15),
-                nextAudit: new Date(2025, 4, 15)
+                last_audit: new Date(2024, 10, 15).toISOString(),
+                next_audit: new Date(2025, 4, 15).toISOString()
             },
             jointCommission: {
                 name: 'Joint Commission Standards',
                 status: 'compliant',
                 percentage: 97.8,
-                lastAudit: new Date(2024, 9, 20),
-                nextAudit: new Date(2025, 3, 20)
+                last_audit: new Date(2024, 9, 20).toISOString(),
+                next_audit: new Date(2025, 3, 20).toISOString()
             },
             iso13485: {
                 name: 'ISO 13485',
                 status: 'needs-attention',
                 percentage: 89.2,
-                lastAudit: new Date(2024, 8, 10),
-                nextAudit: new Date(2025, 2, 10)
+                last_audit: new Date(2024, 8, 10).toISOString(),
+                next_audit: new Date(2025, 2, 10).toISOString()
             },
             osha: {
                 name: 'OSHA Compliance',
                 status: 'compliant',
                 percentage: 99.1,
-                lastAudit: new Date(2024, 11, 5),
-                nextAudit: new Date(2025, 6, 5)
+                last_audit: new Date(2024, 11, 5).toISOString(),
+                next_audit: new Date(2025, 6, 5).toISOString()
             }
         };
     }
@@ -478,14 +483,18 @@ class AssetManager {
     }
 
     // Load and display assets
-    loadAssets() {
-        const savedAssets = localStorage.getItem('merc-cmms-assets');
-        if (savedAssets) {
-            this.assets = JSON.parse(savedAssets);
-        } else {
+    async loadAssets() {
+        const { data, error } = await supabase
+            .from('assets')
+            .select('*');
+
+        if (error) {
+            console.error('Error loading assets:', error);
             this.assets = MockData.generateAssets();
-            localStorage.setItem('merc-cmms-assets', JSON.stringify(this.assets));
+        } else {
+            this.assets = data;
         }
+
         this.renderAssetTable();
         this.updateStatistics();
     }
@@ -518,7 +527,7 @@ class AssetManager {
                         ${asset.status.charAt(0).toUpperCase() + asset.status.slice(1)}
                     </span>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">${asset.warrantyExpiry.toLocaleDateString()}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">${new Date(asset.warranty_expiry).toLocaleDateString()}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <button class="text-blue-600 hover:text-blue-900 mr-3" onclick="assetManager.viewAsset('${asset.id}')">
                         <i class="fas fa-eye"></i>
@@ -579,7 +588,7 @@ class AssetManager {
             total: this.assets.length,
             active: this.assets.filter(a => a.status === 'active').length,
             maintenance: this.assets.filter(a => a.status === 'maintenance').length,
-            overdue: this.assets.filter(a => new Date(a.nextMaintenance) < new Date()).length
+            overdue: this.assets.filter(a => new Date(a.next_maintenance) < new Date()).length
         };
 
         const statElements = document.querySelectorAll('.text-2xl.font-bold');
@@ -617,7 +626,7 @@ class AssetManager {
             asset.name.toLowerCase().includes(query) ||
             asset.id.toLowerCase().includes(query) ||
             asset.location.toLowerCase().includes(query) ||
-            asset.serialNumber.toLowerCase().includes(query)
+            asset.serial_number.toLowerCase().includes(query)
         );
         this.renderFilteredAssets(filteredAssets);
     }
@@ -663,7 +672,7 @@ class AssetManager {
                         ${asset.status.charAt(0).toUpperCase() + asset.status.slice(1)}
                     </span>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">${asset.warrantyExpiry.toLocaleDateString()}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">${new Date(asset.warranty_expiry).toLocaleDateString()}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <button class="text-blue-600 hover:text-blue-900 mr-3" onclick="assetManager.viewAsset('${asset.id}')">
                         <i class="fas fa-eye"></i>
@@ -697,13 +706,22 @@ class AssetManager {
         showToast('Opening asset editor', 'info');
     }
 
-    deleteAsset(assetId) {
+    async deleteAsset(assetId) {
         if (confirm('Are you sure you want to delete this asset?')) {
-            this.assets = this.assets.filter(asset => asset.id !== assetId);
-            localStorage.setItem('merc-cmms-assets', JSON.stringify(this.assets));
-            this.renderAssetTable();
-            this.updateStatistics();
-            showToast('Asset deleted successfully', 'success');
+            const { error } = await supabase
+                .from('assets')
+                .delete()
+                .eq('id', assetId);
+
+            if (error) {
+                console.error('Error deleting asset:', error);
+                showToast('Failed to delete asset', 'error');
+            } else {
+                this.assets = this.assets.filter(asset => asset.id !== assetId);
+                this.renderAssetTable();
+                this.updateStatistics();
+                showToast('Asset deleted successfully', 'success');
+            }
         }
     }
 }
@@ -745,13 +763,13 @@ const WorkOrderManager = {
                         </span>
                     </div>
                     <p class="text-sm text-slate-600 mb-2">${wo.type}</p>
-                    <p class="text-xs text-slate-500 mb-3">Asset: ${wo.assetId}</p>
+                    <p class="text-xs text-slate-500 mb-3">Asset: ${wo.asset_id}</p>
                     <div class="flex justify-between items-center">
                         <div class="flex items-center">
                             <div class="technician-avatar">${wo.technician.split(' ').map(n => n[0]).join('')}</div>
                             <span class="text-xs text-slate-500">${wo.technician}</span>
                         </div>
-                        <span class="text-xs text-slate-500">${wo.dueDate.toLocaleDateString()}</span>
+                        <span class="text-xs text-slate-500">${new Date(wo.due_date).toLocaleDateString()}</span>
                     </div>
                 </div>
             `).join('');
@@ -781,13 +799,13 @@ const WorkOrderManager = {
         if (!tableBody) return;
 
         const recentWorkOrders = AppState.workOrders
-            .sort((a, b) => b.createdDate - a.createdDate)
+            .sort((a, b) => new Date(b.created_date) - new Date(a.created_date))
             .slice(0, 10);
 
         tableBody.innerHTML = recentWorkOrders.map(wo => `
             <tr class="border-b border-slate-100 hover:bg-slate-50">
                 <td class="py-3 px-4 text-sm font-medium text-slate-900">${wo.id}</td>
-                <td class="py-3 px-4 text-sm text-slate-600">${wo.assetId}</td>
+                <td class="py-3 px-4 text-sm text-slate-600">${wo.asset_id}</td>
                 <td class="py-3 px-4 text-sm text-slate-600">${wo.type}</td>
                 <td class="py-3 px-4">
                     <span class="text-xs px-2 py-1 rounded-full ${WorkOrderManager.getPriorityColor(wo.priority)}">
@@ -795,7 +813,7 @@ const WorkOrderManager = {
                     </span>
                 </td>
                 <td class="py-3 px-4 text-sm text-slate-600">${wo.technician}</td>
-                <td class="py-3 px-4 text-sm text-slate-600">${wo.dueDate.toLocaleDateString()}</td>
+                <td class="py-3 px-4 text-sm text-slate-600">${new Date(wo.due_date).toLocaleDateString()}</td>
                 <td class="py-3 px-4">
                     <span class="text-xs px-2 py-1 rounded-full ${WorkOrderManager.getStatusColor(wo.status)}">
                         ${wo.status.charAt(0).toUpperCase() + wo.status.slice(1)}
