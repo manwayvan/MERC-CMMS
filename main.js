@@ -22,14 +22,14 @@ const MockData = {
         const statuses = ['active', 'inactive', 'maintenance', 'retired'];
         const locations = ['ICU', 'Emergency', 'Surgery', 'Radiology', 'Laboratory', 'Cardiology', 'Oncology', 'Pediatrics'];
         const manufacturers = ['GE Healthcare', 'Siemens', 'Philips', 'Medtronic', 'Johnson & Johnson', 'Abbott', 'Stryker'];
-        
+
         const assets = [];
         for (let i = 1; i <= 50; i++) {
             const category = categories[Math.floor(Math.random() * categories.length)];
             const status = statuses[Math.floor(Math.random() * statuses.length)];
             const location = locations[Math.floor(Math.random() * locations.length)];
             const manufacturer = manufacturers[Math.floor(Math.random() * manufacturers.length)];
-            
+
             assets.push({
                 id: `AST-${String(i).padStart(4, '0')}`,
                 name: `${category.charAt(0).toUpperCase() + category.slice(1)} Equipment ${i}`,
@@ -56,14 +56,14 @@ const MockData = {
         const priorities = ['critical', 'high', 'medium', 'low'];
         const statuses = ['open', 'in-progress', 'completed', 'cancelled'];
         const technicians = ['John Smith', 'Sarah Johnson', 'Mike Davis', 'Lisa Wilson', 'Robert Brown'];
-        
+
         const workOrders = [];
         for (let i = 1; i <= 100; i++) {
             const type = types[Math.floor(Math.random() * types.length)];
             const priority = priorities[Math.floor(Math.random() * priorities.length)];
             const status = statuses[Math.floor(Math.random() * statuses.length)];
             const technician = technicians[Math.floor(Math.random() * technicians.length)];
-            
+
             workOrders.push({
                 id: `WO-${String(i).padStart(4, '0')}`,
                 assetId: `AST-${String(Math.floor(Math.random() * 50) + 1).padStart(4, '0')}`,
@@ -125,7 +125,7 @@ const ChartManager = {
     // Initialize all charts on the current page
     initializeCharts: () => {
         const currentPage = AppState.currentPage;
-        
+
         if (currentPage === 'dashboard') {
             ChartManager.initDashboardCharts();
         } else if (currentPage === 'assets') {
@@ -362,7 +362,7 @@ const ChartManager = {
     // Initialize compliance page charts
     initComplianceCharts: () => {
         // Compliance gauges are initialized separately
-        
+
         // Compliance Trend Chart
         const trendChart = echarts.init(document.getElementById('compliance-trend-chart'));
         const trendOption = {
@@ -469,29 +469,37 @@ const ChartManager = {
     }
 };
 
-// Asset Management Functions
-const AssetManager = {
-    // Initialize asset management functionality
-    init: () => {
-        AssetManager.loadAssets();
-        AssetManager.setupEventListeners();
-    },
+// Asset Management Class
+class AssetManager {
+    constructor() {
+        this.assets = [];
+        this.currentPage = 1;
+        this.itemsPerPage = 10;
+    }
 
     // Load and display assets
-    loadAssets: () => {
-        AppState.assets = MockData.generateAssets();
-        AssetManager.renderAssetTable();
-        AssetManager.updateStatistics();
-    },
+    loadAssets() {
+        const savedAssets = localStorage.getItem('merc-cmms-assets');
+        if (savedAssets) {
+            this.assets = JSON.parse(savedAssets);
+        } else {
+            this.assets = MockData.generateAssets();
+            localStorage.setItem('merc-cmms-assets', JSON.stringify(this.assets));
+        }
+        this.renderAssetTable();
+        this.updateStatistics();
+    }
 
-    // Render asset table
-    renderAssetTable: () => {
+    // Render asset table with pagination
+    renderAssetTable() {
         const tableBody = document.getElementById('asset-table-body');
         if (!tableBody) return;
 
-        const displayAssets = AppState.assets.slice(0, 10); // Show first 10 for pagination
-        
-        tableBody.innerHTML = displayAssets.map(asset => `
+        const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+        const endIndex = startIndex + this.itemsPerPage;
+        const paginatedAssets = this.assets.slice(startIndex, endIndex);
+
+        tableBody.innerHTML = paginatedAssets.map(asset => `
             <tr class="table-row">
                 <td class="px-6 py-4 whitespace-nowrap">
                     <input type="checkbox" class="rounded border-slate-300">
@@ -505,29 +513,57 @@ const AssetManager = {
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">${asset.location}</td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${AssetManager.getStatusColor(asset.status)}">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${this.getStatusColor(asset.status)}">
                         <span class="status-indicator status-${asset.status}"></span>
                         ${asset.status.charAt(0).toUpperCase() + asset.status.slice(1)}
                     </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">${asset.warrantyExpiry.toLocaleDateString()}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button class="text-blue-600 hover:text-blue-900 mr-3" onclick="AssetManager.viewAsset('${asset.id}')">
+                    <button class="text-blue-600 hover:text-blue-900 mr-3" onclick="assetManager.viewAsset('${asset.id}')">
                         <i class="fas fa-eye"></i>
                     </button>
-                    <button class="text-green-600 hover:text-green-900 mr-3" onclick="AssetManager.editAsset('${asset.id}')">
+                    <button class="text-green-600 hover:text-green-900 mr-3" onclick="assetManager.editAsset('${asset.id}')">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="text-red-600 hover:text-red-900" onclick="AssetManager.deleteAsset('${asset.id}')">
+                    <button class="text-red-600 hover:text-red-900" onclick="assetManager.deleteAsset('${asset.id}')">
                         <i class="fas fa-trash"></i>
                     </button>
                 </td>
             </tr>
         `).join('');
-    },
+
+        this.renderPagination();
+    }
+
+    // Add pagination controls
+    renderPagination() {
+        const totalPages = Math.ceil(this.assets.length / this.itemsPerPage);
+        const paginationContainer = document.getElementById('pagination');
+        if (!paginationContainer) return;
+
+        paginationContainer.innerHTML = `
+            <div class="flex justify-center mt-4">
+                ${Array.from({ length: totalPages }, (_, i) => `
+                    <button
+                        class="px-3 py-1 mx-1 rounded ${this.currentPage === i + 1 ? 'bg-blue-600 text-white' : 'bg-gray-200'}"
+                        onclick="assetManager.goToPage(${i + 1})"
+                    >
+                        ${i + 1}
+                    </button>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    // Navigate to a specific page
+    goToPage(page) {
+        this.currentPage = page;
+        this.renderAssetTable();
+    }
 
     // Get status color class
-    getStatusColor: (status) => {
+    getStatusColor(status) {
         const colors = {
             active: 'bg-green-100 text-green-800',
             inactive: 'bg-gray-100 text-gray-800',
@@ -535,82 +571,79 @@ const AssetManager = {
             retired: 'bg-red-100 text-red-800'
         };
         return colors[status] || 'bg-gray-100 text-gray-800';
-    },
+    }
 
     // Update asset statistics
-    updateStatistics: () => {
+    updateStatistics() {
         const stats = {
-            total: AppState.assets.length,
-            active: AppState.assets.filter(a => a.status === 'active').length,
-            maintenance: AppState.assets.filter(a => a.status === 'maintenance').length,
-            overdue: AppState.assets.filter(a => a.nextMaintenance < new Date()).length
+            total: this.assets.length,
+            active: this.assets.filter(a => a.status === 'active').length,
+            maintenance: this.assets.filter(a => a.status === 'maintenance').length,
+            overdue: this.assets.filter(a => new Date(a.nextMaintenance) < new Date()).length
         };
 
-        // Update statistics display if elements exist
-        const totalElement = document.querySelector('.text-2xl.font-bold.text-slate-800');
-        if (totalElement) {
-            // Update all statistics on the page
-            const statElements = document.querySelectorAll('.text-2xl.font-bold');
-            if (statElements.length >= 4) {
-                statElements[0].textContent = stats.total.toLocaleString();
-                statElements[1].textContent = stats.active.toLocaleString();
-                statElements[2].textContent = stats.maintenance.toLocaleString();
-                statElements[3].textContent = stats.overdue.toLocaleString();
-            }
+        const statElements = document.querySelectorAll('.text-2xl.font-bold');
+        if (statElements.length >= 4) {
+            statElements[0].textContent = stats.total.toLocaleString();
+            statElements[1].textContent = stats.active.toLocaleString();
+            statElements[2].textContent = stats.maintenance.toLocaleString();
+            statElements[3].textContent = stats.overdue.toLocaleString();
         }
-    },
+    }
 
     // Setup event listeners
-    setupEventListeners: () => {
-        // Search functionality
+    setupEventListeners() {
         const searchInput = document.getElementById('asset-search');
         if (searchInput) {
-            searchInput.addEventListener('input', AssetManager.handleSearch);
+            let debounceTimer;
+            searchInput.addEventListener('input', (event) => {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => {
+                    this.handleSearch(event);
+                }, 300);
+            });
         }
 
-        // Category filter chips
         const filterChips = document.querySelectorAll('.filter-chip');
         filterChips.forEach(chip => {
-            chip.addEventListener('click', () => AssetManager.handleCategoryFilter(chip));
+            chip.addEventListener('click', () => this.handleCategoryFilter(chip));
         });
-    },
+    }
 
     // Handle search
-    handleSearch: (event) => {
+    handleSearch(event) {
         const query = event.target.value.toLowerCase();
-        const filteredAssets = AppState.assets.filter(asset => 
+        const filteredAssets = this.assets.filter(asset =>
             asset.name.toLowerCase().includes(query) ||
             asset.id.toLowerCase().includes(query) ||
             asset.location.toLowerCase().includes(query) ||
             asset.serialNumber.toLowerCase().includes(query)
         );
-        AssetManager.renderFilteredAssets(filteredAssets);
-    },
+        this.renderFilteredAssets(filteredAssets);
+    }
 
     // Handle category filter
-    handleCategoryFilter: (chip) => {
-        // Remove active class from all chips
+    handleCategoryFilter(chip) {
         document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-        // Add active class to clicked chip
         chip.classList.add('active');
 
         const category = chip.dataset.category;
-        let filteredAssets = AppState.assets;
+        let filteredAssets = this.assets;
 
         if (category !== 'all') {
-            filteredAssets = AppState.assets.filter(asset => asset.category === category);
+            filteredAssets = this.assets.filter(asset => asset.category === category);
         }
 
-        AssetManager.renderFilteredAssets(filteredAssets);
-    },
+        this.renderFilteredAssets(filteredAssets);
+    }
 
     // Render filtered assets
-    renderFilteredAssets: (assets) => {
+    renderFilteredAssets(assets) {
         const tableBody = document.getElementById('asset-table-body');
         if (!tableBody) return;
 
-        const displayAssets = assets.slice(0, 10);
-        
+        const displayAssets = assets.slice(0, this.itemsPerPage);
+
         tableBody.innerHTML = displayAssets.map(asset => `
             <tr class="table-row">
                 <td class="px-6 py-4 whitespace-nowrap">
@@ -625,55 +658,58 @@ const AssetManager = {
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">${asset.location}</td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${AssetManager.getStatusColor(asset.status)}">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${this.getStatusColor(asset.status)}">
                         <span class="status-indicator status-${asset.status}"></span>
                         ${asset.status.charAt(0).toUpperCase() + asset.status.slice(1)}
                     </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">${asset.warrantyExpiry.toLocaleDateString()}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button class="text-blue-600 hover:text-blue-900 mr-3" onclick="AssetManager.viewAsset('${asset.id}')">
+                    <button class="text-blue-600 hover:text-blue-900 mr-3" onclick="assetManager.viewAsset('${asset.id}')">
                         <i class="fas fa-eye"></i>
                     </button>
-                    <button class="text-green-600 hover:text-green-900 mr-3" onclick="AssetManager.editAsset('${asset.id}')">
+                    <button class="text-green-600 hover:text-green-900 mr-3" onclick="assetManager.editAsset('${asset.id}')">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="text-red-600 hover:text-red-900" onclick="AssetManager.deleteAsset('${asset.id}')">
+                    <button class="text-red-600 hover:text-red-900" onclick="assetManager.deleteAsset('${asset.id}')">
                         <i class="fas fa-trash"></i>
                     </button>
                 </td>
             </tr>
         `).join('');
 
-        // Update showing count
         const showingElement = document.getElementById('showing-end');
         if (showingElement) {
-            showingElement.textContent = Math.min(10, assets.length);
+            showingElement.textContent = Math.min(this.itemsPerPage, assets.length);
         }
         const totalElement = document.getElementById('total-assets');
         if (totalElement) {
             totalElement.textContent = assets.length.toLocaleString();
         }
-    },
+    }
 
     // Asset actions
-    viewAsset: (assetId) => {
+    viewAsset(assetId) {
         showToast('Viewing asset details', 'info');
-    },
+    }
 
-    editAsset: (assetId) => {
+    editAsset(assetId) {
         showToast('Opening asset editor', 'info');
-    },
+    }
 
-    deleteAsset: (assetId) => {
+    deleteAsset(assetId) {
         if (confirm('Are you sure you want to delete this asset?')) {
-            AppState.assets = AppState.assets.filter(asset => asset.id !== assetId);
-            AssetManager.renderAssetTable();
-            AssetManager.updateStatistics();
+            this.assets = this.assets.filter(asset => asset.id !== assetId);
+            localStorage.setItem('merc-cmms-assets', JSON.stringify(this.assets));
+            this.renderAssetTable();
+            this.updateStatistics();
             showToast('Asset deleted successfully', 'success');
         }
     }
-};
+}
+
+// Initialize AssetManager
+const assetManager = new AssetManager();
 
 // Work Order Management Functions
 const WorkOrderManager = {
@@ -688,12 +724,12 @@ const WorkOrderManager = {
     // Render work orders in kanban board
     renderWorkOrders: () => {
         const columns = ['open', 'progress', 'completed', 'cancelled'];
-        
+
         columns.forEach(status => {
             const container = document.getElementById(`${status === 'progress' ? 'progress' : status}-workorders`);
             if (!container) return;
 
-            const workOrders = AppState.workOrders.filter(wo => 
+            const workOrders = AppState.workOrders.filter(wo =>
                 (status === 'open' && wo.status === 'open') ||
                 (status === 'progress' && wo.status === 'in-progress') ||
                 (status === 'completed' && wo.status === 'completed') ||
@@ -762,7 +798,7 @@ const WorkOrderManager = {
                 <td class="py-3 px-4 text-sm text-slate-600">${wo.dueDate.toLocaleDateString()}</td>
                 <td class="py-3 px-4">
                     <span class="text-xs px-2 py-1 rounded-full ${WorkOrderManager.getStatusColor(wo.status)}">
-                        ${wo.status.charAt(0).toUpperCase() + wo.status.slice(1).replace('-', ' ')}
+                        ${wo.status.charAt(0).toUpperCase() + wo.status.slice(1)}
                     </span>
                 </td>
             </tr>
@@ -782,422 +818,27 @@ const WorkOrderManager = {
 
     // Setup event listeners
     setupEventListeners: () => {
-        // Search functionality
-        const searchInput = document.getElementById('workorder-search');
-        if (searchInput) {
-            searchInput.addEventListener('input', WorkOrderManager.handleSearch);
-        }
-
-        // Filter functionality
-        const priorityFilter = document.getElementById('priority-filter');
-        const technicianFilter = document.getElementById('technician-filter');
-        
-        if (priorityFilter) priorityFilter.addEventListener('change', WorkOrderManager.handleFilter);
-        if (technicianFilter) technicianFilter.addEventListener('change', WorkOrderManager.handleFilter);
+        // Add event listeners for work order actions
     },
 
-    // Handle search
-    handleSearch: (event) => {
-        const query = event.target.value.toLowerCase();
-        // Filter work orders and re-render
-        showToast(`Searching for: ${query}`, 'info');
-    },
-
-    // Handle filter
-    handleFilter: () => {
-        // Apply filters and re-render
-        showToast('Filters applied', 'info');
-    },
-
-    // Work order actions
+    // View work order
     viewWorkOrder: (workOrderId) => {
-        showToast(`Viewing work order: ${workOrderId}`, 'info');
+        showToast('Viewing work order details', 'info');
     }
 };
 
-// Compliance Management Functions
-const ComplianceManager = {
-    // Initialize compliance management
-    init: () => {
-        AppState.compliance = MockData.generateComplianceData();
-        ComplianceManager.renderAuditTrail();
-        ComplianceManager.initComplianceGauges();
-    },
+// Initialize the application
+function initApp() {
+    AppState.currentPage = window.location.pathname.split('/').pop().replace('.html', '') || 'dashboard';
+    ChartManager.initializeCharts();
 
-    // Render audit trail
-    renderAuditTrail: () => {
-        const container = document.getElementById('audit-trail');
-        if (!container) return;
-
-        const auditItems = [
-            { user: 'John Smith', action: 'Updated asset AST-0001', timestamp: new Date(Date.now() - 300000), type: 'update' },
-            { user: 'Sarah Johnson', action: 'Created work order WO-0101', timestamp: new Date(Date.now() - 600000), type: 'create' },
-            { user: 'Mike Davis', action: 'Completed maintenance for MRI-001', timestamp: new Date(Date.now() - 900000), type: 'maintenance' },
-            { user: 'Lisa Wilson', action: 'Updated compliance documentation', timestamp: new Date(Date.now() - 1200000), type: 'compliance' },
-            { user: 'Robert Brown', action: 'Generated compliance report', timestamp: new Date(Date.now() - 1500000), type: 'report' }
-        ];
-
-        container.innerHTML = auditItems.map(item => `
-            <div class="audit-trail-item">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <p class="text-sm font-medium text-slate-800">${item.action}</p>
-                        <p class="text-xs text-slate-500">by ${item.user}</p>
-                    </div>
-                    <span class="text-xs text-slate-400">${ComplianceManager.formatTimeAgo(item.timestamp)}</span>
-                </div>
-            </div>
-        `).join('');
-    },
-
-    // Initialize compliance gauges
-    initComplianceGauges: () => {
-        // Gauges are handled by ChartManager
-    },
-
-    // Format time ago
-    formatTimeAgo: (date) => {
-        const now = new Date();
-        const diffInMinutes = Math.floor((now - date) / (1000 * 60));
-        
-        if (diffInMinutes < 60) {
-            return `${diffInMinutes}m ago`;
-        } else {
-            const diffInHours = Math.floor(diffInMinutes / 60);
-            return `${diffInHours}h ago`;
-        }
-    }
-};
-
-// Animation and Effects
-const AnimationManager = {
-    // Initialize animations
-    init: () => {
-        AnimationManager.initCounterAnimations();
-        AnimationManager.initHeroAnimation();
-        AnimationManager.initScrollAnimations();
-    },
-
-    // Initialize counter animations
-    initCounterAnimations: () => {
-        const counters = [
-            { id: 'total-assets', target: 2847 },
-            { id: 'active-work-orders', target: 156 },
-            { id: 'compliance-rate', target: 98.7, suffix: '%' },
-            { id: 'maintenance-due', target: 89 }
-        ];
-
-        counters.forEach(counter => {
-            const element = document.getElementById(counter.id);
-            if (element) {
-                AnimationManager.animateCounter(element, counter.target, counter.suffix || '');
-            }
-        });
-    },
-
-    // Animate counter
-    animateCounter: (element, target, suffix = '') => {
-        let current = 0;
-        const increment = target / 50;
-        const timer = setInterval(() => {
-            current += increment;
-            if (current >= target) {
-                current = target;
-                clearInterval(timer);
-            }
-            
-            if (suffix === '%') {
-                element.textContent = current.toFixed(1) + suffix;
-            } else {
-                element.textContent = Math.floor(current).toLocaleString();
-            }
-        }, 50);
-    },
-
-    // Initialize hero animation
-    initHeroAnimation: () => {
-        const heroText = document.getElementById('hero-text');
-        if (heroText && typeof Typed !== 'undefined') {
-            new Typed('#hero-text', {
-                strings: ['Enterprise Medical Device Management', 'Comprehensive CMMS Solution', 'Healthcare Compliance Platform'],
-                typeSpeed: 50,
-                backSpeed: 30,
-                backDelay: 2000,
-                loop: true
-            });
-        }
-    },
-
-    // Initialize scroll animations
-    initScrollAnimations: () => {
-        const observerOptions = {
-            threshold: 0.1,
-            rootMargin: '0px 0px -50px 0px'
-        };
-
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.style.opacity = '1';
-                    entry.target.style.transform = 'translateY(0)';
-                }
-            });
-        }, observerOptions);
-
-        // Observe elements for scroll animation
-        document.querySelectorAll('.card-hover').forEach(el => {
-            el.style.opacity = '0';
-            el.style.transform = 'translateY(20px)';
-            el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-            observer.observe(el);
-        });
-    }
-};
-
-// Utility Functions
-const Utils = {
-    // Format date
-    formatDate: (date) => {
-        return date.toLocaleDateString();
-    },
-
-    // Format currency
-    formatCurrency: (amount) => {
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: 'USD'
-        }).format(amount);
-    },
-
-    // Generate random ID
-    generateId: (prefix) => {
-        return `${prefix}-${Math.random().toString(36).substr(2, 9)}`;
-    },
-
-    // Debounce function
-    debounce: (func, wait) => {
-        let timeout;
-        return function executedFunction(...args) {
-            const later = () => {
-                clearTimeout(timeout);
-                func(...args);
-            };
-            clearTimeout(timeout);
-            timeout = setTimeout(later, wait);
-        };
-    }
-};
-
-// Toast Notifications
-const ToastManager = {
-    // Show toast notification
-    show: (message, type = 'info', duration = 3000) => {
-        const container = document.getElementById('toast-container');
-        if (!container) return;
-
-        const toast = document.createElement('div');
-        toast.className = `toast toast-${type} bg-white border-l-4 rounded-lg shadow-lg p-4 mb-4 max-w-sm`;
-        
-        const colors = {
-            success: 'border-green-500',
-            error: 'border-red-500',
-            warning: 'border-amber-500',
-            info: 'border-blue-500'
-        };
-
-        toast.className += ` ${colors[type] || colors.info}`;
-        
-        toast.innerHTML = `
-            <div class="flex items-center">
-                <div class="flex-1">
-                    <p class="text-sm font-medium text-slate-800">${message}</p>
-                </div>
-                <button class="ml-4 text-slate-400 hover:text-slate-600" onclick="this.parentElement.parentElement.remove()">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-        `;
-
-        container.appendChild(toast);
-
-        // Animate in
-        setTimeout(() => {
-            toast.style.transform = 'translateX(0)';
-            toast.style.opacity = '1';
-        }, 10);
-
-        // Auto remove
-        setTimeout(() => {
-            ToastManager.remove(toast);
-        }, duration);
-    },
-
-    // Remove toast
-    remove: (toast) => {
-        toast.style.transform = 'translateX(100%)';
-        toast.style.opacity = '0';
-        setTimeout(() => {
-            if (toast.parentNode) {
-                toast.parentNode.removeChild(toast);
-            }
-        }, 300);
-    }
-};
-
-// Global Functions
-function showToast(message, type = 'info') {
-    ToastManager.show(message, type);
-}
-
-function showComingSoon() {
-    showToast('Feature coming soon!', 'info');
-}
-
-function filterByCategory(category) {
-    if (typeof AssetManager !== 'undefined') {
-        AssetManager.handleCategoryFilter({ dataset: { category } });
+    if (AppState.currentPage === 'assets') {
+        assetManager.loadAssets();
+        assetManager.setupEventListeners();
+    } else if (AppState.currentPage === 'workorders') {
+        WorkOrderManager.init();
     }
 }
 
-function changePage(direction) {
-    showToast(`Navigating ${direction}`, 'info');
-}
-
-// Modal Functions
-function showCreateWorkOrderModal() {
-    const modal = document.getElementById('create-workorder-modal');
-    if (modal) {
-        modal.classList.add('active');
-    }
-}
-
-function hideCreateWorkOrderModal() {
-    const modal = document.getElementById('create-workorder-modal');
-    if (modal) {
-        modal.classList.remove('active');
-    }
-}
-
-function showCustomReportModal() {
-    const modal = document.getElementById('custom-report-modal');
-    if (modal) {
-        modal.classList.add('active');
-    }
-}
-
-function hideCustomReportModal() {
-    const modal = document.getElementById('custom-report-modal');
-    if (modal) {
-        modal.classList.remove('active');
-    }
-}
-
-// Application Initialization
-const App = {
-    // Initialize application
-    init: () => {
-        // Determine current page
-        const path = window.location.pathname;
-        if (path.includes('assets.html')) {
-            AppState.currentPage = 'assets';
-        } else if (path.includes('work-orders.html')) {
-            AppState.currentPage = 'workorders';
-        } else if (path.includes('compliance.html')) {
-            AppState.currentPage = 'compliance';
-        } else {
-            AppState.currentPage = 'dashboard';
-        }
-
-        // Initialize components
-        ChartManager.initializeCharts();
-        AnimationManager.init();
-        
-        // Initialize page-specific functionality
-        if (AppState.currentPage === 'assets') {
-            AssetManager.init();
-        } else if (AppState.currentPage === 'workorders') {
-            WorkOrderManager.init();
-        } else if (AppState.currentPage === 'compliance') {
-            ComplianceManager.init();
-        }
-
-        // Setup global event listeners
-        App.setupGlobalEventListeners();
-
-        // Initialize recent activity
-        App.initRecentActivity();
-
-        showToast('MERC-CMMS System Loaded Successfully', 'success');
-    },
-
-    // Setup global event listeners
-    setupGlobalEventListeners: () => {
-        // Window resize for charts
-        window.addEventListener('resize', Utils.debounce(() => {
-            ChartManager.resizeCharts();
-        }, 250));
-
-        // Modal close on outside click
-        document.addEventListener('click', (event) => {
-            if (event.target.classList.contains('modal')) {
-                event.target.classList.remove('active');
-            }
-        });
-
-        // Form submissions
-        document.addEventListener('submit', (event) => {
-            if (event.target.id === 'create-workorder-form') {
-                event.preventDefault();
-                hideCreateWorkOrderModal();
-                showToast('Work order created successfully!', 'success');
-            } else if (event.target.id === 'custom-report-form') {
-                event.preventDefault();
-                hideCustomReportModal();
-                showToast('Custom report generated successfully!', 'success');
-            }
-        });
-    },
-
-    // Initialize recent activity
-    initRecentActivity: () => {
-        const activityContainer = document.getElementById('recent-activity');
-        if (!activityContainer) return;
-
-        const activities = [
-            { user: 'John Smith', action: 'Completed maintenance on MRI-001', time: '5 minutes ago', type: 'maintenance' },
-            { user: 'Sarah Johnson', action: 'Updated compliance documentation', time: '12 minutes ago', type: 'compliance' },
-            { user: 'Mike Davis', action: 'Created work order WO-0156', time: '25 minutes ago', type: 'workorder' },
-            { user: 'Lisa Wilson', action: 'Added new asset AST-0285', time: '1 hour ago', type: 'asset' },
-            { user: 'Robert Brown', action: 'Generated compliance report', time: '2 hours ago', type: 'report' }
-        ];
-
-        activityContainer.innerHTML = activities.map(activity => `
-            <div class="flex items-start space-x-3 p-3 hover:bg-slate-50 rounded-lg transition-colors">
-                <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <i class="fas fa-user text-blue-600 text-sm"></i>
-                </div>
-                <div class="flex-1">
-                    <p class="text-sm text-slate-800">
-                        <span class="font-medium">${activity.user}</span> ${activity.action}
-                    </p>
-                    <p class="text-xs text-slate-500">${activity.time}</p>
-                </div>
-            </div>
-        `).join('');
-    }
-};
-
-// Initialize application when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-    App.init();
-});
-
-// Export for global access
-window.showToast = showToast;
-window.showComingSoon = showComingSoon;
-window.filterByCategory = filterByCategory;
-window.changePage = changePage;
-window.showCreateWorkOrderModal = showCreateWorkOrderModal;
-window.hideCreateWorkOrderModal = hideCreateWorkOrderModal;
-window.showCustomReportModal = showCustomReportModal;
-window.hideCustomReportModal = hideCustomReportModal;
+// Initialize the app when the DOM is loaded
+document.addEventListener('DOMContentLoaded', initApp);
