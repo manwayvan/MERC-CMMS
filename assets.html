@@ -10,28 +10,22 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-        
         * {
             font-family: 'Inter', sans-serif;
         }
-        
         .medical-gradient {
             background: linear-gradient(135deg, #1e293b 0%, #2563eb 50%, #0891b2 100%);
         }
-        
         .card-hover {
             transition: all 0.3s ease;
         }
-        
         .card-hover:hover {
             transform: translateY(-2px);
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         }
-        
         .medical-cross {
             position: relative;
         }
-        
         .medical-cross::before,
         .medical-cross::after {
             content: '';
@@ -39,7 +33,6 @@
             background: #0891b2;
             border-radius: 2px;
         }
-        
         .medical-cross::before {
             width: 20px;
             height: 4px;
@@ -47,7 +40,6 @@
             left: 50%;
             transform: translate(-50%, -50%);
         }
-        
         .medical-cross::after {
             width: 4px;
             height: 20px;
@@ -55,7 +47,6 @@
             left: 50%;
             transform: translate(-50%, -50%);
         }
-        
         .status-indicator {
             width: 12px;
             height: 12px;
@@ -63,24 +54,20 @@
             display: inline-block;
             margin-right: 8px;
         }
-        
         .status-active { background-color: #059669; }
         .status-inactive { background-color: #6b7280; }
         .status-maintenance { background-color: #d97706; }
         .status-retired { background-color: #dc2626; }
-        
         .asset-header-bg {
             background-image: url('./resources/asset-header.jpg');
             background-size: cover;
             background-position: center;
         }
-        
         .glass-effect {
             backdrop-filter: blur(10px);
             background: rgba(255, 255, 255, 0.1);
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
-        
         .notification-badge {
             position: absolute;
             top: -8px;
@@ -96,11 +83,9 @@
             font-size: 12px;
             font-weight: bold;
         }
-        
         .table-row:hover {
             background-color: #f8fafc;
         }
-        
         .filter-chip {
             background: #e2e8f0;
             color: #475569;
@@ -113,16 +98,13 @@
             cursor: pointer;
             transition: all 0.2s;
         }
-        
         .filter-chip:hover {
             background: #cbd5e1;
         }
-        
         .filter-chip.active {
             background: #2563eb;
             color: white;
         }
-        
         .category-icon {
             width: 40px;
             height: 40px;
@@ -134,7 +116,6 @@
             color: white;
             margin-right: 12px;
         }
-        
         .category-diagnostic { background: #2563eb; }
         .category-therapeutic { background: #059669; }
         .category-surgical { background: #dc2626; }
@@ -156,15 +137,14 @@
                         <p class="text-blue-200 text-xs">Enterprise Medical Device Management</p>
                     </div>
                 </div>
-                
                 <!-- Navigation Menu -->
                 <div class="hidden md:flex items-center space-x-8">
                     <a href="index.html" class="text-blue-200 hover:text-white transition-colors">Dashboard</a>
+                    <a href="customers.html" class="text-blue-200 hover:text-white transition-colors">Customers</a>
                     <a href="assets.html" class="text-white font-semibold border-b-2 border-blue-300 pb-1">Assets</a>
                     <a href="work-orders.html" class="text-blue-200 hover:text-white transition-colors">Work Orders</a>
                     <a href="compliance.html" class="text-blue-200 hover:text-white transition-colors">Compliance</a>
                 </div>
-                
                 <!-- User Profile and Notifications -->
                 <div class="flex items-center space-x-4">
                     <div class="relative">
@@ -206,6 +186,7 @@
         <!-- Asset Statistics -->
         <section class="py-8 bg-white">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h2 class="text-3xl font-bold text-slate-800 mb-8 text-center">Real-Time System Statistics</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <div class="bg-slate-50 rounded-lg p-4 text-center">
                         <div class="text-2xl font-bold text-slate-800">2,847</div>
@@ -240,7 +221,6 @@
                                        class="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                             </div>
                         </div>
-                        
                         <!-- Category Filter -->
                         <div class="flex flex-wrap gap-2">
                             <div class="filter-chip active" data-category="all">All Categories</div>
@@ -251,7 +231,6 @@
                             <div class="filter-chip" data-category="imaging">Imaging</div>
                             <div class="filter-chip" data-category="laboratory">Laboratory</div>
                         </div>
-                        
                         <!-- Export Button -->
                         <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2" onclick="showComingSoon()">
                             <i class="fas fa-download"></i>
@@ -266,7 +245,6 @@
         <section class="py-8 bg-white">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <h2 class="text-2xl font-bold text-slate-800 mb-6">Asset Categories</h2>
-                
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <!-- Diagnostic Equipment -->
                     <div class="bg-slate-50 rounded-lg p-6 card-hover cursor-pointer" onclick="filterByCategory('diagnostic')">
@@ -284,7 +262,6 @@
                             <span class="text-green-600 text-sm">98% uptime</span>
                         </div>
                     </div>
-                    
                     <!-- Therapeutic Equipment -->
                     <div class="bg-slate-50 rounded-lg p-6 card-hover cursor-pointer" onclick="filterByCategory('therapeutic')">
                         <div class="flex items-center mb-4">
@@ -301,7 +278,6 @@
                             <span class="text-green-600 text-sm">99% uptime</span>
                         </div>
                     </div>
-                    
                     <!-- Surgical Equipment -->
                     <div class="bg-slate-50 rounded-lg p-6 card-hover cursor-pointer" onclick="filterByCategory('surgical')">
                         <div class="flex items-center mb-4">
@@ -318,7 +294,6 @@
                             <span class="text-green-600 text-sm">97% uptime</span>
                         </div>
                     </div>
-                    
                     <!-- Monitoring Devices -->
                     <div class="bg-slate-50 rounded-lg p-6 card-hover cursor-pointer" onclick="filterByCategory('monitoring')">
                         <div class="flex items-center mb-4">
@@ -335,7 +310,6 @@
                             <span class="text-green-600 text-sm">99% uptime</span>
                         </div>
                     </div>
-                    
                     <!-- Imaging Equipment -->
                     <div class="bg-slate-50 rounded-lg p-6 card-hover cursor-pointer" onclick="filterByCategory('imaging')">
                         <div class="flex items-center mb-4">
@@ -352,7 +326,6 @@
                             <span class="text-green-600 text-sm">96% uptime</span>
                         </div>
                     </div>
-                    
                     <!-- Laboratory Equipment -->
                     <div class="bg-slate-50 rounded-lg p-6 card-hover cursor-pointer" onclick="filterByCategory('laboratory')">
                         <div class="flex items-center mb-4">
@@ -392,7 +365,6 @@
                             </div>
                         </div>
                     </div>
-                    
                     <div class="overflow-x-auto">
                         <table class="w-full">
                             <thead class="bg-slate-50">
@@ -414,7 +386,6 @@
                             </tbody>
                         </table>
                     </div>
-                    
                     <div class="px-6 py-4 border-t border-slate-200 flex items-center justify-between">
                         <div class="text-sm text-slate-700">
                             Showing <span id="showing-start">1</span> to <span id="showing-end">10</span> of <span id="total-assets">2,847</span> assets
