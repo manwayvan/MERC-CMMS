@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compliance & Reports - MERC-CMMS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .medical-gradient {
+            background: linear-gradient(135deg, #1e293b 0%, #2563eb 50%, #0891b2 100%);
+        }
+        
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        .medical-cross {
+            position: relative;
+        }
+        
+        .medical-cross::before,
+        .medical-cross::after {
+            content: '';
+            position: absolute;
+            background: #0891b2;
+            border-radius: 2px;
+        }
+        
+        .medical-cross::before {
+            width: 20px;
+            height: 4px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        .medical-cross::after {
+            width: 4px;
+            height: 20px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        .compliance-header-bg {
+            background-image: url('./resources/compliance-bg.jpg');
+            background-size: cover;
+            background-position: center;
+        }
+        
+        .glass-effect {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .notification-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #dc2626;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .compliance-excellent { background-color: #059669; }
+        .compliance-good { background-color: #d97706; }
+        .compliance-needs-attention { background-color: #dc2626; }
+        
+        .compliance-gauge {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto;
+        }
+        
+        .audit-trail-item {
+            border-left: 2px solid #e2e8f0;
+            padding-left: 16px;
+            margin-bottom: 16px;
+            position: relative;
+        }
+        
+        .audit-trail-item::before {
+            content: '';
+            position: absolute;
+            left: -6px;
+            top: 8px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #2563eb;
+        }
+        
+        .report-template {
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .report-template:hover {
+            border-color: #2563eb;
+            background: #f8fafc;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+        
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 800px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .compliance-matrix {
+            display: grid;
+            grid-template-columns: 200px repeat(4, 1fr);
+            gap: 1px;
+            background: #e2e8f0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .matrix-cell {
+            background: white;
+            padding: 12px;
+            text-align: center;
+        }
+        
+        .matrix-header {
+            background: #f8fafc;
+            font-weight: 600;
+            color: #475569;
+        }
+        
+        .matrix-category {
+            background: #f8fafc;
+            font-weight: 500;
+            text-align: left;
+        }
+        
+        .compliance-status {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+    <!-- Navigation Bar -->
+    <nav class="fixed top-0 left-0 right-0 z-50 medical-gradient shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo and Brand -->
+                <div class="flex items-center space-x-4">
+                    <div class="medical-cross w-8 h-8 bg-white rounded-full"></div>
+                    <div>
+                        <h1 class="text-white text-xl font-bold">MERC-CMMS</h1>
+                        <p class="text-blue-200 text-xs">Enterprise Medical Device Management</p>
+                    </div>
+                </div>
+                
+                <!-- Navigation Menu -->
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="index.html" class="text-blue-200 hover:text-white transition-colors">Dashboard</a>
+                    <a href="assets.html" class="text-blue-200 hover:text-white transition-colors">Assets</a>
+                    <a href="work-orders.html" class="text-blue-200 hover:text-white transition-colors">Work Orders</a>
+                    <a href="compliance.html" class="text-white font-semibold border-b-2 border-blue-300 pb-1">Compliance</a>
+                </div>
+                
+                <!-- User Profile and Notifications -->
+                <div class="flex items-center space-x-4">
+                    <div class="relative">
+                        <button class="text-white hover:text-blue-200 transition-colors">
+                            <i class="fas fa-bell text-xl"></i>
+                        </button>
+                        <div class="notification-badge">2</div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                            <i class="fas fa-user text-white text-sm"></i>
+                        </div>
+                        <div class="hidden md:block">
+                            <p class="text-white text-sm font-medium">System Admin</p>
+                            <p class="text-blue-200 text-xs">Super Administrator</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="pt-16">
+        <!-- Header Section -->
+        <section class="compliance-header-bg relative">
+            <div class="absolute inset-0 bg-slate-900 bg-opacity-70"></div>
+            <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+                <div class="text-center">
+                    <h1 class="text-4xl md:text-5xl font-bold text-white mb-4">Compliance & Reports</h1>
+                    <p class="text-xl text-blue-200 mb-8 max-w-3xl mx-auto">
+                        Comprehensive regulatory compliance management with real-time monitoring, 
+                        audit trails, and enterprise reporting capabilities
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Compliance Overview -->
+        <section class="py-8 bg-white">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="bg-slate-50 rounded-lg p-4 text-center">
+                        <div class="text-2xl font-bold text-green-600">98.7%</div>
+                        <div class="text-slate-600 text-sm">Overall Compliance</div>
+                    </div>
+                    <div class="bg-slate-50 rounded-lg p-4 text-center">
+                        <div class="text-2xl font-bold text-blue-600">12</div>
+                        <div class="text-slate-600 text-sm">Active Standards</div>
+                    </div>
+                    <div class="bg-slate-50 rounded-lg p-4 text-center">
+                        <div class="text-2xl font-bold text-amber-600">3</div>
+                        <div class="text-slate-600 text-sm">Pending Audits</div>
+                    </div>
+                    <div class="bg-slate-50 rounded-lg p-4 text-center">
+                        <div class="text-2xl font-bold text-red-600">1</div>
+                        <div class="text-slate-600 text-sm">Critical Issues</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Compliance Dashboard -->
+        <section class="py-8 bg-slate-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h2 class="text-2xl font-bold text-slate-800 mb-6 text-center">Regulatory Compliance Status</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <!-- FDA Compliance -->
+                    <div class="bg-white rounded-lg shadow-lg p-6 card-hover">
+                        <div class="text-center">
+                            <h3 class="text-lg font-semibold text-slate-800 mb-4">FDA 21 CFR Part 820</h3>
+                            <div id="fda-gauge" class="compliance-gauge"></div>
+                            <p class="text-sm text-slate-600 mt-2">Quality System Regulation</p>
+                            <div class="mt-3">
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                                    Compliant
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Joint Commission -->
+                    <div class="bg-white rounded-lg shadow-lg p-6 card-hover">
+                        <div class="text-center">
+                            <h3 class="text-lg font-semibold text-slate-800 mb-4">Joint Commission</h3>
+                            <div id="joint-commission-gauge" class="compliance-gauge"></div>
+                            <p class="text-sm text-slate-600 mt-2">Healthcare Accreditation</p>
+                            <div class="mt-3">
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                                    Compliant
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- ISO 13485 -->
+                    <div class="bg-white rounded-lg shadow-lg p-6 card-hover">
+                        <div class="text-center">
+                            <h3 class="text-lg font-semibold text-slate-800 mb-4">ISO 13485</h3>
+                            <div id="iso-gauge" class="compliance-gauge"></div>
+                            <p class="text-sm text-slate-600 mt-2">Medical Device QMS</p>
+                            <div class="mt-3">
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-800">
+                                    Needs Attention
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- OSHA -->
+                    <div class="bg-white rounded-lg shadow-lg p-6 card-hover">
+                        <div class="text-center">
+                            <h3 class="text-lg font-semibold text-slate-800 mb-4">OSHA</h3>
+                            <div id="osha-gauge" class="compliance-gauge"></div>
+                            <p class="text-sm text-slate-600 mt-2">Workplace Safety</p>
+                            <div class="mt-3">
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                                    Compliant
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Compliance Trend Chart -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h3 class="text-xl font-semibold text-slate-800 mb-4">Compliance Trend Analysis</h3>
+                    <div id="compliance-trend-chart" style="height: 400px;"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Compliance Matrix -->
+        <section class="py-8 bg-white">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h2 class="text-2xl font-bold text-slate-800 mb-6">Compliance Requirements Matrix</h2>
+                
+                <div class="bg-slate-50 rounded-lg p-6">
+                    <div class="compliance-matrix">
+                        <div class="matrix-cell matrix-header">Requirement</div>
+                        <div class="matrix-cell matrix-header">FDA</div>
+                        <div class="matrix-cell matrix-header">Joint Commission</div>
+                        <div class="matrix-cell matrix-header">ISO 13485</div>
+                        <div class="matrix-cell matrix-header">OSHA</div>
+                        
+                        <div class="matrix-cell matrix-category">Equipment Maintenance</div>
+                        <div class="matrix-cell"><div class="compliance-status compliance-excellent"></div></div>
+                        <div class="matrix-cell"><div class="compliance-status compliance-excellent"></div></div>
+                        <div class="matrix-cell"><div class="compliance-status compliance-good"></div></div>
+                        <div class="matrix-cell"><div class="compliance-status compliance-excellent"></div></div>
+                        
+                        <div class="matrix-cell matrix-category">Documentation</div>
+                        <div class="matrix-cell"><div class="compliance-status compliance-excellent"></div></div>
+                        <div class="matrix-cell"><div class="compliance-status compliance-excellent"></div></div>
+                        <div class="matrix-cell"><div class="compliance-status compliance-excellent"></div></div>
+                        <div class="matrix-cell"><div class="compliance-status compliance-good"></div></div>
+                        
+                        <div class="matrix-cell matrix-category">Risk Management</div>
+                        <div class="matrix-cell"><div class="compliance-status compliance-excellent"></div></div>
+                        <div class="matrix-cell"><div class="compliance-status compliance-good"></div></div>
+                        <div class="matrix-cell"><div class="compliance-status compliance-needs-attention"></div></div>
+                        <div class="matrix-cell"><div class="compliance-status compliance-excellent"></div></div>
+                        
+                        <div class="matrix-cell matrix-category">Training Records</div>
+                        <div class="matrix-cell"><div class="compliance-status compliance-good"></div></div>
+                        <div class="matrix-cell"><div class="compliance-status compliance-excellent"></div></div>
+                        <div class="matrix-cell"><div class="compliance-status compliance-excellent"></div></div>
+                        <div class="matrix-cell"><div class="compliance-status compliance-good"></div></div>
+                        
+                        <div class="matrix-cell matrix-category">Audit Trail</div>
+                        <div class="matrix-cell"><div class="compliance-status compliance-excellent"></div></div>
+                        <div class="matrix-cell"><div class="compliance-status compliance-excellent"></div></div>
+                        <div class="matrix-cell"><div class="compliance-status compliance-excellent"></div></div>
+                        <div class="matrix-cell"><div class="compliance-status compliance-good"></div></div>
+                    </div>
+                    
+                    <div class="flex justify-center space-x-8 mt-6">
+                        <div class="flex items-center space-x-2">
+                            <div class="w-4 h-4 rounded-full bg-green-600"></div>
+                            <span class="text-sm text-slate-600">Compliant</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <div class="w-4 h-4 rounded-full bg-amber-600"></div>
+                            <span class="text-sm text-slate-600">Needs Attention</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <div class="w-4 h-4 rounded-full bg-red-600"></div>
+                            <span class="text-sm text-slate-600">Non-Compliant</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Audit Trail and Reports -->
+        <section class="py-8 bg-slate-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Audit Trail -->
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-semibold text-slate-800">Recent Audit Trail</h3>
+                            <button class="text-blue-600 hover:text-blue-700 text-sm font-medium" onclick="showComingSoon()">View All</button>
+                        </div>
+                        <div id="audit-trail">
+                            <!-- Audit items will be populated by JavaScript -->
+                        </div>
+                    </div>
+                    
+                    <!-- Report Templates -->
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <h3 class="text-xl font-semibold text-slate-800 mb-6">Report Templates</h3>
+                        <div class="space-y-4">
+                            <div class="report-template" onclick="showComingSoon()">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-3">
+                                        <i class="fas fa-file-alt text-blue-600 text-xl"></i>
+                                        <div>
+                                            <h4 class="font-medium text-slate-800">Compliance Summary Report</h4>
+                                            <p class="text-sm text-slate-600">Overall compliance status across all standards</p>
+                                        </div>
+                                    </div>
+                                    <i class="fas fa-download text-slate-400"></i>
+                                </div>
+                            </div>
+                            
+                            <div class="report-template" onclick="showComingSoon()">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-3">
+                                        <i class="fas fa-chart-bar text-green-600 text-xl"></i>
+                                        <div>
+                                            <h4 class="font-medium text-slate-800">Asset Utilization Report</h4>
+                                            <p class="text-sm text-slate-600">Equipment usage and downtime analysis</p>
+                                        </div>
+                                    </div>
+                                    <i class="fas fa-download text-slate-400"></i>
+                                </div>
+                            </div>
+                            
+                            <div class="report-template" onclick="showComingSoon()">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-3">
+                                        <i class="fas fa-tools text-amber-600 text-xl"></i>
+                                        <div>
+                                            <h4 class="font-medium text-slate-800">Maintenance Cost Analysis</h4>
+                                            <p class="text-sm text-slate-600">Cost breakdown by category and department</p>
+                                        </div>
+                                    </div>
+                                    <i class="fas fa-download text-slate-400"></i>
+                                </div>
+                            </div>
+                            
+                            <div class="report-template" onclick="showComingSoon()">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-3">
+                                        <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+                                        <div>
+                                            <h4 class="font-medium text-slate-800">Risk Assessment Report</h4>
+                                            <p class="text-sm text-slate-600">Identified risks and mitigation strategies</p>
+                                        </div>
+                                    </div>
+                                    <i class="fas fa-download text-slate-400"></i>
+                                </div>
+                            </div>
+                            
+                            <div class="report-template" onclick="showComingSoon()">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-3">
+                                        <i class="fas fa-users text-purple-600 text-xl"></i>
+                                        <div>
+                                            <h4 class="font-medium text-slate-800">Technician Performance Report</h4>
+                                            <p class="text-sm text-slate-600">Work completion and efficiency metrics</p>
+                                        </div>
+                                    </div>
+                                    <i class="fas fa-download text-slate-400"></i>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6 pt-4 border-t border-slate-200">
+                            <button class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2" onclick="showCustomReportModal()">
+                                <i class="fas fa-plus"></i>
+                                <span>Create Custom Report</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Financial Analytics -->
+        <section class="py-8 bg-white">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h2 class="text-2xl font-bold text-slate-800 mb-6 text-center">Financial Analytics</h2>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Cost Analysis -->
+                    <div class="bg-slate-50 rounded-lg p-6">
+                        <h3 class="text-xl font-semibold text-slate-800 mb-4">Maintenance Cost Analysis</h3>
+                        <div id="cost-analysis-chart" style="height: 300px;"></div>
+                    </div>
+                    
+                    <!-- Budget vs Actual -->
+                    <div class="bg-slate-50 rounded-lg p-6">
+                        <h3 class="text-xl font-semibold text-slate-800 mb-4">Budget vs Actual Spending</h3>
+                        <div id="budget-comparison-chart" style="height: 300px;"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Custom Report Modal -->
+    <div id="custom-report-modal" class="modal">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-slate-800">Create Custom Report</h3>
+                <button onclick="hideCustomReportModal()" class="text-slate-400 hover:text-slate-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <form id="custom-report-form" class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Report Type</label>
+                        <select class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option>Compliance Report</option>
+                            <option>Asset Report</option>
+                            <option>Work Order Report</option>
+                            <option>Financial Report</option>
+                            <option>Maintenance Report</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Date Range</label>
+                        <select class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option>Last 30 days</option>
+                            <option>Last 90 days</option>
+                            <option>Last 6 months</option>
+                            <option>Last year</option>
+                            <option>Custom range</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Include Data Fields</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" class="rounded border-slate-300" checked>
+                            <span class="text-sm">Asset Information</span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" class="rounded border-slate-300" checked>
+                            <span class="text-sm">Maintenance Records</span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" class="rounded border-slate-300">
+                            <span class="text-sm">Compliance Status</span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" class="rounded border-slate-300">
+                            <span class="text-sm">Cost Analysis</span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" class="rounded border-slate-300">
+                            <span class="text-sm">Technician Performance</span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" class="rounded border-slate-300">
+                            <span class="text-sm">Downtime Analysis</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Format</label>
+                    <div class="flex space-x-4">
+                        <label class="flex items-center space-x-2">
+                            <input type="radio" name="format" value="pdf" class="text-blue-600" checked>
+                            <span class="text-sm">PDF</span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="radio" name="format" value="excel" class="text-blue-600">
+                            <span class="text-sm">Excel</span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="radio" name="format" value="csv" class="text-blue-600">
+                            <span class="text-sm">CSV</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Report Name</label>
+                    <input type="text" placeholder="Enter report name..." class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+                
+                <div class="flex justify-end space-x-3 pt-4 border-t border-slate-200">
+                    <button type="button" onclick="hideCustomReportModal()" class="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        Generate Report
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-slate-800 text-white py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p class="text-slate-400">&copy; 2025 MERC-CMMS Enterprise. All rights reserved. | Medical Device Management System</p>
+        </div>
+    </footer>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-4 right-4 z-50"></div>
+
+    <script src="main.js"></script>
+</body>
+</html>
