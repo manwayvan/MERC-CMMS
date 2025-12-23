@@ -10,28 +10,22 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-        
         * {
             font-family: 'Inter', sans-serif;
         }
-        
         .medical-gradient {
             background: linear-gradient(135deg, #1e293b 0%, #2563eb 50%, #0891b2 100%);
         }
-        
         .card-hover {
             transition: all 0.3s ease;
         }
-        
         .card-hover:hover {
             transform: translateY(-2px);
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         }
-        
         .medical-cross {
             position: relative;
         }
-        
         .medical-cross::before,
         .medical-cross::after {
             content: '';
@@ -39,7 +33,6 @@
             background: #0891b2;
             border-radius: 2px;
         }
-        
         .medical-cross::before {
             width: 20px;
             height: 4px;
@@ -47,7 +40,6 @@
             left: 50%;
             transform: translate(-50%, -50%);
         }
-        
         .medical-cross::after {
             width: 4px;
             height: 20px;
@@ -55,19 +47,16 @@
             left: 50%;
             transform: translate(-50%, -50%);
         }
-        
         .compliance-header-bg {
             background-image: url('./resources/compliance-bg.jpg');
             background-size: cover;
             background-position: center;
         }
-        
         .glass-effect {
             backdrop-filter: blur(10px);
             background: rgba(255, 255, 255, 0.1);
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
-        
         .notification-badge {
             position: absolute;
             top: -8px;
@@ -83,24 +72,20 @@
             font-size: 12px;
             font-weight: bold;
         }
-        
         .compliance-excellent { background-color: #059669; }
         .compliance-good { background-color: #d97706; }
         .compliance-needs-attention { background-color: #dc2626; }
-        
         .compliance-gauge {
             width: 120px;
             height: 120px;
             margin: 0 auto;
         }
-        
         .audit-trail-item {
             border-left: 2px solid #e2e8f0;
             padding-left: 16px;
             margin-bottom: 16px;
             position: relative;
         }
-        
         .audit-trail-item::before {
             content: '';
             position: absolute;
@@ -111,7 +96,6 @@
             border-radius: 50%;
             background: #2563eb;
         }
-        
         .report-template {
             border: 2px solid #e2e8f0;
             border-radius: 8px;
@@ -119,12 +103,10 @@
             cursor: pointer;
             transition: all 0.2s;
         }
-        
         .report-template:hover {
             border-color: #2563eb;
             background: #f8fafc;
         }
-        
         .modal {
             display: none;
             position: fixed;
@@ -135,13 +117,11 @@
             background: rgba(0, 0, 0, 0.5);
             z-index: 1000;
         }
-        
         .modal.active {
             display: flex;
             align-items: center;
             justify-content: center;
         }
-        
         .modal-content {
             background: white;
             border-radius: 12px;
@@ -151,7 +131,6 @@
             max-height: 80vh;
             overflow-y: auto;
         }
-        
         .compliance-matrix {
             display: grid;
             grid-template-columns: 200px repeat(4, 1fr);
@@ -160,25 +139,21 @@
             border-radius: 8px;
             overflow: hidden;
         }
-        
         .matrix-cell {
             background: white;
             padding: 12px;
             text-align: center;
         }
-        
         .matrix-header {
             background: #f8fafc;
             font-weight: 600;
             color: #475569;
         }
-        
         .matrix-category {
             background: #f8fafc;
             font-weight: 500;
             text-align: left;
         }
-        
         .compliance-status {
             width: 20px;
             height: 20px;
@@ -200,15 +175,14 @@
                         <p class="text-blue-200 text-xs">Enterprise Medical Device Management</p>
                     </div>
                 </div>
-                
                 <!-- Navigation Menu -->
                 <div class="hidden md:flex items-center space-x-8">
                     <a href="index.html" class="text-blue-200 hover:text-white transition-colors">Dashboard</a>
+                    <a href="customers.html" class="text-blue-200 hover:text-white transition-colors">Customers</a>
                     <a href="assets.html" class="text-blue-200 hover:text-white transition-colors">Assets</a>
                     <a href="work-orders.html" class="text-blue-200 hover:text-white transition-colors">Work Orders</a>
                     <a href="compliance.html" class="text-white font-semibold border-b-2 border-blue-300 pb-1">Compliance</a>
                 </div>
-                
                 <!-- User Profile and Notifications -->
                 <div class="flex items-center space-x-4">
                     <div class="relative">
@@ -275,7 +249,6 @@
         <section class="py-8 bg-slate-50">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <h2 class="text-2xl font-bold text-slate-800 mb-6 text-center">Regulatory Compliance Status</h2>
-                
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                     <!-- FDA Compliance -->
                     <div class="bg-white rounded-lg shadow-lg p-6 card-hover">
@@ -290,7 +263,6 @@
                             </div>
                         </div>
                     </div>
-                    
                     <!-- Joint Commission -->
                     <div class="bg-white rounded-lg shadow-lg p-6 card-hover">
                         <div class="text-center">
@@ -304,7 +276,6 @@
                             </div>
                         </div>
                     </div>
-                    
                     <!-- ISO 13485 -->
                     <div class="bg-white rounded-lg shadow-lg p-6 card-hover">
                         <div class="text-center">
@@ -318,7 +289,6 @@
                             </div>
                         </div>
                     </div>
-                    
                     <!-- OSHA -->
                     <div class="bg-white rounded-lg shadow-lg p-6 card-hover">
                         <div class="text-center">
@@ -333,7 +303,6 @@
                         </div>
                     </div>
                 </div>
-                
                 <!-- Compliance Trend Chart -->
                 <div class="bg-white rounded-lg shadow-lg p-6">
                     <h3 class="text-xl font-semibold text-slate-800 mb-4">Compliance Trend Analysis</h3>
@@ -346,7 +315,6 @@
         <section class="py-8 bg-white">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <h2 class="text-2xl font-bold text-slate-800 mb-6">Compliance Requirements Matrix</h2>
-                
                 <div class="bg-slate-50 rounded-lg p-6">
                     <div class="compliance-matrix">
                         <div class="matrix-cell matrix-header">Requirement</div>
@@ -354,38 +322,32 @@
                         <div class="matrix-cell matrix-header">Joint Commission</div>
                         <div class="matrix-cell matrix-header">ISO 13485</div>
                         <div class="matrix-cell matrix-header">OSHA</div>
-                        
                         <div class="matrix-cell matrix-category">Equipment Maintenance</div>
                         <div class="matrix-cell"><div class="compliance-status compliance-excellent"></div></div>
                         <div class="matrix-cell"><div class="compliance-status compliance-excellent"></div></div>
                         <div class="matrix-cell"><div class="compliance-status compliance-good"></div></div>
                         <div class="matrix-cell"><div class="compliance-status compliance-excellent"></div></div>
-                        
                         <div class="matrix-cell matrix-category">Documentation</div>
                         <div class="matrix-cell"><div class="compliance-status compliance-excellent"></div></div>
                         <div class="matrix-cell"><div class="compliance-status compliance-excellent"></div></div>
                         <div class="matrix-cell"><div class="compliance-status compliance-excellent"></div></div>
                         <div class="matrix-cell"><div class="compliance-status compliance-good"></div></div>
-                        
                         <div class="matrix-cell matrix-category">Risk Management</div>
                         <div class="matrix-cell"><div class="compliance-status compliance-excellent"></div></div>
                         <div class="matrix-cell"><div class="compliance-status compliance-good"></div></div>
                         <div class="matrix-cell"><div class="compliance-status compliance-needs-attention"></div></div>
                         <div class="matrix-cell"><div class="compliance-status compliance-excellent"></div></div>
-                        
                         <div class="matrix-cell matrix-category">Training Records</div>
                         <div class="matrix-cell"><div class="compliance-status compliance-good"></div></div>
                         <div class="matrix-cell"><div class="compliance-status compliance-excellent"></div></div>
                         <div class="matrix-cell"><div class="compliance-status compliance-excellent"></div></div>
                         <div class="matrix-cell"><div class="compliance-status compliance-good"></div></div>
-                        
                         <div class="matrix-cell matrix-category">Audit Trail</div>
                         <div class="matrix-cell"><div class="compliance-status compliance-excellent"></div></div>
                         <div class="matrix-cell"><div class="compliance-status compliance-excellent"></div></div>
                         <div class="matrix-cell"><div class="compliance-status compliance-excellent"></div></div>
                         <div class="matrix-cell"><div class="compliance-status compliance-good"></div></div>
                     </div>
-                    
                     <div class="flex justify-center space-x-8 mt-6">
                         <div class="flex items-center space-x-2">
                             <div class="w-4 h-4 rounded-full bg-green-600"></div>
@@ -418,7 +380,6 @@
                             <!-- Audit items will be populated by JavaScript -->
                         </div>
                     </div>
-                    
                     <!-- Report Templates -->
                     <div class="bg-white rounded-lg shadow-lg p-6">
                         <h3 class="text-xl font-semibold text-slate-800 mb-6">Report Templates</h3>
@@ -435,7 +396,6 @@
                                     <i class="fas fa-download text-slate-400"></i>
                                 </div>
                             </div>
-                            
                             <div class="report-template" onclick="showComingSoon()">
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center space-x-3">
@@ -448,7 +408,6 @@
                                     <i class="fas fa-download text-slate-400"></i>
                                 </div>
                             </div>
-                            
                             <div class="report-template" onclick="showComingSoon()">
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center space-x-3">
@@ -461,7 +420,6 @@
                                     <i class="fas fa-download text-slate-400"></i>
                                 </div>
                             </div>
-                            
                             <div class="report-template" onclick="showComingSoon()">
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center space-x-3">
@@ -474,7 +432,6 @@
                                     <i class="fas fa-download text-slate-400"></i>
                                 </div>
                             </div>
-                            
                             <div class="report-template" onclick="showComingSoon()">
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center space-x-3">
@@ -488,7 +445,6 @@
                                 </div>
                             </div>
                         </div>
-                        
                         <div class="mt-6 pt-4 border-t border-slate-200">
                             <button class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2" onclick="showCustomReportModal()">
                                 <i class="fas fa-plus"></i>
@@ -504,14 +460,12 @@
         <section class="py-8 bg-white">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <h2 class="text-2xl font-bold text-slate-800 mb-6 text-center">Financial Analytics</h2>
-                
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     <!-- Cost Analysis -->
                     <div class="bg-slate-50 rounded-lg p-6">
                         <h3 class="text-xl font-semibold text-slate-800 mb-4">Maintenance Cost Analysis</h3>
                         <div id="cost-analysis-chart" style="height: 300px;"></div>
                     </div>
-                    
                     <!-- Budget vs Actual -->
                     <div class="bg-slate-50 rounded-lg p-6">
                         <h3 class="text-xl font-semibold text-slate-800 mb-4">Budget vs Actual Spending</h3>
@@ -531,7 +485,6 @@
                     <i class="fas fa-times text-xl"></i>
                 </button>
             </div>
-            
             <form id="custom-report-form" class="space-y-6">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -555,7 +508,6 @@
                         </select>
                     </div>
                 </div>
-                
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-2">Include Data Fields</label>
                     <div class="grid grid-cols-2 gap-2">
@@ -585,7 +537,6 @@
                         </label>
                     </div>
                 </div>
-                
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">Format</label>
                     <div class="flex space-x-4">
@@ -603,12 +554,10 @@
                         </label>
                     </div>
                 </div>
-                
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">Report Name</label>
                     <input type="text" placeholder="Enter report name..." class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 </div>
-                
                 <div class="flex justify-end space-x-3 pt-4 border-t border-slate-200">
                     <button type="button" onclick="hideCustomReportModal()" class="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 transition-colors">
                         Cancel
