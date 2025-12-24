@@ -15,6 +15,35 @@
         .medical-gradient {
             background: linear-gradient(135deg, #1e293b 0%, #2563eb 50%, #0891b2 100%);
         }
+        .medical-cross {
+            position: relative;
+        }
+        .medical-cross::before,
+        .medical-cross::after {
+            content: '';
+            position: absolute;
+            background: #0891b2;
+            border-radius: 2px;
+        }
+        .medical-cross::before {
+            width: 20px;
+            height: 4px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .medical-cross::after {
+            width: 4px;
+            height: 20px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .customers-header-bg {
+            background-image: url('./resources/hero-medical.jpg');
+            background-size: cover;
+            background-position: center;
+        }
         .status-indicator {
             width: 12px;
             height: 12px;
@@ -42,6 +71,21 @@
             visibility: visible;
             animation: fadein 0.5s, fadeout 0.5s 2.5s;
         }
+        .notification-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #dc2626;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
         @keyframes fadein {
             from { top: 0; opacity: 0; }
             to { top: 20px; opacity: 1; }
@@ -58,7 +102,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
                 <div class="flex items-center space-x-4">
-                    <div class="medical-cross w-8 h-8 bg-white rounded-full"></div>
+                    <img src="https://raw.githubusercontent.com/manwayvan/MERC-CMMS/main/resources/logo.png" alt="MERC-CMMS logo" class="w-8 h-8 rounded-full bg-white object-contain p-1">
                     <div>
                         <h1 class="text-white text-xl font-bold">MERC-CMMS</h1>
                         <p class="text-blue-200 text-xs">Enterprise Medical Device Management</p>
@@ -66,12 +110,21 @@
                 </div>
                 <div class="hidden md:flex items-center space-x-8">
                     <a href="index.html" class="text-blue-200 hover:text-white transition-colors">Dashboard</a>
+                    <a href="customers.html" class="text-white font-semibold border-b-2 border-blue-300 pb-1">Customers</a>
                     <a href="assets.html" class="text-blue-200 hover:text-white transition-colors">Assets</a>
                     <a href="work-orders.html" class="text-blue-200 hover:text-white transition-colors">Work Orders</a>
                     <a href="compliance.html" class="text-blue-200 hover:text-white transition-colors">Compliance</a>
-                    <a href="customers.html" class="text-white font-semibold border-b-2 border-blue-300 pb-1">Customers</a>
                 </div>
                 <div class="flex items-center space-x-4">
+                    <button id="mobile-menu-button" class="md:hidden text-white hover:text-blue-200 transition-colors" aria-label="Open menu" aria-expanded="false">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                    <div class="relative">
+                        <button class="text-white hover:text-blue-200 transition-colors">
+                            <i class="fas fa-bell text-xl"></i>
+                        </button>
+                        <div class="notification-badge">3</div>
+                    </div>
                     <div class="flex items-center space-x-2">
                         <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
                             <i class="fas fa-user text-white text-sm"></i>
@@ -85,46 +138,71 @@
             </div>
         </div>
     </nav>
+    <div id="mobile-menu" class="md:hidden hidden medical-gradient shadow-lg">
+        <div class="px-4 py-4 space-y-2">
+            <a href="index.html" class="block text-blue-200 hover:text-white transition-colors">Dashboard</a>
+            <a href="customers.html" class="block text-white font-semibold">Customers</a>
+            <a href="assets.html" class="block text-blue-200 hover:text-white transition-colors">Assets</a>
+            <a href="work-orders.html" class="block text-blue-200 hover:text-white transition-colors">Work Orders</a>
+            <a href="compliance.html" class="block text-blue-200 hover:text-white transition-colors">Compliance</a>
+        </div>
+    </div>
 
     <!-- Main Content -->
-    <main class="pt-16 pb-12">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h1 class="text-3xl font-bold text-slate-800 mb-8">Customers & Locations Management</h1>
-
-            <!-- Search and Filter -->
-            <div class="mb-6 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-                <div class="w-full md:w-1/3">
-                    <input type="text" id="customer-search" placeholder="Search customers..." class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div class="flex space-x-4">
-                    <button id="add-customer-btn" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
-                        <i class="fas fa-plus mr-2"></i> Add Customer
-                    </button>
+    <main class="pt-16">
+        <!-- Header Section -->
+        <section class="customers-header-bg relative">
+            <div class="absolute inset-0 bg-slate-900 bg-opacity-70"></div>
+            <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+                <div class="text-center">
+                    <h1 class="text-4xl md:text-5xl font-bold text-white mb-4">Customers & Locations</h1>
+                    <p class="text-xl text-blue-200 mb-8 max-w-3xl mx-auto">
+                        Centralize customer profiles, site locations, and service coverage for faster dispatching
+                        and stronger account visibility.
+                    </p>
                 </div>
             </div>
+        </section>
 
-            <!-- Customers Table -->
-            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-                <table class="min-w-full divide-y divide-slate-200">
-                    <thead class="bg-slate-50">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">ID</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Name</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Contact</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Locations</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="customer-table-body" class="bg-white divide-y divide-slate-200">
-                        <!-- Rows will be populated by JavaScript -->
-                    </tbody>
-                </table>
+        <section class="py-8 bg-white">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h2 class="text-3xl font-bold text-slate-800 mb-8">Customers & Locations Management</h2>
+
+                <!-- Search and Filter -->
+                <div class="mb-6 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+                    <div class="w-full md:w-1/3">
+                        <input type="text" id="customer-search" placeholder="Search customers..." class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div class="flex space-x-4">
+                        <button id="add-customer-btn" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
+                            <i class="fas fa-plus mr-2"></i> Add Customer
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Customers Table -->
+                <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                    <table class="min-w-full divide-y divide-slate-200">
+                        <thead class="bg-slate-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">ID</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Name</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Contact</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Locations</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="customer-table-body" class="bg-white divide-y divide-slate-200">
+                            <!-- Rows will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div id="pagination" class="flex justify-center mt-4 space-x-2"></div>
             </div>
-
-            <!-- Pagination -->
-            <div id="pagination" class="flex justify-center mt-4 space-x-2"></div>
-        </div>
+        </section>
     </main>
 
     <!-- Customer Modal -->
@@ -197,6 +275,19 @@
             </form>
         </div>
     </div>
+
+    <script>
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+
+        if (mobileMenuButton && mobileMenu) {
+            mobileMenuButton.addEventListener('click', () => {
+                const isExpanded = mobileMenuButton.getAttribute('aria-expanded') === 'true';
+                mobileMenuButton.setAttribute('aria-expanded', String(!isExpanded));
+                mobileMenu.classList.toggle('hidden');
+            });
+        }
+    </script>
 
     <!-- Toast Notification Container -->
     <div id="toast-container" class="fixed bottom-4 right-4 z-50"></div>
