@@ -102,7 +102,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
                 <div class="flex items-center space-x-4">
-                    <div class="medical-cross w-8 h-8 bg-white rounded-full"></div>
+                    <img src="https://raw.githubusercontent.com/manwayvan/MERC-CMMS/main/resources/logo.png" alt="MERC-CMMS logo" class="w-8 h-8 rounded-full bg-white object-contain p-1">
                     <div>
                         <h1 class="text-white text-xl font-bold">MERC-CMMS</h1>
                         <p class="text-blue-200 text-xs">Enterprise Medical Device Management</p>
@@ -135,6 +135,15 @@
             </div>
         </div>
     </nav>
+    <div id="mobile-menu" class="md:hidden hidden medical-gradient shadow-lg">
+        <div class="px-4 py-4 space-y-2">
+            <a href="index.html" class="block text-blue-200 hover:text-white transition-colors">Dashboard</a>
+            <a href="customers.html" class="block text-white font-semibold">Customers</a>
+            <a href="assets.html" class="block text-blue-200 hover:text-white transition-colors">Assets</a>
+            <a href="work-orders.html" class="block text-blue-200 hover:text-white transition-colors">Work Orders</a>
+            <a href="compliance.html" class="block text-blue-200 hover:text-white transition-colors">Compliance</a>
+        </div>
+    </div>
 
     <!-- Main Content -->
     <main class="pt-16">
@@ -263,6 +272,19 @@
             </form>
         </div>
     </div>
+
+    <script>
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+
+        if (mobileMenuButton && mobileMenu) {
+            mobileMenuButton.addEventListener('click', () => {
+                const isExpanded = mobileMenuButton.getAttribute('aria-expanded') === 'true';
+                mobileMenuButton.setAttribute('aria-expanded', String(!isExpanded));
+                mobileMenu.classList.toggle('hidden');
+            });
+        }
+    </script>
 
     <!-- Toast Notification Container -->
     <div id="toast-container" class="fixed bottom-4 right-4 z-50"></div>
