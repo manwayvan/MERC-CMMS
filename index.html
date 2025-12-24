@@ -24,30 +24,24 @@
             transform: translateY(-4px);
             box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
         }
-        .medical-cross {
-            position: relative;
+        .pulse-animation {
+            animation: pulse 2s infinite;
         }
-        .medical-cross::before,
-        .medical-cross::after {
-            content: '';
-            position: absolute;
-            background: #0891b2;
-            border-radius: 2px;
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
         }
-        .medical-cross::before {
-            width: 20px;
-            height: 4px;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
         }
-        .medical-cross::after {
-            width: 4px;
-            height: 20px;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-        }
+        .status-active { background-color: #059669; }
+        .status-inactive { background-color: #6b7280; }
+        .status-maintenance { background-color: #d97706; }
+        .status-critical { background-color: #dc2626; }
         .chart-container {
             height: 300px;
             width: 100%;
@@ -73,50 +67,63 @@
             background-position: center;
             background-attachment: fixed;
         }
+        .glass-effect {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800">
-    <!-- Navigation Bar -->
-    <nav class="fixed top-0 left-0 right-0 z-50 medical-gradient shadow-lg">
+    <!-- Standard Header -->
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-blue-900 text-white shadow-lg">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <!-- Logo and Brand -->
-                <div class="flex items-center space-x-4">
-                    <div class="medical-cross w-8 h-8 bg-white rounded-full"></div>
-                    <div>
-                        <h1 class="text-white text-xl font-bold">MERC-CMMS</h1>
-                        <p class="text-blue-200 text-xs">Enterprise Medical Device Management</p>
-                    </div>
-                </div>
-                <!-- Navigation Menu -->
-                <div class="hidden md:flex items-center space-x-8">
-                    <a href="index.html" class="text-white font-semibold border-b-2 border-blue-300 pb-1">Dashboard</a>
-                    <a href="customers.html" class="text-blue-200 hover:text-white transition-colors">Customers</a>
-                    <a href="assets.html" class="text-blue-200 hover:text-white transition-colors">Assets</a>
-                    <a href="work-orders.html" class="text-blue-200 hover:text-white transition-colors">Work Orders</a>
-                    <a href="compliance.html" class="text-blue-200 hover:text-white transition-colors">Compliance</a>
-                </div>
-                <!-- User Profile and Notifications -->
-                <div class="flex items-center space-x-4">
-                    <div class="relative">
-                        <button class="text-white hover:text-blue-200 transition-colors">
-                            <i class="fas fa-bell text-xl"></i>
-                        </button>
-                        <div class="notification-badge">5</div>
-                    </div>
-                    <div class="flex items-center space-x-2">
-                        <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-                            <i class="fas fa-user text-white text-sm"></i>
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 flex items-center">
+                        <div class="w-8 h-8 bg-white rounded-full flex items-center justify-center">
+                            <img src="./resources/logo.png" alt="Logo" class="w-6 h-6">
                         </div>
-                        <div class="hidden md:block">
-                            <p class="text-white text-sm font-medium">System Admin</p>
-                            <p class="text-blue-200 text-xs">Super Administrator</p>
+                        <div class="ml-2">
+                            <h1 class="text-xl font-bold">MERC-CMMS</h1>
+                            <p class="text-blue-200 text-xs">Medical Equipment Management</p>
+                        </div>
+                    </div>
+                    <div class="hidden md:flex items-center space-x-8">
+                        <a href="index.html" class="text-white font-semibold border-b-2 border-blue-300 pb-1">Dashboard</a>
+                        <a href="customers.html" class="text-blue-200 hover:text-white transition-colors">Customers</a>
+                        <a href="assets.html" class="text-blue-200 hover:text-white transition-colors">Assets</a>
+                        <a href="work-orders.html" class="text-blue-200 hover:text-white transition-colors">Work Orders</a>
+                        <a href="compliance.html" class="text-blue-200 hover:text-white transition-colors">Compliance</a>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <div class="relative">
+                            <button class="text-white hover:text-blue-200 transition-colors">
+                                <i class="fas fa-bell text-xl"></i>
+                            </button>
+                            <div class="notification-badge">5</div>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                                <i class="fas fa-user text-white text-sm"></i>
+                            </div>
+                            <div class="hidden md:block">
+                                <p class="text-white text-sm font-medium">System Admin</p>
+                                <p class="text-blue-200 text-xs">Super Administrator</p>
+                            </div>
+                        </div>
+                        <div class="md:hidden flex items-center">
+                            <button id="mobile-menu-button" class="p-2 text-white rounded-md outline-none focus:border-gray-400 focus:border">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                                </svg>
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-    </nav>
+        </nav>
+
     <!-- Main Content -->
     <main class="pt-16">
         <!-- Hero Section -->
@@ -131,6 +138,27 @@
                         Comprehensive CMMS solution for healthcare organizations with real-time monitoring, 
                         compliance management, and predictive maintenance
                     </p>
+                    <!-- System Status Indicators -->
+                    <div class="flex justify-center space-x-8 mb-8">
+                        <div class="glass-effect rounded-lg px-6 py-3">
+                            <div class="flex items-center space-x-2">
+                                <div class="status-indicator status-active pulse-animation"></div>
+                                <span class="text-white font-medium">System Online</span>
+                            </div>
+                        </div>
+                        <div class="glass-effect rounded-lg px-6 py-3">
+                            <div class="flex items-center space-x-2">
+                                <div class="status-indicator status-active"></div>
+                                <span class="text-white font-medium">Database Connected</span>
+                            </div>
+                        </div>
+                        <div class="glass-effect rounded-lg px-6 py-3">
+                            <div class="flex items-center space-x-2">
+                                <div class="status-indicator status-active"></div>
+                                <span class="text-white font-medium">All Services Active</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
@@ -287,5 +315,7 @@
     <!-- Toast Notification Container -->
     <div id="toast-container" class="fixed bottom-4 right-4 z-50"></div>
     <script src="main.js"></script>
+    <!-- Trigger rebuild for Vercel -->
+    <meta name="description" content="Updated header and logo for MERC-CMMS, rebuild triggered for Vercel deployment.">
 </body>
 </html>
