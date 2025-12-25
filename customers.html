@@ -1597,6 +1597,341 @@
                 showToast(`Connection error: ${error.message}`, 'error');
             }
         }
+
+        // ==========================================
+        // BULK IMPORT/EXPORT FUNCTIONALITY
+        // ==========================================
+
+        let importedData = [];
+
+        // Show bulk import modal
+        function showBulkImportModal() {
+            document.getElementById('bulk-import-modal').classList.add('active');
+            document.getElementById('csv-file-input').value = '';
+            document.getElementById('import-preview').classList.add('hidden');
+            document.getElementById('process-import-btn').classList.add('hidden');
+            importedData = [];
+        }
+
+        // Hide bulk import modal
+        function hideBulkImportModal() {
+            document.getElementById('bulk-import-modal').classList.remove('active');
+        }
+
+        // Download CSV template
+        function downloadTemplate() {
+            const headers = [
+                'Customer Name',
+                'Customer ID',
+                'Contact Person',
+                'Phone',
+                'Email',
+                'Address',
+                'Status',
+                'Location Name',
+                'Location Contact',
+                'Location Phone',
+                'Location Email',
+                'Location Address',
+                'Location Status'
+            ];
+
+            const sampleData = [
+                [
+                    'St. Mary Medical Center',
+                    'SMC-001',
+                    'Dr. Sarah Johnson',
+                    '(555) 123-4567',
+                    'sjohnson@stmary.org',
+                    '123 Healthcare Blvd, Medical City, MC 12345',
+                    'active',
+                    'Main Campus - ICU',
+                    'Nurse Jane Smith',
+                    '(555) 123-4501',
+                    'jsmith@stmary.org',
+                    '123 Healthcare Blvd, Building A, Floor 3',
+                    'active'
+                ],
+                [
+                    'Memorial Hospital',
+                    'MH-002',
+                    'John Davis',
+                    '(555) 234-5678',
+                    'jdavis@memorial.org',
+                    '456 Hospital Ave, Health Town, HT 23456',
+                    'active',
+                    'Cardiology Department',
+                    'Dr. Kevin Harris',
+                    '(555) 234-5601',
+                    'kharris@memorial.org',
+                    '456 Hospital Ave, Tower C, Floor 5',
+                    'active'
+                ]
+            ];
+
+            const csvContent = [
+                headers.join(','),
+                ...sampleData.map(row => row.map(cell => `"${cell}"`).join(','))
+            ].join('\n');
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'customers_import_template.csv';
+            link.click();
+            showToast('Template downloaded successfully!', 'success');
+        }
+
+        // Handle CSV file upload
+        document.addEventListener('DOMContentLoaded', () => {
+            const fileInput = document.getElementById('csv-file-input');
+            if (fileInput) {
+                fileInput.addEventListener('change', handleFileUpload);
+            }
+        });
+
+        async function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (file.size > 5 * 1024 * 1024) {
+                showToast('File too large. Maximum size is 5MB.', 'error');
+                return;
+            }
+
+            if (!file.name.endsWith('.csv')) {
+                showToast('Please upload a CSV file.', 'error');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const text = e.target.result;
+                    const parsed = parseCSV(text);
+                    importedData = parsed;
+                    displayImportPreview(parsed);
+                } catch (error) {
+                    showToast(`Error parsing CSV: ${error.message}`, 'error');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // Parse CSV content
+        function parseCSV(text) {
+            const lines = text.split('\n').filter(line => line.trim());
+            const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+            const data = [];
+
+            for (let i = 1; i < lines.length; i++) {
+                const values = lines[i].match(/(".*?"|[^,]+)(?=\s*,|\s*$)/g);
+                if (!values) continue;
+
+                const row = {};
+                headers.forEach((header, index) => {
+                    row[header] = values[index] ? values[index].replace(/"/g, '').trim() : '';
+                });
+                data.push(row);
+            }
+
+            return data;
+        }
+
+        // Display import preview
+        function displayImportPreview(data) {
+            const preview = document.getElementById('import-preview');
+            const content = document.getElementById('import-preview-content');
+
+            if (data.length === 0) {
+                showToast('No data found in CSV file.', 'error');
+                return;
+            }
+
+            let html = `
+                <div class="bg-slate-50 rounded-lg p-4">
+                    <p class="font-semibold text-slate-800 mb-2">Found ${data.length} row(s) to import</p>
+                    <div class="space-y-2 max-h-40 overflow-y-auto">
+            `;
+
+            data.slice(0, 5).forEach((row, index) => {
+                html += `
+                    <div class="bg-white p-2 rounded border border-slate-200 text-sm">
+                        <strong>${row['Customer Name'] || 'Unnamed'}</strong>
+                        ${row['Location Name'] ? `→ ${row['Location Name']}` : ''}
+                    </div>
+                `;
+            });
+
+            if (data.length > 5) {
+                html += `<p class="text-xs text-slate-500 text-center">... and ${data.length - 5} more</p>`;
+            }
+
+            html += '</div></div>';
+
+            content.innerHTML = html;
+            preview.classList.remove('hidden');
+            document.getElementById('process-import-btn').classList.remove('hidden');
+        }
+
+        // Process import
+        async function processImport() {
+            if (importedData.length === 0) {
+                showToast('No data to import', 'error');
+                return;
+            }
+
+            const processBtn = document.getElementById('process-import-btn');
+            processBtn.disabled = true;
+            processBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Importing...';
+
+            try {
+                let successCount = 0;
+                let errorCount = 0;
+
+                for (const row of importedData) {
+                    try {
+                        // Create customer
+                        const customerData = {
+                            customer_id: row['Customer ID'] || null,
+                            name: row['Customer Name'],
+                            contact_person: row['Contact Person'] || null,
+                            phone: row['Phone'] || null,
+                            email: row['Email'] || null,
+                            address: row['Address'] || null,
+                            status: row['Status'] || 'active'
+                        };
+
+                        const { data: customer, error: customerError } = await supabaseClient
+                            .from('customers')
+                            .insert([customerData])
+                            .select();
+
+                        if (customerError) throw customerError;
+
+                        // Create location if data provided
+                        if (row['Location Name'] && customer && customer[0]) {
+                            const locationData = {
+                                customer_id: customer[0].id,
+                                name: row['Location Name'],
+                                contact_person: row['Location Contact'] || null,
+                                phone: row['Location Phone'] || null,
+                                email: row['Location Email'] || null,
+                                address: row['Location Address'] || null,
+                                status: row['Location Status'] || 'active'
+                            };
+
+                            const { error: locationError } = await supabaseClient
+                                .from('locations')
+                                .insert([locationData]);
+
+                            if (locationError) throw locationError;
+                        }
+
+                        successCount++;
+                    } catch (error) {
+                        console.error('Error importing row:', row, error);
+                        errorCount++;
+                    }
+                }
+
+                showToast(`Import complete! Success: ${successCount}, Errors: ${errorCount}`, 'success');
+                hideBulkImportModal();
+                await loadCustomers();
+            } catch (error) {
+                showToast(`Import failed: ${error.message}`, 'error');
+            } finally {
+                processBtn.disabled = false;
+                processBtn.innerHTML = '<i class="fas fa-upload mr-2"></i>Import Data';
+            }
+        }
+
+        // Export customers to CSV
+        async function exportCustomers() {
+            try {
+                showToast('Preparing export...', 'info');
+
+                const { data: customersData, error } = await supabaseClient
+                    .from('customers')
+                    .select('*, locations(*)')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                if (!customersData || customersData.length === 0) {
+                    showToast('No customers to export', 'warning');
+                    return;
+                }
+
+                const rows = [];
+                const headers = [
+                    'Customer Name',
+                    'Customer ID',
+                    'Contact Person',
+                    'Phone',
+                    'Email',
+                    'Address',
+                    'Status',
+                    'Location Name',
+                    'Location Contact',
+                    'Location Phone',
+                    'Location Email',
+                    'Location Address',
+                    'Location Status'
+                ];
+
+                rows.push(headers);
+
+                customersData.forEach(customer => {
+                    if (customer.locations && customer.locations.length > 0) {
+                        customer.locations.forEach(location => {
+                            rows.push([
+                                customer.name || '',
+                                customer.customer_id || '',
+                                customer.contact_person || '',
+                                customer.phone || '',
+                                customer.email || '',
+                                customer.address || '',
+                                customer.status || '',
+                                location.name || '',
+                                location.contact_person || '',
+                                location.phone || '',
+                                location.email || '',
+                                location.address || '',
+                                location.status || ''
+                            ]);
+                        });
+                    } else {
+                        rows.push([
+                            customer.name || '',
+                            customer.customer_id || '',
+                            customer.contact_person || '',
+                            customer.phone || '',
+                            customer.email || '',
+                            customer.address || '',
+                            customer.status || '',
+                            '', '', '', '', '', ''
+                        ]);
+                    }
+                });
+
+                const csvContent = rows.map(row => 
+                    row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+                ).join('\n');
+
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                const timestamp = new Date().toISOString().split('T')[0];
+                link.download = `customers_export_${timestamp}.csv`;
+                link.click();
+
+                showToast(`Exported ${customersData.length} customers successfully!`, 'success');
+            } catch (error) {
+                console.error('Export error:', error);
+                showToast(`Export failed: ${error.message}`, 'error');
+            }
+        }
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
 </body>
