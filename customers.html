@@ -1068,11 +1068,26 @@
         }
 
         // Show toast notification
-        function showToast(message, type) {
+        function showToast(message, type = 'info') {
             const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.style.backgroundColor = type === 'success' ? '#10b981' : '#ef4444';
+            const icons = {
+                success: '✅',
+                error: '❌',
+                warning: '⚠️',
+                info: 'ℹ️'
+            };
+            const colors = {
+                success: '#10b981',
+                error: '#ef4444',
+                warning: '#f59e0b',
+                info: '#3b82f6'
+            };
+            
+            toast.textContent = `${icons[type] || icons.info} ${message}`;
+            toast.style.backgroundColor = colors[type] || colors.info;
             toast.style.display = 'block';
+            
+            console.log(`${icons[type]} ${message}`);
 
             setTimeout(() => {
                 toast.style.display = 'none';
@@ -1085,18 +1100,25 @@
         }
 
         // Test Supabase connectivity
-        function testSupabaseConnectivity() {
-            supabaseClient
-                .from('customers')
-                .select('*')
-                .limit(1)
-                .then(({ data, error }) => {
-                    if (error) {
-                        showToast(`Supabase connection failed: ${error.message}`, 'error');
-                    } else {
-                        showToast('Supabase connection successful!', 'success');
-                    }
-                });
+        async function testSupabaseConnectivity() {
+            console.log('🔍 Testing Supabase connectivity...');
+            try {
+                const { data, error } = await supabaseClient
+                    .from('customers')
+                    .select('count')
+                    .limit(1);
+
+                if (error) {
+                    console.error('❌ Connection test failed:', error);
+                    showToast(`Connection failed: ${error.message}`, 'error');
+                } else {
+                    console.log('✅ Connection test successful');
+                    showToast('✅ Supabase connection successful!', 'success');
+                }
+            } catch (error) {
+                console.error('❌ Connection test error:', error);
+                showToast(`Connection error: ${error.message}`, 'error');
+            }
         }
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
