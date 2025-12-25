@@ -1265,21 +1265,21 @@
         // Update customer
         async function updateCustomer(customerId, customerData) {
             try {
-                console.log('🔄 Updating customer:', customerId);
-                console.log('📝 Update data:', customerData);
+                console.log('🔄 Updating customer ID:', customerId);
+                console.log('📝 Full customer data received:', JSON.stringify(customerData, null, 2));
                 
-                // Remove only the database id, keep customer_id
+                // Build update object with all fields explicitly
                 const updateData = {
-                    customer_id: customerData.customer_id,
+                    customer_id: customerData.customer_id || null,
                     name: customerData.name,
-                    contact_person: customerData.contact_person,
-                    email: customerData.email,
-                    phone: customerData.phone,
-                    address: customerData.address,
-                    status: customerData.status
+                    contact_person: customerData.contact_person || null,
+                    email: customerData.email || null,
+                    phone: customerData.phone || null,
+                    address: customerData.address || null,
+                    status: customerData.status || 'active'
                 };
                 
-                console.log('📤 Sending to database:', updateData);
+                console.log('📤 Sending update to Supabase:', JSON.stringify(updateData, null, 2));
                 
                 const { data, error } = await supabaseClient
                     .from('customers')
@@ -1288,15 +1288,23 @@
                     .select();
 
                 if (error) {
-                    console.error('❌ Error updating customer:', error);
+                    console.error('❌ Supabase error:', error);
                     throw error;
                 }
 
-                console.log('✅ Customer updated successfully:', data);
+                if (!data || data.length === 0) {
+                    console.error('⚠️ Update returned no data - check RLS policies');
+                    throw new Error('Update failed - no data returned. Check permissions.');
+                }
+
+                console.log('✅ Update response from database:', JSON.stringify(data, null, 2));
                 showToast('Customer updated successfully!', 'success');
                 
-                // Force reload to show changes
+                // Clear local cache and force fresh load
+                customers = [];
                 await loadCustomers();
+                
+                return data;
             } catch (error) {
                 console.error('❌ Failed to update customer:', error);
                 showToast(`Update failed: ${error.message}`, 'error');
