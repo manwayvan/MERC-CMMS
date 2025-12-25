@@ -932,6 +932,199 @@
             });
         }
 
+        // Switch between grid and list view
+        let currentView = 'grid';
+        
+        function switchView(view) {
+            currentView = view;
+            const gridView = document.getElementById('customer-grid');
+            const listView = document.getElementById('customer-list');
+            const gridBtn = document.getElementById('grid-view-btn');
+            const listBtn = document.getElementById('list-view-btn');
+            
+            if (view === 'grid') {
+                gridView.classList.remove('hidden');
+                listView.classList.add('hidden');
+                gridBtn.classList.add('active');
+                listBtn.classList.remove('active');
+            } else {
+                gridView.classList.add('hidden');
+                listView.classList.remove('hidden');
+                gridBtn.classList.remove('active');
+                listBtn.classList.add('active');
+            }
+            
+            // Re-render in current view
+            filterAndRenderCustomers();
+        }
+        
+        // Render customers in list view
+        function renderCustomersList(customersToRender) {
+            const customerList = document.getElementById('customer-list');
+            
+            if (customersToRender.length === 0) {
+                customerList.innerHTML = `
+                    <div class="text-center py-12 bg-slate-50 rounded-lg">
+                        <i class="fas fa-building text-6xl text-slate-300 mb-4"></i>
+                        <h3 class="text-xl font-semibold text-slate-700 mb-2">No customers yet</h3>
+                        <p class="text-slate-500 mb-6">Get started by adding your first customer</p>
+                        <button onclick="showAddCustomerModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors inline-flex items-center space-x-2">
+                            <i class="fas fa-plus"></i>
+                            <span>Add Your First Customer</span>
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+            
+            customerList.innerHTML = `
+                <div class="overflow-x-auto">
+                    <table class="list-view-table">
+                        <thead>
+                            <tr>
+                                <th>Customer</th>
+                                <th>Contact Info</th>
+                                <th>Status</th>
+                                <th>Locations</th>
+                                <th class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${customersToRender.map(customer => {
+                                const locationCount = customer.locations ? customer.locations.length : 0;
+                                return `
+                                    <tr data-testid="customer-row-${customer.id}">
+                                        <td>
+                                            <div>
+                                                <div class="font-semibold text-slate-800 text-lg mb-1">${customer.name}</div>
+                                                ${customer.customer_id ? `
+                                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-300">
+                                                        <i class="fas fa-id-card mr-1"></i>
+                                                        ${customer.customer_id}
+                                                    </span>
+                                                ` : ''}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="space-y-1 text-sm">
+                                                ${customer.contact_person ? `
+                                                    <div class="flex items-center text-slate-600">
+                                                        <i class="fas fa-user w-4 text-slate-400 mr-2"></i>
+                                                        ${customer.contact_person}
+                                                    </div>
+                                                ` : ''}
+                                                ${customer.phone ? `
+                                                    <div class="flex items-center text-slate-600">
+                                                        <i class="fas fa-phone w-4 text-slate-400 mr-2"></i>
+                                                        ${customer.phone}
+                                                    </div>
+                                                ` : ''}
+                                                ${customer.email ? `
+                                                    <div class="flex items-center text-slate-600">
+                                                        <i class="fas fa-envelope w-4 text-slate-400 mr-2"></i>
+                                                        ${customer.email}
+                                                    </div>
+                                                ` : ''}
+                                                ${customer.address ? `
+                                                    <div class="flex items-center text-slate-600">
+                                                        <i class="fas fa-map-marker-alt w-4 text-slate-400 mr-2"></i>
+                                                        ${customer.address}
+                                                    </div>
+                                                ` : ''}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                                                customer.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                                            }">
+                                                <span class="status-indicator status-${customer.status}"></span>
+                                                ${customer.status.charAt(0).toUpperCase() + customer.status.slice(1)}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="space-y-2">
+                                                <div class="flex items-center space-x-2 mb-2">
+                                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                        <i class="fas fa-map-marked-alt mr-1"></i>
+                                                        ${locationCount} Location${locationCount !== 1 ? 's' : ''}
+                                                    </span>
+                                                    <button 
+                                                        onclick="showAddLocationModal('${customer.id}')" 
+                                                        class="text-xs bg-blue-50 hover:bg-blue-100 text-blue-600 px-2 py-1 rounded transition-colors"
+                                                        title="Add Location"
+                                                        data-testid="add-location-list-btn-${customer.id}">
+                                                        <i class="fas fa-plus"></i>
+                                                    </button>
+                                                </div>
+                                                ${customer.locations && customer.locations.length > 0 ? customer.locations.map(location => `
+                                                    <div class="location-list-item" data-testid="location-list-${location.id}">
+                                                        <div class="flex justify-between items-start">
+                                                            <div class="flex-1 min-w-0">
+                                                                <div class="flex items-center justify-between mb-1">
+                                                                    <span class="font-medium text-slate-800 text-sm truncate">${location.name || 'Unnamed Location'}</span>
+                                                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ml-2 flex-shrink-0 ${
+                                                                        location.status === 'active' ? 'bg-green-100 text-green-800' :
+                                                                        location.status === 'maintenance' ? 'bg-amber-100 text-amber-800' :
+                                                                        location.status === 'retired' ? 'bg-red-100 text-red-800' :
+                                                                        'bg-gray-100 text-gray-800'
+                                                                    }">
+                                                                        ${location.status}
+                                                                    </span>
+                                                                </div>
+                                                                <div class="text-xs text-slate-600 space-y-0.5">
+                                                                    ${location.contact_person ? `<div><i class="fas fa-user w-3"></i> ${location.contact_person}</div>` : ''}
+                                                                    ${location.phone ? `<div><i class="fas fa-phone w-3"></i> ${location.phone}</div>` : ''}
+                                                                    ${location.address ? `<div><i class="fas fa-map-marker-alt w-3"></i> ${location.address}</div>` : ''}
+                                                                </div>
+                                                            </div>
+                                                            <div class="flex space-x-1 ml-2">
+                                                                <button 
+                                                                    onclick="showEditLocationModal('${customer.id}', '${location.id}')" 
+                                                                    class="text-blue-600 hover:text-blue-800 p-1 hover:bg-blue-50 rounded transition-colors"
+                                                                    title="Edit location"
+                                                                    data-testid="edit-location-list-btn-${location.id}">
+                                                                    <i class="fas fa-edit text-xs"></i>
+                                                                </button>
+                                                                <button 
+                                                                    onclick="deleteLocation('${location.id}')" 
+                                                                    class="text-red-600 hover:text-red-800 p-1 hover:bg-red-50 rounded transition-colors"
+                                                                    title="Delete location"
+                                                                    data-testid="delete-location-list-btn-${location.id}">
+                                                                    <i class="fas fa-trash text-xs"></i>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                `).join('') : '<div class="text-xs text-slate-500 italic">No locations</div>'}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="flex justify-center space-x-2">
+                                                <button 
+                                                    onclick="showEditCustomerModal('${customer.id}')" 
+                                                    class="text-blue-600 hover:text-blue-800 p-2 hover:bg-blue-50 rounded-lg transition-colors"
+                                                    title="Edit customer"
+                                                    data-testid="edit-customer-list-btn-${customer.id}">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button 
+                                                    onclick="deleteCustomer('${customer.id}')" 
+                                                    class="text-red-600 hover:text-red-800 p-2 hover:bg-red-50 rounded-lg transition-colors"
+                                                    title="Delete customer"
+                                                    data-testid="delete-customer-list-btn-${customer.id}">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
         // Update statistics
         function updateStatistics(customers) {
             const totalCustomers = customers.length;
