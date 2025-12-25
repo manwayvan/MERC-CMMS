@@ -4,7 +4,9 @@
 // Initialize Supabase Client
 const supabaseUrl = 'https://hmdemsbqiqlqcggwblvl.supabase.co';
 const supabaseKey = 'sb_publishable_Z9oNxTGDCCz3EZnh6NqySg_QzF6amCN';
-const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+const supabaseClient = window.supabase
+    ? window.supabase.createClient(supabaseUrl, supabaseKey)
+    : null;
 
 // Global Application State
 const AppState = {
@@ -484,15 +486,22 @@ class AssetManager {
 
     // Load and display assets
     async loadAssets() {
-        const { data, error } = await supabase
-            .from('assets')
-            .select('*');
-
-        if (error) {
-            console.error('Error loading assets:', error);
+        if (!supabaseClient) {
+            console.warn('Supabase client unavailable. Loading demo asset data.');
             this.assets = MockData.generateAssets();
+            showToast('Database unavailable, using demo assets', 'warning');
         } else {
-            this.assets = data;
+            const { data, error } = await supabaseClient
+                .from('assets')
+                .select('*');
+
+            if (error) {
+                console.error('Error loading assets:', error);
+                this.assets = MockData.generateAssets();
+                showToast('Database error, using demo assets', 'warning');
+            } else {
+                this.assets = data;
+            }
         }
 
         this.renderAssetTable();
@@ -708,7 +717,15 @@ class AssetManager {
 
     async deleteAsset(assetId) {
         if (confirm('Are you sure you want to delete this asset?')) {
-            const { error } = await supabase
+            if (!supabaseClient) {
+                this.assets = this.assets.filter(asset => asset.id !== assetId);
+                this.renderAssetTable();
+                this.updateStatistics();
+                showToast('Asset deleted (demo mode)', 'success');
+                return;
+            }
+
+            const { error } = await supabaseClient
                 .from('assets')
                 .delete()
                 .eq('id', assetId);
@@ -845,9 +862,154 @@ const WorkOrderManager = {
     }
 };
 
+function showToast(message, type = 'info') {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    const typeStyles = {
+        success: 'bg-green-600',
+        error: 'bg-red-600',
+        warning: 'bg-amber-500',
+        info: 'bg-blue-600'
+    };
+
+    toast.className = `text-white px-4 py-3 rounded-lg shadow-lg mb-3 flex items-center space-x-3 ${typeStyles[type] || typeStyles.info}`;
+    toast.innerHTML = `
+        <span class="font-semibold">${message}</span>
+        <button class="ml-auto text-white/80 hover:text-white" aria-label="Close notification">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+
+    const closeButton = toast.querySelector('button');
+    if (closeButton) {
+        closeButton.addEventListener('click', () => toast.remove());
+    }
+
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.remove();
+    }, 4000);
+}
+
+function showComingSoon() {
+    showToast('This feature is coming soon.', 'info');
+}
+
+function openModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.add('active');
+    }
+}
+
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.remove('active');
+    }
+}
+
+function showAddCustomerModal() {
+    openModal('customer-modal');
+}
+
+function hideCustomerModal() {
+    closeModal('customer-modal');
+}
+
+function showLocationModal() {
+    openModal('location-modal');
+}
+
+function hideLocationModal() {
+    closeModal('location-modal');
+}
+
+function showCreateWorkOrderModal() {
+    showToast('Work order creation is coming soon.', 'info');
+}
+
+function showCustomReportModal() {
+    showToast('Custom reporting is coming soon.', 'info');
+}
+
+function filterByCategory(category) {
+    if (!assetManager || !assetManager.assets.length) {
+        showToast('Assets are still loading. Please try again.', 'warning');
+        return;
+    }
+
+    const filteredAssets = category === 'all'
+        ? assetManager.assets
+        : assetManager.assets.filter(asset => asset.category === category);
+
+    const showingStart = document.getElementById('showing-start');
+    if (showingStart) {
+        showingStart.textContent = filteredAssets.length ? '1' : '0';
+    }
+
+    assetManager.renderFilteredAssets(filteredAssets);
+}
+
+function changePage(direction) {
+    if (!assetManager || !assetManager.assets.length) {
+        showToast('Assets are still loading. Please try again.', 'warning');
+        return;
+    }
+
+    const totalPages = Math.ceil(assetManager.assets.length / assetManager.itemsPerPage);
+    let nextPage = assetManager.currentPage;
+
+    if (direction === 'prev') {
+        nextPage = Math.max(1, assetManager.currentPage - 1);
+    } else if (direction === 'next') {
+        nextPage = Math.min(totalPages, assetManager.currentPage + 1);
+    }
+
+    if (nextPage !== assetManager.currentPage) {
+        assetManager.goToPage(nextPage);
+    }
+}
+
+function initCustomerPage() {
+    const customerForm = document.getElementById('customer-form');
+    if (customerForm) {
+        customerForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+            hideCustomerModal();
+            showToast('Customer saved successfully', 'success');
+        });
+    }
+
+    const locationForm = document.getElementById('location-form');
+    if (locationForm) {
+        locationForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+            hideLocationModal();
+            showToast('Location saved successfully', 'success');
+        });
+    }
+}
+
+function normalizePageName(pageName) {
+    if (!pageName || pageName === 'index') {
+        return 'dashboard';
+    }
+
+    if (pageName === 'work-orders') {
+        return 'workorders';
+    }
+
+    return pageName;
+}
+
 // Initialize the application
 function initApp() {
-    AppState.currentPage = window.location.pathname.split('/').pop().replace('.html', '') || 'dashboard';
+    const pageName = window.location.pathname.split('/').pop().replace('.html', '');
+    AppState.currentPage = normalizePageName(pageName);
     ChartManager.initializeCharts();
 
     if (AppState.currentPage === 'assets') {
@@ -855,6 +1017,8 @@ function initApp() {
         assetManager.setupEventListeners();
     } else if (AppState.currentPage === 'workorders') {
         WorkOrderManager.init();
+    } else if (AppState.currentPage === 'customers') {
+        initCustomerPage();
     }
 }
 
