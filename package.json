@@ -1,6 +1,5 @@
 {
   "name": "merc-cmms",
-  "version": "1.0",
-  "private": true,
-  "scripts": {}
+  "version": "1.0.0",
+  "private": true
 }
