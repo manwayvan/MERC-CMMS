@@ -351,15 +351,34 @@
         <!-- Customer List -->
         <section class="py-8 bg-white">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="flex justify-between items-center mb-6">
+                <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
                     <h2 class="text-2xl font-bold text-slate-800">Customer Directory</h2>
-                    <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2" onclick="showAddCustomerModal()">
-                        <i class="fas fa-plus"></i>
-                        <span>Add Customer</span>
-                    </button>
+                    <div class="flex items-center space-x-4">
+                        <!-- View Toggle -->
+                        <div class="flex bg-slate-100 rounded-lg p-1">
+                            <button id="grid-view-btn" class="view-toggle-btn active px-4 py-2 rounded-md transition-all" onclick="switchView('grid')" data-testid="grid-view-btn">
+                                <i class="fas fa-th-large mr-2"></i>
+                                <span class="hidden sm:inline">Grid</span>
+                            </button>
+                            <button id="list-view-btn" class="view-toggle-btn px-4 py-2 rounded-md transition-all" onclick="switchView('list')" data-testid="list-view-btn">
+                                <i class="fas fa-list mr-2"></i>
+                                <span class="hidden sm:inline">List</span>
+                            </button>
+                        </div>
+                        <!-- Add Customer Button -->
+                        <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2" onclick="showAddCustomerModal()" data-testid="add-customer-btn">
+                            <i class="fas fa-plus"></i>
+                            <span>Add Customer</span>
+                        </button>
+                    </div>
                 </div>
+                <!-- Grid View -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="customer-grid">
                     <!-- Customer cards will be populated by JavaScript -->
+                </div>
+                <!-- List View -->
+                <div class="hidden" id="customer-list">
+                    <!-- Customer list will be populated by JavaScript -->
                 </div>
             </div>
         </section>
