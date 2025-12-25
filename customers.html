@@ -1423,13 +1423,23 @@
             try {
                 console.log('➕ Adding location for customer:', customerId);
                 
-                // Remove id and add customer_id
+                // Remove id and add customer_id - all fields optional
                 delete locationData.id;
-                locationData.customer_id = customerId;
+                const insertData = {
+                    customer_id: customerId,
+                    name: locationData.name || null,
+                    contact_person: locationData.contact_person || null,
+                    email: locationData.email || null,
+                    phone: locationData.phone || null,
+                    address: locationData.address || null,
+                    status: locationData.status || 'active'
+                };
+                
+                console.log('📤 Inserting location:', insertData);
                 
                 const { data, error } = await supabaseClient
                     .from('locations')
-                    .insert([locationData])
+                    .insert([insertData])
                     .select();
 
                 if (error) {
@@ -1439,9 +1449,13 @@
 
                 console.log('✅ Location added successfully:', data);
                 showToast('Location added successfully!', 'success');
-                loadCustomers();
+                
+                // Clear cache and reload
+                customers = [];
+                await loadCustomers();
             } catch (error) {
                 console.error('❌ Failed to add location:', error);
+                showToast(`Failed to add: ${error.message}`, 'error');
                 throw error;
             }
         }
