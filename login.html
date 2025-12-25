@@ -42,7 +42,7 @@
             if (response.ok) {
                 localStorage.setItem('supabase.access_token', result.session.access_token);
                 localStorage.setItem('supabase.refresh_token', result.session.refresh_token);
-                window.location.href = '/app.html';
+                window.location.href = 'index.html';
             } else {
                 document.getElementById('msg').textContent = result.error;
             }
