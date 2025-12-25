@@ -227,6 +227,10 @@
                         <input type="tel" id="customer-phone" required class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
                     </div>
                     <div>
+                        <label for="customer-address" class="block text-sm font-medium text-slate-700">Address</label>
+                        <input type="text" id="customer-address" required class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
                         <label for="customer-status" class="block text-sm font-medium text-slate-700">Status</label>
                         <select id="customer-status" required class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
                             <option value="active">Active</option>
@@ -416,6 +420,7 @@
                         document.getElementById('customer-contact').value = customer.contact_person;
                         document.getElementById('customer-email').value = customer.email;
                         document.getElementById('customer-phone').value = customer.phone;
+                        document.getElementById('customer-address').value = customer.address;
                         document.getElementById('customer-status').value = customer.status;
                     } else {
                         title.textContent = 'Add Customer';
