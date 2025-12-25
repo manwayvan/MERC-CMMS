@@ -978,6 +978,7 @@
         // Render customers in list view
         function renderCustomersList(customersToRender) {
             const customerList = document.getElementById('customer-list');
+            const customerGrid = document.getElementById('customer-grid');
             
             if (customersToRender.length === 0) {
                 customerList.innerHTML = `
@@ -993,6 +994,8 @@
                 `;
                 return;
             }
+            
+            customerGrid.innerHTML = ''; // Clear grid view
             
             customerList.innerHTML = `
                 <div class="overflow-x-auto">
