@@ -679,6 +679,7 @@
             e.preventDefault();
             const customerId = document.getElementById('customer-id').value;
             const customerData = {
+                id: customerId || `CUST-${Date.now()}`,
                 name: document.getElementById('customer-name').value,
                 contact_person: document.getElementById('customer-contact').value,
                 email: document.getElementById('customer-email').value,
@@ -686,11 +687,17 @@
                 address: document.getElementById('customer-address').value,
                 status: document.getElementById('customer-status').value
             };
+            console.log('Submitting customer:', customerData);
 
-            if (customerId) {
-                await updateCustomer(customerId, customerData);
-            } else {
-                await addCustomer(customerData);
+            try {
+                if (customerId) {
+                    await updateCustomer(customerId, customerData);
+                } else {
+                    await addCustomer(customerData);
+                }
+            } catch (error) {
+                console.error('Error in form submission:', error);
+                showToast('Failed to save customer', 'error');
             }
             hideCustomerModal();
         });
@@ -700,6 +707,7 @@
             const locationId = document.getElementById('location-id').value;
             const customerId = document.getElementById('location-customer-id').value;
             const locationData = {
+                id: locationId || `LOC-${Date.now()}`,
                 name: document.getElementById('location-name').value,
                 contact_person: document.getElementById('location-contact').value,
                 email: document.getElementById('location-email').value,
@@ -707,11 +715,17 @@
                 address: document.getElementById('location-address').value,
                 status: document.getElementById('location-status').value
             };
+            console.log('Submitting location:', locationData);
 
-            if (locationId) {
-                await updateLocation(locationId, locationData);
-            } else {
-                await addLocation(customerId, locationData);
+            try {
+                if (locationId) {
+                    await updateLocation(locationId, locationData);
+                } else {
+                    await addLocation(customerId, locationData);
+                }
+            } catch (error) {
+                console.error('Error in form submission:', error);
+                showToast('Failed to save location', 'error');
             }
             hideLocationModal();
         });
@@ -743,6 +757,29 @@
             toast.querySelector('button').addEventListener('click', () => {
                 toast.remove();
             });
+        }
+
+        // Supabase Test Function
+        async function testSupabase() {
+            const { data, error } = await supabase
+                .from('customers')
+                .insert([{
+                    id: `TEST-${Date.now()}`,
+                    name: 'Test Customer',
+                    contact_person: 'John Doe',
+                    email: 'john@example.com',
+                    phone: '1234567890',
+                    address: '123 Test St',
+                    status: 'active'
+                }]);
+
+            if (error) {
+                console.error('Supabase test failed:', error);
+                showToast('Supabase test failed', 'error');
+            } else {
+                console.log('Supabase test passed:', data);
+                showToast('Supabase test passed', 'success');
+            }
         }
 
         // Initial Load
