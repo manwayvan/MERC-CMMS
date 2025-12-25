@@ -1,0 +1,2063 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customers & Locations - MERC-CMMS</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        .medical-gradient {
+            background: linear-gradient(135deg, #1e293b 0%, #2563eb 50%, #0891b2 100%);
+        }
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .medical-cross {
+            position: relative;
+        }
+        .medical-cross::before,
+        .medical-cross::after {
+            content: '';
+            position: absolute;
+            background: #0891b2;
+            border-radius: 2px;
+        }
+        .medical-cross::before {
+            width: 20px;
+            height: 4px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .medical-cross::after {
+            width: 4px;
+            height: 20px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .customer-header-bg {
+            background-image: url('/resources/hero-medical.jpg');
+            background-size: cover;
+            background-position: center;
+        }
+        .glass-effect {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .notification-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #dc2626;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        .status-active { background-color: #059669; }
+        .status-inactive { background-color: #6b7280; }
+        .status-maintenance { background-color: #d97706; }
+        .status-retired { background-color: #dc2626; }
+        .customer-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: all 0.2s;
+        }
+        .customer-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.06);
+        }
+        .location-card {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 16px;
+            border-left: 4px solid #2563eb;
+            margin-bottom: 12px;
+        }
+        .location-card:last-child {
+            margin-bottom: 0;
+        }
+        .location-card.inactive {
+            border-left-color: #6b7280;
+        }
+        .location-card.maintenance {
+            border-left-color: #d97706;
+        }
+        .location-card.retired {
+            border-left-color: #dc2626;
+        }
+        .map-container {
+            height: 300px;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #e2e8f0;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .filter-chip {
+            background: #e2e8f0;
+            color: #475569;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            margin: 2px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .filter-chip:hover {
+            background: #cbd5e1;
+        }
+        .filter-chip.active {
+            background: #2563eb;
+            color: white;
+        }
+        #mobile-menu {
+            position: fixed;
+            top: 64px;
+            left: 0;
+            right: 0;
+            z-index: 40;
+            background: linear-gradient(135deg, #1e293b 0%, #2563eb 50%, #0891b2 100%);
+            padding: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transform: translateY(0);
+            visibility: visible;
+            opacity: 1;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+        #mobile-menu.hidden {
+            transform: translateY(-100%);
+            opacity: 0;
+            pointer-events: none;
+            visibility: hidden;
+        }
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: white;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: none;
+            animation: slideIn 0.3s ease-out;
+            max-width: 90vw;
+        }
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        .debug-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 20px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .view-toggle-btn {
+            color: #64748b;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+        }
+        .view-toggle-btn.active {
+            background: white;
+            color: #2563eb;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        .list-view-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        .list-view-table thead {
+            background: #f8fafc;
+        }
+        .list-view-table th {
+            padding: 16px;
+            text-align: left;
+            font-weight: 600;
+            color: #475569;
+            border-bottom: 2px solid #e2e8f0;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .list-view-table td {
+            padding: 16px;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: top;
+        }
+        .list-view-table tbody tr {
+            transition: background-color 0.2s;
+        }
+        .list-view-table tbody tr:hover {
+            background-color: #f8fafc;
+        }
+        .list-view-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+        .location-list-item {
+            background: #f8fafc;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            border-left: 3px solid #2563eb;
+        }
+        .location-list-item:last-child {
+            margin-bottom: 0;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+    <!-- Standard Header -->
+    <nav class="fixed top-0 left-0 right-0 z-50 medical-gradient shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <a href="index.html" class="flex items-center space-x-4" aria-label="Go to dashboard">
+                    <img src="/resources/Logo_without%20name.png" alt="MERC-CMMS logo" class="w-10 h-10 rounded-full bg-white object-contain p-1 block flex-shrink-0 overflow-hidden">
+                    <div>
+                        <h1 class="text-white text-xl font-bold">MERC-CMMS</h1>
+                        <p class="text-blue-200 text-xs">Enterprise Medical Device Management</p>
+                    </div>
+                </a>
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="index.html" class="text-blue-200 hover:text-white transition-colors">Dashboard</a>
+                    <a href="customers.html" class="text-white font-semibold border-b-2 border-blue-300 pb-1">Customers</a>
+                    <a href="assets.html" class="text-blue-200 hover:text-white transition-colors">Assets</a>
+                    <a href="work-orders.html" class="text-blue-200 hover:text-white transition-colors">Work Orders</a>
+                    <a href="compliance.html" class="text-blue-200 hover:text-white transition-colors">Compliance</a>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button id="mobile-menu-button" class="md:hidden text-white hover:text-blue-200 transition-colors" aria-label="Open menu" aria-expanded="false">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                    <div class="relative">
+                        <button class="text-white hover:text-blue-200 transition-colors">
+                            <i class="fas fa-bell text-xl"></i>
+                        </button>
+                        <div class="notification-badge">3</div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                            <i class="fas fa-user text-white text-sm"></i>
+                        </div>
+                        <div class="hidden md:block">
+                            <p class="text-white text-sm font-medium">System Admin</p>
+                            <p class="text-blue-200 text-xs">Super Administrator</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <div id="mobile-menu" class="md:hidden hidden medical-gradient shadow-lg">
+        <div class="px-4 py-4 space-y-2">
+            <a href="index.html" class="block text-blue-200 hover:text-white transition-colors">Dashboard</a>
+            <a href="customers.html" class="block text-white font-semibold">Customers</a>
+            <a href="assets.html" class="block text-blue-200 hover:text-white transition-colors">Assets</a>
+            <a href="work-orders.html" class="block text-blue-200 hover:text-white transition-colors">Work Orders</a>
+            <a href="compliance.html" class="block text-blue-200 hover:text-white transition-colors">Compliance</a>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Debug Button -->
+    <button class="debug-button" onclick="testSupabaseConnectivity()">?</button>
+
+    <!-- Main Content -->
+    <main class="pt-16">
+        <!-- Header Section -->
+        <section class="customer-header-bg relative">
+            <div class="absolute inset-0 bg-slate-900 bg-opacity-70"></div>
+            <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+                <div class="text-center">
+                    <h1 class="text-4xl md:text-5xl font-bold text-white mb-4">Customers & Locations</h1>
+                    <p class="text-xl text-blue-200 mb-8 max-w-3xl mx-auto">
+                        Manage your healthcare customers and their locations with real-time status,
+                        compliance tracking, and detailed profiles
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Customer Statistics -->
+        <section class="py-8 bg-white">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h2 class="text-3xl font-bold text-slate-800 mb-8 text-center">Customer Overview</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="bg-slate-50 rounded-lg p-4 text-center">
+                        <div class="text-2xl font-bold text-blue-600" id="total-customers">0</div>
+                        <div class="text-slate-600 text-sm">Total Customers</div>
+                    </div>
+                    <div class="bg-slate-50 rounded-lg p-4 text-center">
+                        <div class="text-2xl font-bold text-green-600" id="active-customers">0</div>
+                        <div class="text-slate-600 text-sm">Active Customers</div>
+                    </div>
+                    <div class="bg-slate-50 rounded-lg p-4 text-center">
+                        <div class="text-2xl font-bold text-amber-600" id="inactive-customers">0</div>
+                        <div class="text-slate-600 text-sm">Inactive Customers</div>
+                    </div>
+                    <div class="bg-slate-50 rounded-lg p-4 text-center">
+                        <div class="text-2xl font-bold text-slate-800" id="total-locations">0</div>
+                        <div class="text-slate-600 text-sm">Total Locations</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Search and Filter Controls -->
+        <section class="py-6 bg-slate-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="flex flex-col lg:flex-row gap-4 items-center">
+                        <!-- Search Bar -->
+                        <div class="flex-1 w-full lg:w-auto">
+                            <div class="relative">
+                                <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
+                                <input type="text" id="customer-search" placeholder="Search customers by name, contact, or location..."
+                                       class="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                        </div>
+                        <!-- Status Filter -->
+                        <div class="flex flex-wrap gap-2">
+                            <div class="filter-chip active" data-status="all">All Statuses</div>
+                            <div class="filter-chip" data-status="active">Active</div>
+                            <div class="filter-chip" data-status="inactive">Inactive</div>
+                        </div>
+                        <!-- Bulk Actions -->
+                        <div class="flex gap-2">
+                            <button class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2" onclick="showBulkImportModal()" data-testid="bulk-import-btn">
+                                <i class="fas fa-file-upload"></i>
+                                <span>Bulk Import</span>
+                            </button>
+                            <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2" onclick="exportCustomers()" data-testid="export-btn">
+                                <i class="fas fa-download"></i>
+                                <span>Export CSV</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Customer List -->
+        <section class="py-8 bg-white">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
+                    <h2 class="text-2xl font-bold text-slate-800">Customer Directory</h2>
+                    <div class="flex items-center space-x-4">
+                        <!-- View Toggle -->
+                        <div class="flex bg-slate-100 rounded-lg p-1">
+                            <button id="grid-view-btn" class="view-toggle-btn active px-4 py-2 rounded-md transition-all" onclick="switchView('grid')" data-testid="grid-view-btn">
+                                <i class="fas fa-th-large mr-2"></i>
+                                <span class="hidden sm:inline">Grid</span>
+                            </button>
+                            <button id="list-view-btn" class="view-toggle-btn px-4 py-2 rounded-md transition-all" onclick="switchView('list')" data-testid="list-view-btn">
+                                <i class="fas fa-list mr-2"></i>
+                                <span class="hidden sm:inline">List</span>
+                            </button>
+                        </div>
+                        <!-- Add Customer Button -->
+                        <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2" onclick="showAddCustomerModal()" data-testid="add-customer-btn">
+                            <i class="fas fa-plus"></i>
+                            <span>Add Customer</span>
+                        </button>
+                    </div>
+                </div>
+                <!-- Grid View -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="customer-grid">
+                    <!-- Customer cards will be populated by JavaScript -->
+                </div>
+                <!-- List View -->
+                <div class="hidden" id="customer-list">
+                    <!-- Customer list will be populated by JavaScript -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Add Customer Modal -->
+        <div id="customer-modal" class="modal">
+            <div class="modal-content">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 id="customer-modal-title" class="text-2xl font-bold text-slate-800">Add Customer</h3>
+                    <button onclick="hideCustomerModal()" class="text-slate-400 hover:text-slate-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                <form id="customer-form" class="space-y-6">
+                    <input type="hidden" id="customer-id">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="customer-name" class="block text-sm font-medium text-slate-700 mb-1">
+                                Customer Name <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" id="customer-name" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required placeholder="e.g., St. Mary Medical Center">
+                        </div>
+                        <div>
+                            <label for="customer-cid" class="block text-sm font-medium text-slate-700 mb-1">
+                                Customer ID
+                                <span class="text-slate-500 text-xs ml-1">(Optional - Enter your own ID)</span>
+                            </label>
+                            <input type="text" id="customer-cid" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., HOSP-001 or leave blank">
+                            <p class="text-xs text-slate-500 mt-1">Leave blank if you don't use custom IDs</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="customer-contact" class="block text-sm font-medium text-slate-700 mb-1">
+                                Contact Person <span class="text-slate-400 text-xs">(Optional)</span>
+                            </label>
+                            <input type="text" id="customer-contact" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., Dr. Sarah Johnson or leave blank">
+                        </div>
+                        <div>
+                            <label for="customer-phone" class="block text-sm font-medium text-slate-700 mb-1">
+                                Phone <span class="text-slate-400 text-xs">(Optional)</span>
+                            </label>
+                            <input type="tel" id="customer-phone" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., (555) 123-4567 or leave blank">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="customer-email" class="block text-sm font-medium text-slate-700 mb-1">
+                                Email <span class="text-slate-400 text-xs">(Optional)</span>
+                            </label>
+                            <input type="email" id="customer-email" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., contact@hospital.org or leave blank">
+                        </div>
+                        <div>
+                            <label for="customer-status" class="block text-sm font-medium text-slate-700 mb-1">Status</label>
+                            <select id="customer-status" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="customer-address" class="block text-sm font-medium text-slate-700 mb-1">
+                            Address <span class="text-slate-400 text-xs">(Optional)</span>
+                        </label>
+                        <textarea id="customer-address" rows="2" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., 123 Healthcare Blvd or leave blank"></textarea>
+                    </div>
+                    <div class="flex justify-end space-x-4 pt-6 border-t border-slate-200">
+                        <button type="button" onclick="hideCustomerModal()" class="px-6 py-2 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 transition-colors">Cancel</button>
+                        <button type="submit" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">Save Customer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Add Location Modal -->
+        <div id="location-modal" class="modal">
+            <div class="modal-content">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 id="location-modal-title" class="text-2xl font-bold text-slate-800">Add Location</h3>
+                    <button onclick="hideLocationModal()" class="text-slate-400 hover:text-slate-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                <form id="location-form" class="space-y-6">
+                    <input type="hidden" id="location-id">
+                    <input type="hidden" id="location-customer-id">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="location-name" class="block text-sm font-medium text-slate-700 mb-1">
+                                Location Name <span class="text-slate-400 text-xs">(Optional)</span>
+                            </label>
+                            <input type="text" id="location-name" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., Main Campus - ICU or leave blank">
+                        </div>
+                        <div>
+                            <label for="location-contact" class="block text-sm font-medium text-slate-700 mb-1">
+                                Contact Person <span class="text-slate-400 text-xs">(Optional)</span>
+                            </label>
+                            <input type="text" id="location-contact" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., Nurse Manager or leave blank">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="location-email" class="block text-sm font-medium text-slate-700 mb-1">
+                                Email <span class="text-slate-400 text-xs">(Optional)</span>
+                            </label>
+                            <input type="email" id="location-email" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., contact@location.org or leave blank">
+                        </div>
+                        <div>
+                            <label for="location-phone" class="block text-sm font-medium text-slate-700 mb-1">
+                                Phone <span class="text-slate-400 text-xs">(Optional)</span>
+                            </label>
+                            <input type="tel" id="location-phone" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., (555) 123-4501 or leave blank">
+                        </div>
+                    </div>
+                    <div>
+                        <label for="location-address" class="block text-sm font-medium text-slate-700 mb-1">
+                            Address <span class="text-slate-400 text-xs">(Optional)</span>
+                        </label>
+                        <textarea id="location-address" rows="2" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., Building A, Floor 3 or leave blank"></textarea>
+                    </div>
+                    <div>
+                        <label for="location-status" class="block text-sm font-medium text-slate-700 mb-1">Status</label>
+                        <select id="location-status" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="maintenance">Maintenance</option>
+                            <option value="retired">Retired</option>
+                        </select>
+                    </div>
+                    <div class="flex justify-end space-x-4 pt-6 border-t border-slate-200">
+                        <button type="button" onclick="hideLocationModal()" class="px-6 py-2 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 transition-colors">Cancel</button>
+                        <button type="submit" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">Save Location</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Bulk Import Modal -->
+        <div id="bulk-import-modal" class="modal">
+            <div class="modal-content max-w-3xl">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 id="bulk-import-modal-title" class="text-2xl font-bold text-slate-800">Bulk Import Customers & Locations</h2>
+                    <button onclick="hideBulkImportModal()" class="text-slate-400 hover:text-slate-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                <div class="space-y-6">
+                    <!-- Instructions -->
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <h3 class="font-semibold text-blue-900 mb-2 flex items-center">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            How to Import
+                        </h3>
+                        <ol class="text-sm text-blue-800 space-y-1 ml-6 list-decimal">
+                            <li>Download the CSV template below</li>
+                            <li>Fill in your customer and location data</li>
+                            <li>Upload the completed CSV file</li>
+                            <li>Review and confirm the import</li>
+                        </ol>
+                    </div>
+
+                    <!-- Template Download -->
+                    <div class="border border-slate-200 rounded-lg p-4">
+                        <h3 class="font-semibold text-slate-800 mb-3">Step 1: Download Template</h3>
+                        <button onclick="downloadTemplate()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2">
+                            <i class="fas fa-download"></i>
+                            <span>Download CSV Template</span>
+                        </button>
+                        <p class="text-xs text-slate-500 mt-2">
+                            The template includes columns for: Customer Name, Customer ID, Contact Person, Phone, Email, Address, Status, Location Name, Location Contact, Location Phone, Location Email, Location Address, Location Status
+                        </p>
+                    </div>
+
+                    <!-- File Upload -->
+                    <div class="border border-slate-200 rounded-lg p-4">
+                        <h3 class="font-semibold text-slate-800 mb-3">Step 2: Upload CSV File</h3>
+                        <input type="file" id="csv-file-input" accept=".csv" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <p class="text-xs text-slate-500 mt-2">
+                            Maximum file size: 5MB. Only CSV format supported.
+                        </p>
+                    </div>
+
+                    <!-- Preview Area -->
+                    <div id="import-preview" class="hidden border border-slate-200 rounded-lg p-4">
+                        <h3 class="font-semibold text-slate-800 mb-3">Step 3: Preview Import</h3>
+                        <div id="import-preview-content" class="max-h-60 overflow-y-auto"></div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex justify-end space-x-4 pt-6 border-t border-slate-200">
+                        <button type="button" onclick="hideBulkImportModal()" class="px-6 py-2 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 transition-colors">Cancel</button>
+                        <button type="button" id="process-import-btn" onclick="processImport()" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors hidden">
+                            <i class="fas fa-upload mr-2"></i>
+                            Import Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Global variables
+        let customers = [];
+        let supabaseClient;
+
+        // DOM Elements
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const customerForm = document.getElementById('customer-form');
+        const locationForm = document.getElementById('location-form');
+        const customerSearch = document.getElementById('customer-search');
+        const filterChips = document.querySelectorAll('.filter-chip');
+        const customerModal = document.getElementById('customer-modal');
+        const locationModal = document.getElementById('location-modal');
+
+        // Initialize Supabase client with your credentials
+        document.addEventListener('DOMContentLoaded', () => {
+            const supabaseUrl = 'https://hmdemsbqiqlqcggwblvl.supabase.co';
+            const supabaseKey = 'sb_publishable_Z9oNxTGDCCz3EZnh6NqySg_QzF6amCN';
+            
+            if (!window.supabase) {
+                showToast('Supabase library not loaded. Please check your internet connection.', 'error');
+                return;
+            }
+            
+            supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+            console.log('✅ Supabase client initialized successfully');
+
+            // Load customers on page load
+            loadCustomers();
+
+            // Set up event listeners
+            setupEventListeners();
+        });
+
+        // Set up all event listeners
+        function setupEventListeners() {
+            // Mobile menu toggle
+            if (mobileMenuButton && mobileMenu) {
+                mobileMenuButton.addEventListener('click', () => {
+                    const isExpanded = mobileMenuButton.getAttribute('aria-expanded') === 'true';
+                    mobileMenuButton.setAttribute('aria-expanded', String(!isExpanded));
+                    mobileMenu.classList.toggle('hidden');
+                });
+            }
+
+            // Customer form submission
+            customerForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                // Validate only customer name is required
+                const customerName = document.getElementById('customer-name').value.trim();
+                if (!customerName) {
+                    showToast('Customer Name is required', 'error');
+                    return;
+                }
+                
+                // Format phone number before saving
+                const phoneInput = document.getElementById('customer-phone');
+                const formattedPhone = formatPhoneNumber(phoneInput.value);
+                phoneInput.value = formattedPhone;
+                
+                const customerData = {
+                    id: document.getElementById('customer-id').value || null,
+                    customer_id: document.getElementById('customer-cid').value.trim() || null,
+                    name: customerName,
+                    contact_person: document.getElementById('customer-contact').value.trim() || null,
+                    email: document.getElementById('customer-email').value.trim() || null,
+                    phone: formattedPhone || null,
+                    address: document.getElementById('customer-address').value.trim() || null,
+                    status: document.getElementById('customer-status').value
+                };
+
+                try {
+                    if (document.getElementById('customer-id').value) {
+                        await updateCustomer(customerData.id, customerData);
+                    } else {
+                        await addCustomer(customerData);
+                    }
+                    hideCustomerModal();
+                } catch (error) {
+                    showToast(`Error: ${error.message}`, 'error');
+                }
+            });
+
+            // Location form submission
+            locationForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                // Format phone number before saving
+                const phoneInput = document.getElementById('location-phone');
+                const formattedPhone = formatPhoneNumber(phoneInput.value);
+                phoneInput.value = formattedPhone;
+                
+                const locationData = {
+                    id: document.getElementById('location-id').value || null,
+                    name: document.getElementById('location-name').value.trim() || null,
+                    contact_person: document.getElementById('location-contact').value.trim() || null,
+                    email: document.getElementById('location-email').value.trim() || null,
+                    phone: formattedPhone || null,
+                    address: document.getElementById('location-address').value.trim() || null,
+                    status: document.getElementById('location-status').value
+                };
+
+                try {
+                    const customerId = document.getElementById('location-customer-id').value;
+                    if (document.getElementById('location-id').value) {
+                        await updateLocation(document.getElementById('location-id').value, locationData);
+                    } else {
+                        await addLocation(customerId, locationData);
+                    }
+                    hideLocationModal();
+                } catch (error) {
+                    showToast(`Error: ${error.message}`, 'error');
+                }
+            });
+
+            // Search functionality
+            customerSearch.addEventListener('input', () => {
+                filterAndRenderCustomers();
+            });
+
+            // Filter chips
+            filterChips.forEach(chip => {
+                chip.addEventListener('click', () => {
+                    filterChips.forEach(c => c.classList.remove('active'));
+                    chip.classList.add('active');
+                    filterAndRenderCustomers();
+                });
+            });
+        }
+
+        // Load customers from Supabase
+        async function loadCustomers() {
+            try {
+                console.log('📡 Loading customers from Supabase...');
+                const { data: customersData, error } = await supabaseClient
+                    .from('customers')
+                    .select('*, locations(*)')
+                    .order('created_at', { ascending: false });
+
+                if (error) {
+                    console.error('❌ Error loading customers:', error);
+                    throw error;
+                }
+
+                customers = customersData || [];
+                console.log(`✅ Loaded ${customers.length} customers`);
+                
+                // Handle empty state
+                if (customers.length === 0) {
+                    showEmptyState();
+                } else {
+                    filterAndRenderCustomers();
+                    updateStatistics(customers);
+                }
+            } catch (error) {
+                console.error('❌ Failed to load customers:', error);
+                showToast(`Failed to load customers: ${error.message}. Please check your database connection.`, 'error');
+                showEmptyState();
+            }
+        }
+        
+        // Show empty state when no customers exist
+        function showEmptyState() {
+            const customerGrid = document.getElementById('customer-grid');
+            const customerList = document.getElementById('customer-list');
+            
+            const emptyContent = `
+                <div class="text-center py-12 bg-slate-50 rounded-lg">
+                    <i class="fas fa-building text-6xl text-slate-300 mb-4"></i>
+                    <h3 class="text-xl font-semibold text-slate-700 mb-2">No customers yet</h3>
+                    <p class="text-slate-500 mb-6">Get started by adding your first customer</p>
+                    <button onclick="showAddCustomerModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors inline-flex items-center space-x-2">
+                        <i class="fas fa-plus"></i>
+                        <span>Add Your First Customer</span>
+                    </button>
+                </div>
+            `;
+            
+            if (currentView === 'grid') {
+                customerGrid.innerHTML = `<div class="col-span-3">${emptyContent}</div>`;
+                customerList.innerHTML = '';
+            } else {
+                customerList.innerHTML = emptyContent;
+                customerGrid.innerHTML = '';
+            }
+            
+            updateStatistics([]);
+        }
+
+        // Filter and render customers based on search and status filter
+        function filterAndRenderCustomers() {
+            const searchTerm = customerSearch.value.toLowerCase();
+            const activeFilter = document.querySelector('.filter-chip.active').getAttribute('data-status');
+
+            let filteredCustomers = [...customers];
+
+            // Apply search filter
+            if (searchTerm) {
+                filteredCustomers = filteredCustomers.filter(customer =>
+                    customer.name.toLowerCase().includes(searchTerm) ||
+                    customer.contact_person.toLowerCase().includes(searchTerm) ||
+                    customer.phone.includes(searchTerm) ||
+                    customer.locations.some(location =>
+                        location.name.toLowerCase().includes(searchTerm) ||
+                        location.address.toLowerCase().includes(searchTerm)
+                    )
+                );
+            }
+
+            // Apply status filter
+            if (activeFilter !== 'all') {
+                filteredCustomers = filteredCustomers.filter(customer => customer.status === activeFilter);
+            }
+
+            if (currentView === 'grid') {
+                renderCustomers(filteredCustomers);
+            } else {
+                renderCustomersList(filteredCustomers);
+            }
+        }
+
+        // Render customers to the UI
+        function renderCustomers(customersToRender) {
+            const customerGrid = document.getElementById('customer-grid');
+            const customerList = document.getElementById('customer-list');
+            
+            if (customersToRender.length === 0) {
+                showEmptyState();
+                return;
+            }
+            
+            customerGrid.innerHTML = '';
+            customerList.innerHTML = ''; // Clear list view
+
+            customersToRender.forEach(customer => {
+                const locationCount = customer.locations ? customer.locations.length : 0;
+                const customerCard = document.createElement('div');
+                customerCard.className = 'customer-card card-hover';
+                customerCard.innerHTML = `
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-3 mb-2">
+                                <h3 class="text-xl font-bold text-slate-800">${customer.name}</h3>
+                                ${customer.customer_id ? `
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-300">
+                                        <i class="fas fa-id-card mr-1"></i>
+                                        ${customer.customer_id}
+                                    </span>
+                                ` : ''}
+                            </div>
+                            <div class="space-y-1">
+                                ${customer.contact_person ? `
+                                    <p class="text-sm text-slate-600">
+                                        <i class="fas fa-user w-4 text-slate-400"></i> 
+                                        ${customer.contact_person}
+                                    </p>
+                                ` : ''}
+                                ${customer.phone ? `
+                                    <p class="text-sm text-slate-600">
+                                        <i class="fas fa-phone w-4 text-slate-400"></i> 
+                                        ${customer.phone}
+                                    </p>
+                                ` : ''}
+                                ${customer.email ? `
+                                    <p class="text-sm text-slate-600">
+                                        <i class="fas fa-envelope w-4 text-slate-400"></i> 
+                                        ${customer.email}
+                                    </p>
+                                ` : ''}
+                                ${customer.address ? `
+                                    <p class="text-sm text-slate-600">
+                                        <i class="fas fa-map-marker-alt w-4 text-slate-400"></i> 
+                                        ${customer.address}
+                                    </p>
+                                ` : ''}
+                            </div>
+                            <div class="mt-3">
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${customer.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
+                                    <span class="status-indicator status-${customer.status}"></span>
+                                    ${customer.status.charAt(0).toUpperCase() + customer.status.slice(1)}
+                                </span>
+                                <span class="ml-2 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                    <i class="fas fa-map-marked-alt mr-1"></i>
+                                    ${locationCount} Location${locationCount !== 1 ? 's' : ''}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button 
+                                onclick="showEditCustomerModal('${customer.id}')" 
+                                class="text-blue-600 hover:text-blue-800 p-2 hover:bg-blue-50 rounded-lg transition-colors"
+                                title="Edit customer"
+                                data-testid="edit-customer-btn-${customer.id}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button 
+                                onclick="deleteCustomer('${customer.id}')" 
+                                class="text-red-600 hover:text-red-800 p-2 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Delete customer"
+                                data-testid="delete-customer-btn-${customer.id}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Locations Section -->
+                    <div class="border-t border-slate-200 pt-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="font-semibold text-slate-700 flex items-center">
+                                <i class="fas fa-map-marked-alt mr-2 text-blue-600"></i>
+                                Locations
+                            </h4>
+                            <button 
+                                onclick="showAddLocationModal('${customer.id}')" 
+                                class="text-sm bg-blue-50 hover:bg-blue-100 text-blue-600 px-3 py-1 rounded-lg transition-colors flex items-center space-x-1"
+                                data-testid="add-location-btn-${customer.id}">
+                                <i class="fas fa-plus text-xs"></i>
+                                <span>Add Location</span>
+                            </button>
+                        </div>
+                        
+                        <div id="locations-${customer.id}" class="space-y-2">
+                            ${customer.locations && customer.locations.length > 0 ? customer.locations.map(location => `
+                                <div class="location-card ${location.status}" data-id="${location.id}" data-testid="location-card-${location.id}">
+                                    <div class="flex justify-between items-start">
+                                        <div class="flex-1">
+                                            <div class="flex items-start justify-between">
+                                                <h5 class="font-medium text-slate-800 mb-1">${location.name || 'Unnamed Location'}</h5>
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                                                    location.status === 'active' ? 'bg-green-100 text-green-800' :
+                                                    location.status === 'maintenance' ? 'bg-amber-100 text-amber-800' :
+                                                    location.status === 'retired' ? 'bg-red-100 text-red-800' :
+                                                    'bg-gray-100 text-gray-800'
+                                                }">
+                                                    ${location.status}
+                                                </span>
+                                            </div>
+                                            <div class="space-y-1 mt-2">
+                                                ${location.contact_person ? `
+                                                    <p class="text-sm text-slate-600">
+                                                        <i class="fas fa-user w-4 text-slate-400"></i>
+                                                        ${location.contact_person}
+                                                    </p>
+                                                ` : ''}
+                                                ${location.phone ? `
+                                                    <p class="text-sm text-slate-600">
+                                                        <i class="fas fa-phone w-4 text-slate-400"></i>
+                                                        ${location.phone}
+                                                    </p>
+                                                ` : ''}
+                                                ${location.email ? `
+                                                    <p class="text-sm text-slate-600">
+                                                        <i class="fas fa-envelope w-4 text-slate-400"></i>
+                                                        ${location.email}
+                                                    </p>
+                                                ` : ''}
+                                                ${location.address ? `
+                                                    <p class="text-sm text-slate-600">
+                                                        <i class="fas fa-map-marker-alt w-4 text-slate-400"></i>
+                                                        ${location.address}
+                                                    </p>
+                                                ` : ''}
+                                            </div>
+                                        </div>
+                                        <div class="flex space-x-2 ml-4">
+                                            <button 
+                                                onclick="showEditLocationModal('${customer.id}', '${location.id}')" 
+                                                class="text-blue-600 hover:text-blue-800 p-1 hover:bg-blue-50 rounded transition-colors"
+                                                title="Edit location"
+                                                data-testid="edit-location-btn-${location.id}">
+                                                <i class="fas fa-edit text-sm"></i>
+                                            </button>
+                                            <button 
+                                                onclick="deleteLocation('${location.id}')" 
+                                                class="text-red-600 hover:text-red-800 p-1 hover:bg-red-50 rounded transition-colors"
+                                                title="Delete location"
+                                                data-testid="delete-location-btn-${location.id}">
+                                                <i class="fas fa-trash text-sm"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('') : `
+                                <div class="text-center py-6 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
+                                    <i class="fas fa-map-marker-alt text-3xl text-slate-300 mb-2"></i>
+                                    <p class="text-sm text-slate-500 mb-3">No locations added yet</p>
+                                    <button 
+                                        onclick="showAddLocationModal('${customer.id}')" 
+                                        class="text-sm bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors inline-flex items-center space-x-1">
+                                        <i class="fas fa-plus"></i>
+                                        <span>Add First Location</span>
+                                    </button>
+                                </div>
+                            `}
+                        </div>
+                    </div>
+                `;
+                customerGrid.appendChild(customerCard);
+            });
+        }
+
+        // Switch between grid and list view
+        let currentView = 'grid';
+        
+        function switchView(view) {
+            currentView = view;
+            const gridView = document.getElementById('customer-grid');
+            const listView = document.getElementById('customer-list');
+            const gridBtn = document.getElementById('grid-view-btn');
+            const listBtn = document.getElementById('list-view-btn');
+            
+            if (view === 'grid') {
+                gridView.classList.remove('hidden');
+                listView.classList.add('hidden');
+                gridBtn.classList.add('active');
+                listBtn.classList.remove('active');
+            } else {
+                gridView.classList.add('hidden');
+                listView.classList.remove('hidden');
+                gridBtn.classList.remove('active');
+                listBtn.classList.add('active');
+            }
+            
+            // Re-render in current view
+            filterAndRenderCustomers();
+        }
+        
+        // Render customers in list view
+        function renderCustomersList(customersToRender) {
+            const customerList = document.getElementById('customer-list');
+            const customerGrid = document.getElementById('customer-grid');
+            
+            if (customersToRender.length === 0) {
+                customerList.innerHTML = `
+                    <div class="text-center py-12 bg-slate-50 rounded-lg">
+                        <i class="fas fa-building text-6xl text-slate-300 mb-4"></i>
+                        <h3 class="text-xl font-semibold text-slate-700 mb-2">No customers yet</h3>
+                        <p class="text-slate-500 mb-6">Get started by adding your first customer</p>
+                        <button onclick="showAddCustomerModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors inline-flex items-center space-x-2">
+                            <i class="fas fa-plus"></i>
+                            <span>Add Your First Customer</span>
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+            
+            customerGrid.innerHTML = ''; // Clear grid view
+            
+            customerList.innerHTML = `
+                <div class="overflow-x-auto">
+                    <table class="list-view-table">
+                        <thead>
+                            <tr>
+                                <th>Customer</th>
+                                <th>Contact Info</th>
+                                <th>Status</th>
+                                <th>Locations</th>
+                                <th class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${customersToRender.map(customer => {
+                                const locationCount = customer.locations ? customer.locations.length : 0;
+                                return `
+                                    <tr data-testid="customer-row-${customer.id}">
+                                        <td>
+                                            <div>
+                                                <div class="font-semibold text-slate-800 text-lg mb-1">${customer.name}</div>
+                                                ${customer.customer_id ? `
+                                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-300">
+                                                        <i class="fas fa-id-card mr-1"></i>
+                                                        ${customer.customer_id}
+                                                    </span>
+                                                ` : ''}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="space-y-1 text-sm">
+                                                ${customer.contact_person ? `
+                                                    <div class="flex items-center text-slate-600">
+                                                        <i class="fas fa-user w-4 text-slate-400 mr-2"></i>
+                                                        ${customer.contact_person}
+                                                    </div>
+                                                ` : ''}
+                                                ${customer.phone ? `
+                                                    <div class="flex items-center text-slate-600">
+                                                        <i class="fas fa-phone w-4 text-slate-400 mr-2"></i>
+                                                        ${customer.phone}
+                                                    </div>
+                                                ` : ''}
+                                                ${customer.email ? `
+                                                    <div class="flex items-center text-slate-600">
+                                                        <i class="fas fa-envelope w-4 text-slate-400 mr-2"></i>
+                                                        ${customer.email}
+                                                    </div>
+                                                ` : ''}
+                                                ${customer.address ? `
+                                                    <div class="flex items-center text-slate-600">
+                                                        <i class="fas fa-map-marker-alt w-4 text-slate-400 mr-2"></i>
+                                                        ${customer.address}
+                                                    </div>
+                                                ` : ''}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                                                customer.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                                            }">
+                                                <span class="status-indicator status-${customer.status}"></span>
+                                                ${customer.status.charAt(0).toUpperCase() + customer.status.slice(1)}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="space-y-2">
+                                                <div class="flex items-center space-x-2 mb-2">
+                                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                        <i class="fas fa-map-marked-alt mr-1"></i>
+                                                        ${locationCount} Location${locationCount !== 1 ? 's' : ''}
+                                                    </span>
+                                                    <button 
+                                                        onclick="showAddLocationModal('${customer.id}')" 
+                                                        class="text-xs bg-blue-50 hover:bg-blue-100 text-blue-600 px-2 py-1 rounded transition-colors"
+                                                        title="Add Location"
+                                                        data-testid="add-location-list-btn-${customer.id}">
+                                                        <i class="fas fa-plus"></i>
+                                                    </button>
+                                                </div>
+                                                ${customer.locations && customer.locations.length > 0 ? customer.locations.map(location => `
+                                                    <div class="location-list-item" data-testid="location-list-${location.id}">
+                                                        <div class="flex justify-between items-start">
+                                                            <div class="flex-1 min-w-0">
+                                                                <div class="flex items-center justify-between mb-1">
+                                                                    <span class="font-medium text-slate-800 text-sm truncate">${location.name || 'Unnamed Location'}</span>
+                                                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ml-2 flex-shrink-0 ${
+                                                                        location.status === 'active' ? 'bg-green-100 text-green-800' :
+                                                                        location.status === 'maintenance' ? 'bg-amber-100 text-amber-800' :
+                                                                        location.status === 'retired' ? 'bg-red-100 text-red-800' :
+                                                                        'bg-gray-100 text-gray-800'
+                                                                    }">
+                                                                        ${location.status}
+                                                                    </span>
+                                                                </div>
+                                                                <div class="text-xs text-slate-600 space-y-0.5">
+                                                                    ${location.contact_person ? `<div><i class="fas fa-user w-3"></i> ${location.contact_person}</div>` : ''}
+                                                                    ${location.phone ? `<div><i class="fas fa-phone w-3"></i> ${location.phone}</div>` : ''}
+                                                                    ${location.address ? `<div><i class="fas fa-map-marker-alt w-3"></i> ${location.address}</div>` : ''}
+                                                                </div>
+                                                            </div>
+                                                            <div class="flex space-x-1 ml-2">
+                                                                <button 
+                                                                    onclick="showEditLocationModal('${customer.id}', '${location.id}')" 
+                                                                    class="text-blue-600 hover:text-blue-800 p-1 hover:bg-blue-50 rounded transition-colors"
+                                                                    title="Edit location"
+                                                                    data-testid="edit-location-list-btn-${location.id}">
+                                                                    <i class="fas fa-edit text-xs"></i>
+                                                                </button>
+                                                                <button 
+                                                                    onclick="deleteLocation('${location.id}')" 
+                                                                    class="text-red-600 hover:text-red-800 p-1 hover:bg-red-50 rounded transition-colors"
+                                                                    title="Delete location"
+                                                                    data-testid="delete-location-list-btn-${location.id}">
+                                                                    <i class="fas fa-trash text-xs"></i>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                `).join('') : '<div class="text-xs text-slate-500 italic">No locations</div>'}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="flex justify-center space-x-2">
+                                                <button 
+                                                    onclick="showEditCustomerModal('${customer.id}')" 
+                                                    class="text-blue-600 hover:text-blue-800 p-2 hover:bg-blue-50 rounded-lg transition-colors"
+                                                    title="Edit customer"
+                                                    data-testid="edit-customer-list-btn-${customer.id}">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button 
+                                                    onclick="deleteCustomer('${customer.id}')" 
+                                                    class="text-red-600 hover:text-red-800 p-2 hover:bg-red-50 rounded-lg transition-colors"
+                                                    title="Delete customer"
+                                                    data-testid="delete-customer-list-btn-${customer.id}">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        // Update statistics
+        function updateStatistics(customers) {
+            const totalCustomers = customers.length;
+            const activeCustomers = customers.filter(c => c.status === 'active').length;
+            const inactiveCustomers = customers.filter(c => c.status === 'inactive').length;
+            const totalLocations = customers.reduce((sum, customer) => sum + customer.locations.length, 0);
+
+            document.getElementById('total-customers').textContent = totalCustomers;
+            document.getElementById('active-customers').textContent = activeCustomers;
+            document.getElementById('inactive-customers').textContent = inactiveCustomers;
+            document.getElementById('total-locations').textContent = totalLocations;
+        }
+
+        // Show add customer modal
+        function showAddCustomerModal() {
+            document.getElementById('customer-id').value = '';
+            document.getElementById('customer-cid').value = '';
+            document.getElementById('customer-name').value = '';
+            document.getElementById('customer-contact').value = '';
+            document.getElementById('customer-email').value = '';
+            document.getElementById('customer-phone').value = '';
+            document.getElementById('customer-address').value = '';
+            document.getElementById('customer-status').value = 'active';
+            document.getElementById('customer-modal-title').textContent = 'Add Customer';
+            customerModal.classList.add('active');
+        }
+
+        // Show edit customer modal
+        function showEditCustomerModal(customerId) {
+            const customer = customers.find(c => c.id === customerId);
+            if (customer) {
+                document.getElementById('customer-id').value = customer.id;
+                document.getElementById('customer-cid').value = customer.customer_id || '';
+                document.getElementById('customer-name').value = customer.name;
+                document.getElementById('customer-contact').value = customer.contact_person || '';
+                document.getElementById('customer-email').value = customer.email || '';
+                document.getElementById('customer-phone').value = customer.phone || '';
+                document.getElementById('customer-address').value = customer.address || '';
+                document.getElementById('customer-status').value = customer.status;
+                document.getElementById('customer-modal-title').textContent = 'Edit Customer';
+                customerModal.classList.add('active');
+            }
+        }
+
+        // Hide customer modal
+        function hideCustomerModal() {
+            customerModal.classList.remove('active');
+            loadCustomers();
+        }
+
+        // Show add location modal
+        function showAddLocationModal(customerId) {
+            document.getElementById('location-id').value = '';
+            document.getElementById('location-customer-id').value = customerId;
+            document.getElementById('location-name').value = '';
+            document.getElementById('location-contact').value = '';
+            document.getElementById('location-email').value = '';
+            document.getElementById('location-phone').value = '';
+            document.getElementById('location-address').value = '';
+            document.getElementById('location-status').value = 'active';
+            document.getElementById('location-modal-title').textContent = 'Add Location';
+            locationModal.classList.add('active');
+        }
+
+        // Show edit location modal
+        function showEditLocationModal(customerId, locationId) {
+            const customer = customers.find(c => c.id === customerId);
+            if (customer) {
+                const location = customer.locations.find(l => l.id === locationId);
+                if (location) {
+                    document.getElementById('location-id').value = location.id;
+                    document.getElementById('location-customer-id').value = customerId;
+                    document.getElementById('location-name').value = location.name;
+                    document.getElementById('location-contact').value = location.contact_person;
+                    document.getElementById('location-email').value = location.email || '';
+                    document.getElementById('location-phone').value = location.phone;
+                    document.getElementById('location-address').value = location.address;
+                    document.getElementById('location-status').value = location.status;
+                    document.getElementById('location-modal-title').textContent = 'Edit Location';
+                    locationModal.classList.add('active');
+                }
+            }
+        }
+
+        // Hide location modal
+        function hideLocationModal() {
+            locationModal.classList.remove('active');
+            loadCustomers();
+        }
+
+        // Add customer
+        async function addCustomer(customerData) {
+            try {
+                console.log('➕ Adding customer:', customerData.name);
+                
+                // Remove the id field - let database handle it
+                delete customerData.id;
+                
+                // Don't auto-generate customer_id - user enters it or leaves blank
+                // All fields are optional except name
+                const insertData = {
+                    customer_id: customerData.customer_id || null,
+                    name: customerData.name,
+                    contact_person: customerData.contact_person || null,
+                    email: customerData.email || null,
+                    phone: customerData.phone || null,
+                    address: customerData.address || null,
+                    status: customerData.status || 'active'
+                };
+                
+                console.log('📤 Inserting to database:', insertData);
+                
+                const { data, error } = await supabaseClient
+                    .from('customers')
+                    .insert([insertData])
+                    .select();
+
+                if (error) {
+                    console.error('❌ Error adding customer:', error);
+                    throw error;
+                }
+
+                console.log('✅ Customer added successfully:', data);
+                showToast('Customer added successfully!', 'success');
+                
+                // Clear cache and reload
+                customers = [];
+                await loadCustomers();
+            } catch (error) {
+                console.error('❌ Failed to add customer:', error);
+                showToast(`Failed to add: ${error.message}`, 'error');
+                throw error;
+            }
+        }
+
+        // Update customer
+        async function updateCustomer(customerId, customerData) {
+            try {
+                console.log('🔄 Updating customer ID:', customerId);
+                console.log('📝 Full customer data received:', JSON.stringify(customerData, null, 2));
+                
+                // Build update object with all fields explicitly
+                const updateData = {
+                    customer_id: customerData.customer_id || null,
+                    name: customerData.name,
+                    contact_person: customerData.contact_person || null,
+                    email: customerData.email || null,
+                    phone: customerData.phone || null,
+                    address: customerData.address || null,
+                    status: customerData.status || 'active'
+                };
+                
+                console.log('📤 Sending update to Supabase:', JSON.stringify(updateData, null, 2));
+                
+                const { data, error } = await supabaseClient
+                    .from('customers')
+                    .update(updateData)
+                    .eq('id', customerId)
+                    .select();
+
+                if (error) {
+                    console.error('❌ Supabase error:', error);
+                    throw error;
+                }
+
+                if (!data || data.length === 0) {
+                    console.error('⚠️ Update returned no data - check RLS policies');
+                    throw new Error('Update failed - no data returned. Check permissions.');
+                }
+
+                console.log('✅ Update response from database:', JSON.stringify(data, null, 2));
+                showToast('Customer updated successfully!', 'success');
+                
+                // Clear local cache and force fresh load
+                customers = [];
+                await loadCustomers();
+                
+                return data;
+            } catch (error) {
+                console.error('❌ Failed to update customer:', error);
+                showToast(`Update failed: ${error.message}`, 'error');
+                throw error;
+            }
+        }
+
+        // Add location
+        async function addLocation(customerId, locationData) {
+            try {
+                console.log('➕ Adding location for customer:', customerId);
+                
+                // Build insert data - NEVER send id field, let database generate it
+                const insertData = {
+                    customer_id: customerId,
+                    name: locationData.name || null,
+                    contact_person: locationData.contact_person || null,
+                    email: locationData.email || null,
+                    phone: locationData.phone || null,
+                    address: locationData.address || null,
+                    status: locationData.status || 'active'
+                };
+                
+                // DO NOT include 'id' in insert data - database generates it
+                console.log('📤 Inserting location:', insertData);
+                
+                const { data, error } = await supabaseClient
+                    .from('locations')
+                    .insert([insertData])
+                    .select();
+
+                if (error) {
+                    console.error('❌ Error adding location:', error);
+                    console.error('Error details:', JSON.stringify(error, null, 2));
+                    throw error;
+                }
+
+                console.log('✅ Location added successfully:', data);
+                showToast('Location added successfully!', 'success');
+                
+                // Clear cache and reload
+                customers = [];
+                await loadCustomers();
+            } catch (error) {
+                console.error('❌ Failed to add location:', error);
+                showToast(`Failed to add location: ${error.message}`, 'error');
+                throw error;
+            }
+        }
+
+        // Update location
+        async function updateLocation(locationId, locationData) {
+            try {
+                console.log('🔄 Updating location ID:', locationId);
+                console.log('📝 Location data:', JSON.stringify(locationData, null, 2));
+                
+                // Build update object explicitly
+                const updateData = {
+                    name: locationData.name || null,
+                    contact_person: locationData.contact_person || null,
+                    email: locationData.email || null,
+                    phone: locationData.phone || null,
+                    address: locationData.address || null,
+                    status: locationData.status || 'active'
+                };
+                
+                console.log('📤 Sending location update:', JSON.stringify(updateData, null, 2));
+                
+                const { data, error } = await supabaseClient
+                    .from('locations')
+                    .update(updateData)
+                    .eq('id', locationId)
+                    .select();
+
+                if (error) {
+                    console.error('❌ Error updating location:', error);
+                    throw error;
+                }
+
+                if (!data || data.length === 0) {
+                    console.error('⚠️ Update returned no data');
+                    throw new Error('Update failed - no data returned. Check permissions.');
+                }
+
+                console.log('✅ Location updated:', JSON.stringify(data, null, 2));
+                showToast('Location updated successfully!', 'success');
+                
+                // Clear cache and reload
+                customers = [];
+                await loadCustomers();
+                
+                return data;
+            } catch (error) {
+                console.error('❌ Failed to update location:', error);
+                showToast(`Update failed: ${error.message}`, 'error');
+                throw error;
+            }
+        }
+
+        // Delete customer
+        async function deleteCustomer(customerId) {
+            if (confirm('⚠️ Are you sure you want to delete this customer?\n\nThis will also delete all associated locations and cannot be undone.')) {
+                try {
+                    console.log('🗑️ Attempting to delete customer:', customerId);
+                    
+                    // First delete associated locations
+                    const { error: locError } = await supabaseClient
+                        .from('locations')
+                        .delete()
+                        .eq('customer_id', customerId);
+                    
+                    if (locError) {
+                        console.error('❌ Error deleting locations:', locError);
+                        throw new Error(`Failed to delete locations: ${locError.message}`);
+                    }
+                    
+                    console.log('✅ Associated locations deleted');
+                    
+                    // Now delete the customer
+                    const { data, error } = await supabaseClient
+                        .from('customers')
+                        .delete()
+                        .eq('id', customerId)
+                        .select();
+
+                    if (error) {
+                        console.error('❌ Error deleting customer:', error);
+                        console.error('Error details:', JSON.stringify(error, null, 2));
+                        throw new Error(`Database error: ${error.message || error.code || 'Unknown error'}`);
+                    }
+
+                    if (!data || data.length === 0) {
+                        console.warn('⚠️ No customer was deleted - may not exist or no permission');
+                        showToast('Warning: Customer may not have been deleted. Check permissions.', 'warning');
+                        loadCustomers();
+                        return;
+                    }
+
+                    console.log('✅ Customer deleted successfully:', data);
+                    showToast('Customer and locations deleted successfully!', 'success');
+                    loadCustomers();
+                } catch (error) {
+                    console.error('❌ Failed to delete customer:', error);
+                    showToast(`Delete failed: ${error.message}`, 'error');
+                    loadCustomers(); // Reload to show current state
+                }
+            }
+        }
+
+        // Delete location
+        async function deleteLocation(locationId) {
+            if (confirm('⚠️ Are you sure you want to delete this location?\n\nThis action cannot be undone.')) {
+                try {
+                    console.log('🗑️ Attempting to delete location:', locationId);
+                    
+                    const { data, error } = await supabaseClient
+                        .from('locations')
+                        .delete()
+                        .eq('id', locationId)
+                        .select();
+
+                    if (error) {
+                        console.error('❌ Error deleting location:', error);
+                        console.error('Error details:', JSON.stringify(error, null, 2));
+                        throw new Error(`Database error: ${error.message || error.code || 'Unknown error'}`);
+                    }
+
+                    if (!data || data.length === 0) {
+                        console.warn('⚠️ No location was deleted - may not exist or no permission');
+                        showToast('Warning: Location may not have been deleted. Check permissions.', 'warning');
+                        loadCustomers();
+                        return;
+                    }
+
+                    console.log('✅ Location deleted successfully:', data);
+                    showToast('Location deleted successfully!', 'success');
+                    loadCustomers();
+                } catch (error) {
+                    console.error('❌ Failed to delete location:', error);
+                    showToast(`Delete failed: ${error.message}`, 'error');
+                    loadCustomers(); // Reload to show current state
+                }
+            }
+        }
+
+        // Show toast notification
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            const icons = {
+                success: '✅',
+                error: '❌',
+                warning: '⚠️',
+                info: 'ℹ️'
+            };
+            const colors = {
+                success: '#10b981',
+                error: '#ef4444',
+                warning: '#f59e0b',
+                info: '#3b82f6'
+            };
+            
+            toast.textContent = `${icons[type] || icons.info} ${message}`;
+            toast.style.backgroundColor = colors[type] || colors.info;
+            toast.style.display = 'block';
+            
+            console.log(`${icons[type]} ${message}`);
+
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 5000);
+        }
+
+        // Show coming soon notification
+        function showComingSoon() {
+            showToast('This feature is coming soon!', 'info');
+        }
+
+        // Test Supabase connectivity
+        async function testSupabaseConnectivity() {
+            console.log('🔍 Testing Supabase connectivity...');
+            try {
+                const { data, error } = await supabaseClient
+                    .from('customers')
+                    .select('count')
+                    .limit(1);
+
+                if (error) {
+                    console.error('❌ Connection test failed:', error);
+                    showToast(`Connection failed: ${error.message}`, 'error');
+                } else {
+                    console.log('✅ Connection test successful');
+                    showToast('✅ Supabase connection successful!', 'success');
+                }
+            } catch (error) {
+                console.error('❌ Connection test error:', error);
+                showToast(`Connection error: ${error.message}`, 'error');
+            }
+        }
+
+        // ==========================================
+        // PHONE NUMBER FORMATTING
+        // ==========================================
+
+        // Format phone number to (XXX) XXX-XXXX format
+        function formatPhoneNumber(phone) {
+            if (!phone) return '';
+            
+            // Remove all non-numeric characters
+            const cleaned = phone.replace(/\D/g, '');
+            
+            // Handle different lengths
+            if (cleaned.length === 0) return '';
+            if (cleaned.length <= 3) return cleaned;
+            if (cleaned.length <= 6) return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3)}`;
+            if (cleaned.length <= 10) return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
+            
+            // Handle numbers longer than 10 digits (international)
+            if (cleaned.length === 11 && cleaned[0] === '1') {
+                // US number with country code
+                return `+1 (${cleaned.slice(1, 4)}) ${cleaned.slice(4, 7)}-${cleaned.slice(7, 11)}`;
+            }
+            
+            // For very long numbers, just format the last 10 digits
+            return `(${cleaned.slice(-10, -7)}) ${cleaned.slice(-7, -4)}-${cleaned.slice(-4)}`;
+        }
+
+        // Apply phone formatting to input field
+        function applyPhoneFormatting(inputElement) {
+            if (!inputElement) return;
+            
+            inputElement.addEventListener('input', function(e) {
+                const cursorPosition = e.target.selectionStart;
+                const oldLength = e.target.value.length;
+                const formatted = formatPhoneNumber(e.target.value);
+                e.target.value = formatted;
+                
+                // Adjust cursor position after formatting
+                const newLength = formatted.length;
+                const diff = newLength - oldLength;
+                e.target.setSelectionRange(cursorPosition + diff, cursorPosition + diff);
+            });
+            
+            inputElement.addEventListener('blur', function(e) {
+                e.target.value = formatPhoneNumber(e.target.value);
+            });
+        }
+
+        // Initialize phone formatting on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            // Apply to customer phone field
+            const customerPhone = document.getElementById('customer-phone');
+            if (customerPhone) {
+                applyPhoneFormatting(customerPhone);
+            }
+            
+            // Apply to location phone field
+            const locationPhone = document.getElementById('location-phone');
+            if (locationPhone) {
+                applyPhoneFormatting(locationPhone);
+            }
+        });
+
+        // ==========================================
+        // BULK IMPORT/EXPORT FUNCTIONALITY
+        // ==========================================
+
+        let importedData = [];
+
+        // Show bulk import modal
+        function showBulkImportModal() {
+            document.getElementById('bulk-import-modal').classList.add('active');
+            document.getElementById('csv-file-input').value = '';
+            document.getElementById('import-preview').classList.add('hidden');
+            document.getElementById('process-import-btn').classList.add('hidden');
+            importedData = [];
+        }
+
+        // Hide bulk import modal
+        function hideBulkImportModal() {
+            document.getElementById('bulk-import-modal').classList.remove('active');
+        }
+
+        // Download CSV template
+        function downloadTemplate() {
+            const headers = [
+                'Customer Name',
+                'Customer ID',
+                'Contact Person',
+                'Phone',
+                'Email',
+                'Address',
+                'Status',
+                'Location Name',
+                'Location Contact',
+                'Location Phone',
+                'Location Email',
+                'Location Address',
+                'Location Status'
+            ];
+
+            const sampleData = [
+                [
+                    'St. Mary Medical Center',
+                    'SMC-001',
+                    'Dr. Sarah Johnson',
+                    '(555) 123-4567',
+                    'sjohnson@stmary.org',
+                    '123 Healthcare Blvd, Medical City, MC 12345',
+                    'active',
+                    'Main Campus - ICU',
+                    'Nurse Jane Smith',
+                    '(555) 123-4501',
+                    'jsmith@stmary.org',
+                    '123 Healthcare Blvd, Building A, Floor 3',
+                    'active'
+                ],
+                [
+                    'Memorial Hospital',
+                    'MH-002',
+                    'John Davis',
+                    '(555) 234-5678',
+                    'jdavis@memorial.org',
+                    '456 Hospital Ave, Health Town, HT 23456',
+                    'active',
+                    'Cardiology Department',
+                    'Dr. Kevin Harris',
+                    '(555) 234-5601',
+                    'kharris@memorial.org',
+                    '456 Hospital Ave, Tower C, Floor 5',
+                    'active'
+                ]
+            ];
+
+            const csvContent = [
+                headers.join(','),
+                ...sampleData.map(row => row.map(cell => `"${cell}"`).join(','))
+            ].join('\n');
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'customers_import_template.csv';
+            link.click();
+            showToast('Template downloaded successfully!', 'success');
+        }
+
+        // Handle CSV file upload
+        document.addEventListener('DOMContentLoaded', () => {
+            const fileInput = document.getElementById('csv-file-input');
+            if (fileInput) {
+                fileInput.addEventListener('change', handleFileUpload);
+            }
+        });
+
+        async function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (file.size > 5 * 1024 * 1024) {
+                showToast('File too large. Maximum size is 5MB.', 'error');
+                return;
+            }
+
+            if (!file.name.endsWith('.csv')) {
+                showToast('Please upload a CSV file.', 'error');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const text = e.target.result;
+                    const parsed = parseCSV(text);
+                    importedData = parsed;
+                    displayImportPreview(parsed);
+                } catch (error) {
+                    showToast(`Error parsing CSV: ${error.message}`, 'error');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // Parse CSV content
+        function parseCSV(text) {
+            const lines = text.split('\n').filter(line => line.trim());
+            const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+            const data = [];
+
+            for (let i = 1; i < lines.length; i++) {
+                const values = lines[i].match(/(".*?"|[^,]+)(?=\s*,|\s*$)/g);
+                if (!values) continue;
+
+                const row = {};
+                headers.forEach((header, index) => {
+                    row[header] = values[index] ? values[index].replace(/"/g, '').trim() : '';
+                });
+                data.push(row);
+            }
+
+            return data;
+        }
+
+        // Display import preview
+        function displayImportPreview(data) {
+            const preview = document.getElementById('import-preview');
+            const content = document.getElementById('import-preview-content');
+
+            if (data.length === 0) {
+                showToast('No data found in CSV file.', 'error');
+                return;
+            }
+
+            let html = `
+                <div class="bg-slate-50 rounded-lg p-4">
+                    <p class="font-semibold text-slate-800 mb-2">Found ${data.length} row(s) to import</p>
+                    <div class="space-y-2 max-h-40 overflow-y-auto">
+            `;
+
+            data.slice(0, 5).forEach((row, index) => {
+                html += `
+                    <div class="bg-white p-2 rounded border border-slate-200 text-sm">
+                        <strong>${row['Customer Name'] || 'Unnamed'}</strong>
+                        ${row['Location Name'] ? `→ ${row['Location Name']}` : ''}
+                    </div>
+                `;
+            });
+
+            if (data.length > 5) {
+                html += `<p class="text-xs text-slate-500 text-center">... and ${data.length - 5} more</p>`;
+            }
+
+            html += '</div></div>';
+
+            content.innerHTML = html;
+            preview.classList.remove('hidden');
+            document.getElementById('process-import-btn').classList.remove('hidden');
+        }
+
+        // Process import
+        async function processImport() {
+            if (importedData.length === 0) {
+                showToast('No data to import', 'error');
+                return;
+            }
+
+            const processBtn = document.getElementById('process-import-btn');
+            processBtn.disabled = true;
+            processBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Importing...';
+
+            try {
+                let successCount = 0;
+                let errorCount = 0;
+
+                for (const row of importedData) {
+                    try {
+                        // Create customer
+                        const customerData = {
+                            customer_id: row['Customer ID'] || null,
+                            name: row['Customer Name'],
+                            contact_person: row['Contact Person'] || null,
+                            phone: row['Phone'] || null,
+                            email: row['Email'] || null,
+                            address: row['Address'] || null,
+                            status: row['Status'] || 'active'
+                        };
+
+                        const { data: customer, error: customerError } = await supabaseClient
+                            .from('customers')
+                            .insert([customerData])
+                            .select();
+
+                        if (customerError) throw customerError;
+
+                        // Create location if data provided
+                        if (row['Location Name'] && customer && customer[0]) {
+                            const locationData = {
+                                customer_id: customer[0].id,
+                                name: row['Location Name'],
+                                contact_person: row['Location Contact'] || null,
+                                phone: row['Location Phone'] || null,
+                                email: row['Location Email'] || null,
+                                address: row['Location Address'] || null,
+                                status: row['Location Status'] || 'active'
+                            };
+
+                            const { error: locationError } = await supabaseClient
+                                .from('locations')
+                                .insert([locationData]);
+
+                            if (locationError) throw locationError;
+                        }
+
+                        successCount++;
+                    } catch (error) {
+                        console.error('Error importing row:', row, error);
+                        errorCount++;
+                    }
+                }
+
+                showToast(`Import complete! Success: ${successCount}, Errors: ${errorCount}`, 'success');
+                hideBulkImportModal();
+                await loadCustomers();
+            } catch (error) {
+                showToast(`Import failed: ${error.message}`, 'error');
+            } finally {
+                processBtn.disabled = false;
+                processBtn.innerHTML = '<i class="fas fa-upload mr-2"></i>Import Data';
+            }
+        }
+
+        // Export customers to CSV
+        async function exportCustomers() {
+            try {
+                showToast('Preparing export...', 'info');
+
+                const { data: customersData, error } = await supabaseClient
+                    .from('customers')
+                    .select('*, locations(*)')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                if (!customersData || customersData.length === 0) {
+                    showToast('No customers to export', 'warning');
+                    return;
+                }
+
+                const rows = [];
+                const headers = [
+                    'Customer Name',
+                    'Customer ID',
+                    'Contact Person',
+                    'Phone',
+                    'Email',
+                    'Address',
+                    'Status',
+                    'Location Name',
+                    'Location Contact',
+                    'Location Phone',
+                    'Location Email',
+                    'Location Address',
+                    'Location Status'
+                ];
+
+                rows.push(headers);
+
+                customersData.forEach(customer => {
+                    if (customer.locations && customer.locations.length > 0) {
+                        customer.locations.forEach(location => {
+                            rows.push([
+                                customer.name || '',
+                                customer.customer_id || '',
+                                customer.contact_person || '',
+                                customer.phone || '',
+                                customer.email || '',
+                                customer.address || '',
+                                customer.status || '',
+                                location.name || '',
+                                location.contact_person || '',
+                                location.phone || '',
+                                location.email || '',
+                                location.address || '',
+                                location.status || ''
+                            ]);
+                        });
+                    } else {
+                        rows.push([
+                            customer.name || '',
+                            customer.customer_id || '',
+                            customer.contact_person || '',
+                            customer.phone || '',
+                            customer.email || '',
+                            customer.address || '',
+                            customer.status || '',
+                            '', '', '', '', '', ''
+                        ]);
+                    }
+                });
+
+                const csvContent = rows.map(row => 
+                    row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+                ).join('\n');
+
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                const timestamp = new Date().toISOString().split('T')[0];
+                link.download = `customers_export_${timestamp}.csv`;
+                link.click();
+
+                showToast(`Exported ${customersData.length} customers successfully!`, 'success');
+            } catch (error) {
+                console.error('Export error:', error);
+                showToast(`Export failed: ${error.message}`, 'error');
+            }
+        }
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</body>
+</html>
