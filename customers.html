@@ -907,70 +907,111 @@
         // Add customer
         async function addCustomer(customerData) {
             try {
+                console.log('➕ Adding customer:', customerData.name);
+                
+                // Remove the id field and let the database generate it
+                delete customerData.id;
+                
                 const { data, error } = await supabaseClient
                     .from('customers')
-                    .insert([customerData]);
+                    .insert([customerData])
+                    .select();
 
                 if (error) {
+                    console.error('❌ Error adding customer:', error);
                     throw error;
                 }
 
+                console.log('✅ Customer added successfully:', data);
                 showToast('Customer added successfully!', 'success');
+                loadCustomers();
             } catch (error) {
-                showToast(`Failed to add customer: ${error.message}`, 'error');
+                console.error('❌ Failed to add customer:', error);
+                throw error;
             }
         }
 
         // Update customer
         async function updateCustomer(customerId, customerData) {
             try {
+                console.log('🔄 Updating customer:', customerId);
+                
+                // Remove id from update data
+                const { id, ...updateData } = customerData;
+                
                 const { data, error } = await supabaseClient
                     .from('customers')
-                    .update(customerData)
-                    .eq('id', customerId);
+                    .update(updateData)
+                    .eq('id', customerId)
+                    .select();
 
                 if (error) {
+                    console.error('❌ Error updating customer:', error);
                     throw error;
                 }
 
+                console.log('✅ Customer updated successfully:', data);
                 showToast('Customer updated successfully!', 'success');
+                loadCustomers();
             } catch (error) {
-                showToast(`Failed to update customer: ${error.message}`, 'error');
+                console.error('❌ Failed to update customer:', error);
+                throw error;
             }
         }
 
         // Add location
         async function addLocation(customerId, locationData) {
             try {
+                console.log('➕ Adding location for customer:', customerId);
+                
+                // Remove id and add customer_id
+                delete locationData.id;
+                locationData.customer_id = customerId;
+                
                 const { data, error } = await supabaseClient
                     .from('locations')
-                    .insert([{ ...locationData, customer_id: customerId }]);
+                    .insert([locationData])
+                    .select();
 
                 if (error) {
+                    console.error('❌ Error adding location:', error);
                     throw error;
                 }
 
+                console.log('✅ Location added successfully:', data);
                 showToast('Location added successfully!', 'success');
+                loadCustomers();
             } catch (error) {
-                showToast(`Failed to add location: ${error.message}`, 'error');
+                console.error('❌ Failed to add location:', error);
+                throw error;
             }
         }
 
         // Update location
         async function updateLocation(locationId, locationData) {
             try {
+                console.log('🔄 Updating location:', locationId);
+                
+                // Remove id from update data
+                const { id, ...updateData } = locationData;
+                
                 const { data, error } = await supabaseClient
                     .from('locations')
-                    .update(locationData)
-                    .eq('id', locationId);
+                    .update(updateData)
+                    .eq('id', locationId)
+                    .select();
 
                 if (error) {
+                    console.error('❌ Error updating location:', error);
                     throw error;
                 }
 
+                console.log('✅ Location updated successfully:', data);
                 showToast('Location updated successfully!', 'success');
+                loadCustomers();
             } catch (error) {
-                showToast(`Failed to update location: ${error.message}`, 'error');
+                console.error('❌ Failed to update location:', error);
+                throw error;
             }
         }
 
