@@ -178,6 +178,28 @@
             opacity: 0;
             pointer-events: none;
         }
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: white;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: none;
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800">
@@ -231,6 +253,9 @@
             <a href="compliance.html" class="block text-blue-200 hover:text-white transition-colors">Compliance</a>
         </div>
     </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
 
     <!-- Main Content -->
     <main class="pt-16">
@@ -423,42 +448,155 @@
     </main>
 
     <script>
+        // Global variables
+        let customers = [];
+        let supabase;
+
+        // DOM Elements
         const mobileMenuButton = document.getElementById('mobile-menu-button');
         const mobileMenu = document.getElementById('mobile-menu');
+        const customerForm = document.getElementById('customer-form');
+        const locationForm = document.getElementById('location-form');
+        const customerSearch = document.getElementById('customer-search');
+        const filterChips = document.querySelectorAll('.filter-chip');
 
-        if (mobileMenuButton && mobileMenu) {
-            mobileMenuButton.addEventListener('click', () => {
-                const isExpanded = mobileMenuButton.getAttribute('aria-expanded') === 'true';
-                mobileMenuButton.setAttribute('aria-expanded', String(!isExpanded));
-                mobileMenu.classList.toggle('hidden');
+        // Initialize Supabase client
+        document.addEventListener('DOMContentLoaded', () => {
+            const supabaseUrl = 'https://hmdemsbqiqlqcggwblvl.supabase.co';
+            const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhtZGVtc2JxaXFscWNnZ3dibHZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY1MjQ1NTQsImV4cCI6MjA4MjEwMDU1NH0.RDp1lqV7eTr7uxRkzdWnJP0H09xSAQGxOgBcWEMO69w';
+            supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+            // Load customers on page load
+            loadCustomers();
+
+            // Set up event listeners
+            setupEventListeners();
+        });
+
+        // Set up all event listeners
+        function setupEventListeners() {
+            // Mobile menu toggle
+            if (mobileMenuButton && mobileMenu) {
+                mobileMenuButton.addEventListener('click', () => {
+                    const isExpanded = mobileMenuButton.getAttribute('aria-expanded') === 'true';
+                    mobileMenuButton.setAttribute('aria-expanded', String(!isExpanded));
+                    mobileMenu.classList.toggle('hidden');
+                });
+            }
+
+            // Customer form submission
+            customerForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                const customerData = {
+                    id: document.getElementById('customer-id').value || `CUST-${Date.now()}`,
+                    name: formData.get('customer-name'),
+                    contact_person: formData.get('customer-contact'),
+                    email: formData.get('customer-email'),
+                    phone: formData.get('customer-phone'),
+                    address: formData.get('customer-address'),
+                    status: formData.get('customer-status')
+                };
+
+                if (document.getElementById('customer-id').value) {
+                    await updateCustomer(customerData.id, customerData);
+                } else {
+                    await addCustomer(customerData);
+                }
+
+                hideCustomerModal();
+            });
+
+            // Location form submission
+            locationForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                const locationData = {
+                    id: document.getElementById('location-id').value || `LOC-${Date.now()}`,
+                    name: formData.get('location-name'),
+                    contact_person: formData.get('location-contact'),
+                    email: formData.get('location-email'),
+                    phone: formData.get('location-phone'),
+                    address: formData.get('location-address'),
+                    status: formData.get('location-status')
+                };
+
+                const customerId = document.getElementById('location-customer-id').value;
+                if (document.getElementById('location-id').value) {
+                    await updateLocation(document.getElementById('location-id').value, locationData);
+                } else {
+                    await addLocation(customerId, locationData);
+                }
+
+                hideLocationModal();
+            });
+
+            // Search functionality
+            customerSearch.addEventListener('input', () => {
+                filterAndRenderCustomers();
+            });
+
+            // Filter chips
+            filterChips.forEach(chip => {
+                chip.addEventListener('click', () => {
+                    filterChips.forEach(c => c.classList.remove('active'));
+                    chip.classList.add('active');
+                    filterAndRenderCustomers();
+                });
             });
         }
 
-        // Supabase client initialization
-        const supabaseUrl = 'https://hmdemsbqiqlqcggwblvl.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhtZGVtc2JxaXFscWNnZ3dibHZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY1MjQ1NTQsImV4cCI6MjA4MjEwMDU1NH0.RDp1lqV7eTr7uxRkzdWnJP0H09xSAQGxOgBcWEMO69w';
-        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
-
-        // Customer and Location Management Functions
+        // Load customers from Supabase
         async function loadCustomers() {
-            const { data: customers, error } = await supabase
+            const { data: customersData, error } = await supabase
                 .from('customers')
                 .select('*, locations(*)');
 
             if (error) {
                 console.error('Error loading customers:', error);
+                showToast('Failed to load customers', 'error');
                 return;
             }
 
-            renderCustomers(customers);
+            customers = customersData || [];
+            filterAndRenderCustomers();
             updateStatistics(customers);
         }
 
-        function renderCustomers(customers) {
+        // Filter and render customers based on search and status filter
+        function filterAndRenderCustomers() {
+            const searchTerm = customerSearch.value.toLowerCase();
+            const activeFilter = document.querySelector('.filter-chip.active').getAttribute('data-status');
+
+            let filteredCustomers = [...customers];
+
+            // Apply search filter
+            if (searchTerm) {
+                filteredCustomers = filteredCustomers.filter(customer =>
+                    customer.name.toLowerCase().includes(searchTerm) ||
+                    customer.contact_person.toLowerCase().includes(searchTerm) ||
+                    customer.phone.includes(searchTerm) ||
+                    customer.locations.some(location =>
+                        location.name.toLowerCase().includes(searchTerm) ||
+                        location.address.toLowerCase().includes(searchTerm)
+                    )
+                );
+            }
+
+            // Apply status filter
+            if (activeFilter !== 'all') {
+                filteredCustomers = filteredCustomers.filter(customer => customer.status === activeFilter);
+            }
+
+            renderCustomers(filteredCustomers);
+        }
+
+        // Render customers to the UI
+        function renderCustomers(customersToRender) {
             const customerGrid = document.getElementById('customer-grid');
             customerGrid.innerHTML = '';
 
-            customers.forEach(customer => {
+            customersToRender.forEach(customer => {
                 const customerCard = document.createElement('div');
                 customerCard.className = 'customer-card card-hover';
                 customerCard.innerHTML = `
@@ -482,7 +620,7 @@
                         <h4 class="font-semibold text-slate-700 mb-2">Locations</h4>
                         <div id="locations-${customer.id}" class="space-y-2">
                             ${customer.locations.map(location => `
-                                <div class="location-card" data-id="${location.id}">
+                                <div class="location-card ${location.status}" data-id="${location.id}">
                                     <div class="flex justify-between items-start">
                                         <div>
                                             <h5 class="font-medium text-slate-800">${location.name}</h5>
@@ -512,6 +650,7 @@
             });
         }
 
+        // Update statistics
         function updateStatistics(customers) {
             const totalCustomers = customers.length;
             const activeCustomers = customers.filter(c => c.status === 'active').length;
@@ -524,6 +663,7 @@
             document.getElementById('total-locations').textContent = totalLocations;
         }
 
+        // Add a new customer
         async function addCustomer(customerData) {
             const { data, error } = await supabase
                 .from('customers')
@@ -535,10 +675,11 @@
                 showToast('Failed to add customer', 'error');
             } else {
                 showToast('Customer added successfully', 'success');
-                loadCustomers();
+                await loadCustomers();
             }
         }
 
+        // Update an existing customer
         async function updateCustomer(customerId, customerData) {
             const { data, error } = await supabase
                 .from('customers')
@@ -551,25 +692,29 @@
                 showToast('Failed to update customer', 'error');
             } else {
                 showToast('Customer updated successfully', 'success');
-                loadCustomers();
+                await loadCustomers();
             }
         }
 
+        // Delete a customer
         async function deleteCustomer(customerId) {
-            const { error } = await supabase
-                .from('customers')
-                .delete()
-                .eq('id', customerId);
+            if (confirm('Are you sure you want to delete this customer and all associated locations?')) {
+                const { error } = await supabase
+                    .from('customers')
+                    .delete()
+                    .eq('id', customerId);
 
-            if (error) {
-                console.error('Error deleting customer:', error);
-                showToast('Failed to delete customer', 'error');
-            } else {
-                showToast('Customer deleted successfully', 'success');
-                loadCustomers();
+                if (error) {
+                    console.error('Error deleting customer:', error);
+                    showToast('Failed to delete customer', 'error');
+                } else {
+                    showToast('Customer deleted successfully', 'success');
+                    await loadCustomers();
+                }
             }
         }
 
+        // Add a new location
         async function addLocation(customerId, locationData) {
             const { data, error } = await supabase
                 .from('locations')
@@ -581,10 +726,11 @@
                 showToast('Failed to add location', 'error');
             } else {
                 showToast('Location added successfully', 'success');
-                loadCustomers();
+                await loadCustomers();
             }
         }
 
+        // Update an existing location
         async function updateLocation(locationId, locationData) {
             const { data, error } = await supabase
                 .from('locations')
@@ -597,26 +743,29 @@
                 showToast('Failed to update location', 'error');
             } else {
                 showToast('Location updated successfully', 'success');
-                loadCustomers();
+                await loadCustomers();
             }
         }
 
+        // Delete a location
         async function deleteLocation(locationId) {
-            const { error } = await supabase
-                .from('locations')
-                .delete()
-                .eq('id', locationId);
+            if (confirm('Are you sure you want to delete this location?')) {
+                const { error } = await supabase
+                    .from('locations')
+                    .delete()
+                    .eq('id', locationId);
 
-            if (error) {
-                console.error('Error deleting location:', error);
-                showToast('Failed to delete location', 'error');
-            } else {
-                showToast('Location deleted successfully', 'success');
-                loadCustomers();
+                if (error) {
+                    console.error('Error deleting location:', error);
+                    showToast('Failed to delete location', 'error');
+                } else {
+                    showToast('Location deleted successfully', 'success');
+                    await loadCustomers();
+                }
             }
         }
 
-        // Modal Functions
+        // Show add customer modal
         function showAddCustomerModal() {
             document.getElementById('customer-modal-title').textContent = 'Add Customer';
             document.getElementById('customer-form').reset();
@@ -624,25 +773,37 @@
             document.getElementById('customer-modal').classList.add('active');
         }
 
-        function showEditCustomerModal(customerId) {
-            const customer = customers.find(c => c.id === customerId);
-            if (customer) {
-                document.getElementById('customer-modal-title').textContent = 'Edit Customer';
-                document.getElementById('customer-id').value = customer.id;
-                document.getElementById('customer-name').value = customer.name;
-                document.getElementById('customer-contact').value = customer.contact_person;
-                document.getElementById('customer-email').value = customer.email || '';
-                document.getElementById('customer-phone').value = customer.phone;
-                document.getElementById('customer-address').value = customer.address;
-                document.getElementById('customer-status').value = customer.status;
-                document.getElementById('customer-modal').classList.add('active');
+        // Show edit customer modal
+        async function showEditCustomerModal(customerId) {
+            const { data: customer, error } = await supabase
+                .from('customers')
+                .select('*')
+                .eq('id', customerId)
+                .single();
+
+            if (error) {
+                console.error('Error fetching customer:', error);
+                showToast('Failed to fetch customer', 'error');
+                return;
             }
+
+            document.getElementById('customer-modal-title').textContent = 'Edit Customer';
+            document.getElementById('customer-id').value = customer.id;
+            document.getElementById('customer-name').value = customer.name;
+            document.getElementById('customer-contact').value = customer.contact_person;
+            document.getElementById('customer-email').value = customer.email || '';
+            document.getElementById('customer-phone').value = customer.phone;
+            document.getElementById('customer-address').value = customer.address;
+            document.getElementById('customer-status').value = customer.status;
+            document.getElementById('customer-modal').classList.add('active');
         }
 
+        // Hide customer modal
         function hideCustomerModal() {
             document.getElementById('customer-modal').classList.remove('active');
         }
 
+        // Show add location modal
         function showAddLocationModal(customerId) {
             document.getElementById('location-modal-title').textContent = 'Add Location';
             document.getElementById('location-form').reset();
@@ -651,158 +812,53 @@
             document.getElementById('location-modal').classList.add('active');
         }
 
-        function showEditLocationModal(customerId, locationId) {
-            const customer = customers.find(c => c.id === customerId);
-            if (customer) {
-                const location = customer.locations.find(l => l.id === locationId);
-                if (location) {
-                    document.getElementById('location-modal-title').textContent = 'Edit Location';
-                    document.getElementById('location-id').value = location.id;
-                    document.getElementById('location-customer-id').value = customerId;
-                    document.getElementById('location-name').value = location.name;
-                    document.getElementById('location-contact').value = location.contact_person;
-                    document.getElementById('location-email').value = location.email || '';
-                    document.getElementById('location-phone').value = location.phone;
-                    document.getElementById('location-address').value = location.address;
-                    document.getElementById('location-status').value = location.status;
-                    document.getElementById('location-modal').classList.add('active');
-                }
+        // Show edit location modal
+        async function showEditLocationModal(customerId, locationId) {
+            const { data: location, error } = await supabase
+                .from('locations')
+                .select('*')
+                .eq('id', locationId)
+                .single();
+
+            if (error) {
+                console.error('Error fetching location:', error);
+                showToast('Failed to fetch location', 'error');
+                return;
             }
+
+            document.getElementById('location-modal-title').textContent = 'Edit Location';
+            document.getElementById('location-id').value = location.id;
+            document.getElementById('location-customer-id').value = customerId;
+            document.getElementById('location-name').value = location.name;
+            document.getElementById('location-contact').value = location.contact_person;
+            document.getElementById('location-email').value = location.email || '';
+            document.getElementById('location-phone').value = location.phone;
+            document.getElementById('location-address').value = location.address;
+            document.getElementById('location-status').value = location.status;
+            document.getElementById('location-modal').classList.add('active');
         }
 
+        // Hide location modal
         function hideLocationModal() {
             document.getElementById('location-modal').classList.remove('active');
         }
 
-        // Form Submission Handlers
-        document.getElementById('customer-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const customerId = document.getElementById('customer-id').value;
-            const customerData = {
-                id: customerId || `CUST-${Date.now()}`,
-                name: document.getElementById('customer-name').value,
-                contact_person: document.getElementById('customer-contact').value,
-                email: document.getElementById('customer-email').value,
-                phone: document.getElementById('customer-phone').value,
-                address: document.getElementById('customer-address').value,
-                status: document.getElementById('customer-status').value
-            };
-            console.log('Submitting customer:', customerData);
-
-            try {
-                if (customerId) {
-                    await updateCustomer(customerId, customerData);
-                } else {
-                    await addCustomer(customerData);
-                }
-            } catch (error) {
-                console.error('Error in form submission:', error);
-                showToast('Failed to save customer', 'error');
-            }
-            hideCustomerModal();
-        });
-
-        document.getElementById('location-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const locationId = document.getElementById('location-id').value;
-            const customerId = document.getElementById('location-customer-id').value;
-            const locationData = {
-                id: locationId || `LOC-${Date.now()}`,
-                name: document.getElementById('location-name').value,
-                contact_person: document.getElementById('location-contact').value,
-                email: document.getElementById('location-email').value,
-                phone: document.getElementById('location-phone').value,
-                address: document.getElementById('location-address').value,
-                status: document.getElementById('location-status').value
-            };
-            console.log('Submitting location:', locationData);
-
-            try {
-                if (locationId) {
-                    await updateLocation(locationId, locationData);
-                } else {
-                    await addLocation(customerId, locationData);
-                }
-            } catch (error) {
-                console.error('Error in form submission:', error);
-                showToast('Failed to save location', 'error');
-            }
-            hideLocationModal();
-        });
-
-        // Toast Notification
+        // Show toast notification
         function showToast(message, type) {
-            const toastContainer = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            toast.className = `bg-white border-l-4 ${type === 'success' ? 'border-green-500' : 'border-red-500'} rounded-lg shadow-lg p-4 mb-2 flex items-center space-x-3`;
-            toast.innerHTML = `
-                <div class="flex-shrink-0">
-                    <i class="fas ${type === 'success' ? 'fa-check-circle text-green-500' : 'fa-exclamation-circle text-red-500'}"></i>
-                </div>
-                <div class="flex-1">
-                    <p class="text-sm font-medium ${type === 'success' ? 'text-green-800' : 'text-red-800'}">${message}</p>
-                </div>
-                <button class="text-slate-500 hover:text-slate-700">
-                    <i class="fas fa-times"></i>
-                </button>
-            `;
-            toastContainer.appendChild(toast);
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type === 'success' ? 'bg-green-600' : 'bg-red-600'}`;
+            toast.style.display = 'block';
 
-            // Remove toast after 5 seconds
             setTimeout(() => {
-                toast.remove();
-            }, 5000);
-
-            // Close button
-            toast.querySelector('button').addEventListener('click', () => {
-                toast.remove();
-            });
+                toast.style.display = 'none';
+            }, 3000);
         }
 
-        // Supabase Test Function
-        async function testSupabase() {
-            const { data, error } = await supabase
-                .from('customers')
-                .insert([{
-                    id: `TEST-${Date.now()}`,
-                    name: 'Test Customer',
-                    contact_person: 'John Doe',
-                    email: 'john@example.com',
-                    phone: '1234567890',
-                    address: '123 Test St',
-                    status: 'active'
-                }]);
-
-            if (error) {
-                console.error('Supabase test failed:', error);
-                showToast('Supabase test failed', 'error');
-            } else {
-                console.log('Supabase test passed:', data);
-                showToast('Supabase test passed', 'success');
-            }
+        // Placeholder for coming soon features
+        function showComingSoon() {
+            showToast('This feature is coming soon!', 'success');
         }
-
-        // Initial Load
-        document.addEventListener('DOMContentLoaded', () => {
-            loadCustomers();
-        });
     </script>
-
-    <!-- Footer -->
-    <footer class="bg-slate-800 text-white py-8">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <p class="text-slate-400">&copy; 2025 MERC-CMMS Enterprise. All rights reserved. | Medical Device Management System</p>
-        </div>
-    </footer>
-
-    <!-- Toast Notification Container -->
-    <div id="toast-container" class="fixed bottom-4 right-4 z-50"></div>
-
-    <!-- Scripts at the end of body -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/js/all.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 </body>
 </html>
