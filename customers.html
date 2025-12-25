@@ -976,9 +976,20 @@
         async function updateCustomer(customerId, customerData) {
             try {
                 console.log('🔄 Updating customer:', customerId);
+                console.log('📝 Update data:', customerData);
                 
-                // Remove id from update data
-                const { id, ...updateData } = customerData;
+                // Remove only the database id, keep customer_id
+                const updateData = {
+                    customer_id: customerData.customer_id,
+                    name: customerData.name,
+                    contact_person: customerData.contact_person,
+                    email: customerData.email,
+                    phone: customerData.phone,
+                    address: customerData.address,
+                    status: customerData.status
+                };
+                
+                console.log('📤 Sending to database:', updateData);
                 
                 const { data, error } = await supabaseClient
                     .from('customers')
@@ -993,9 +1004,12 @@
 
                 console.log('✅ Customer updated successfully:', data);
                 showToast('Customer updated successfully!', 'success');
-                loadCustomers();
+                
+                // Force reload to show changes
+                await loadCustomers();
             } catch (error) {
                 console.error('❌ Failed to update customer:', error);
+                showToast(`Update failed: ${error.message}`, 'error');
                 throw error;
             }
         }
