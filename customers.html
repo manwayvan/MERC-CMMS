@@ -751,7 +751,11 @@
                 filteredCustomers = filteredCustomers.filter(customer => customer.status === activeFilter);
             }
 
-            renderCustomers(filteredCustomers);
+            if (currentView === 'grid') {
+                renderCustomers(filteredCustomers);
+            } else {
+                renderCustomersList(filteredCustomers);
+            }
         }
 
         // Render customers to the UI
