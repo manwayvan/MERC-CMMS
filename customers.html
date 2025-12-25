@@ -498,10 +498,14 @@
                     status: formData.get('customer-status')
                 };
 
-                if (document.getElementById('customer-id').value) {
-                    await updateCustomer(customerData.id, customerData);
-                } else {
-                    await addCustomer(customerData);
+                try {
+                    if (document.getElementById('customer-id').value) {
+                        await updateCustomer(customerData.id, customerData);
+                    } else {
+                        await addCustomer(customerData);
+                    }
+                } catch (error) {
+                    showToast('Failed to save customer: ' + error.message, 'error');
                 }
 
                 hideCustomerModal();
@@ -522,10 +526,14 @@
                 };
 
                 const customerId = document.getElementById('location-customer-id').value;
-                if (document.getElementById('location-id').value) {
-                    await updateLocation(document.getElementById('location-id').value, locationData);
-                } else {
-                    await addLocation(customerId, locationData);
+                try {
+                    if (document.getElementById('location-id').value) {
+                        await updateLocation(document.getElementById('location-id').value, locationData);
+                    } else {
+                        await addLocation(customerId, locationData);
+                    }
+                } catch (error) {
+                    showToast('Failed to save location: ' + error.message, 'error');
                 }
 
                 hideLocationModal();
@@ -548,19 +556,21 @@
 
         // Load customers from Supabase
         async function loadCustomers() {
-            const { data: customersData, error } = await supabase
-                .from('customers')
-                .select('*, locations(*)');
+            try {
+                const { data: customersData, error } = await supabase
+                    .from('customers')
+                    .select('*, locations(*)');
 
-            if (error) {
-                console.error('Error loading customers:', error);
-                showToast('Failed to load customers', 'error');
-                return;
+                if (error) {
+                    throw error;
+                }
+
+                customers = customersData || [];
+                filterAndRenderCustomers();
+                updateStatistics(customers);
+            } catch (error) {
+                showToast('Failed to load customers: ' + error.message, 'error');
             }
-
-            customers = customersData || [];
-            filterAndRenderCustomers();
-            updateStatistics(customers);
         }
 
         // Filter and render customers based on search and status filter
@@ -665,102 +675,120 @@
 
         // Add a new customer
         async function addCustomer(customerData) {
-            const { data, error } = await supabase
-                .from('customers')
-                .insert([customerData])
-                .select();
+            try {
+                const { data, error } = await supabase
+                    .from('customers')
+                    .insert([customerData])
+                    .select();
 
-            if (error) {
-                console.error('Error adding customer:', error);
-                showToast('Failed to add customer', 'error');
-            } else {
+                if (error) {
+                    throw error;
+                }
+
                 showToast('Customer added successfully', 'success');
                 await loadCustomers();
+            } catch (error) {
+                showToast('Failed to add customer: ' + error.message, 'error');
             }
         }
 
         // Update an existing customer
         async function updateCustomer(customerId, customerData) {
-            const { data, error } = await supabase
-                .from('customers')
-                .update(customerData)
-                .eq('id', customerId)
-                .select();
+            try {
+                const { data, error } = await supabase
+                    .from('customers')
+                    .update(customerData)
+                    .eq('id', customerId)
+                    .select();
 
-            if (error) {
-                console.error('Error updating customer:', error);
-                showToast('Failed to update customer', 'error');
-            } else {
+                if (error) {
+                    throw error;
+                }
+
                 showToast('Customer updated successfully', 'success');
                 await loadCustomers();
+            } catch (error) {
+                showToast('Failed to update customer: ' + error.message, 'error');
             }
         }
 
         // Delete a customer
         async function deleteCustomer(customerId) {
             if (confirm('Are you sure you want to delete this customer and all associated locations?')) {
-                const { error } = await supabase
-                    .from('customers')
-                    .delete()
-                    .eq('id', customerId);
+                try {
+                    const { error } = await supabase
+                        .from('customers')
+                        .delete()
+                        .eq('id', customerId);
 
-                if (error) {
-                    console.error('Error deleting customer:', error);
-                    showToast('Failed to delete customer', 'error');
-                } else {
+                    if (error) {
+                        throw error;
+                    }
+
                     showToast('Customer deleted successfully', 'success');
                     await loadCustomers();
+                } catch (error) {
+                    showToast('Failed to delete customer: ' + error.message, 'error');
                 }
             }
         }
 
         // Add a new location
         async function addLocation(customerId, locationData) {
-            const { data, error } = await supabase
-                .from('locations')
-                .insert([{ ...locationData, customer_id: customerId }])
-                .select();
+            try {
+                const { data, error } = await supabase
+                    .from('locations')
+                    .insert([{ ...locationData, customer_id: customerId }])
+                    .select();
 
-            if (error) {
-                console.error('Error adding location:', error);
-                showToast('Failed to add location', 'error');
-            } else {
+                if (error) {
+                    throw error;
+                }
+
                 showToast('Location added successfully', 'success');
                 await loadCustomers();
+            } catch (error) {
+                showToast('Failed to add location: ' + error.message, 'error');
             }
         }
 
         // Update an existing location
         async function updateLocation(locationId, locationData) {
-            const { data, error } = await supabase
-                .from('locations')
-                .update(locationData)
-                .eq('id', locationId)
-                .select();
+            try {
+                const { data, error } = await supabase
+                    .from('locations')
+                    .update(locationData)
+                    .eq('id', locationId)
+                    .select();
 
-            if (error) {
-                console.error('Error updating location:', error);
-                showToast('Failed to update location', 'error');
-            } else {
+                if (error) {
+                    throw error;
+                }
+
                 showToast('Location updated successfully', 'success');
                 await loadCustomers();
+            } catch (error) {
+                showToast('Failed to update location: ' + error.message, 'error');
             }
         }
 
         // Delete a location
         async function deleteLocation(locationId) {
             if (confirm('Are you sure you want to delete this location?')) {
-                const { error } = await supabase
-                    .from('locations')
-                    .delete()
-                    .eq('id', locationId);
+                try {
+                    const { error } = await supabase
+                        .from('locations')
+                        .delete()
+                        .eq('id', locationId);
 
-                if (error) {
-                    console.error('Error deleting location:', error);
-                    showToast('Failed to delete location', 'error');
-                } else {
+                    if (error) {
+                        throw error;
+                    }
+
                     showToast('Location deleted successfully', 'success');
                     await loadCustomers();
+                } catch (error) {
+                    showToast('Failed to delete location: ' + error.message, 'error');
                 }
             }
         }
@@ -775,27 +803,29 @@
 
         // Show edit customer modal
         async function showEditCustomerModal(customerId) {
-            const { data: customer, error } = await supabase
-                .from('customers')
-                .select('*')
-                .eq('id', customerId)
-                .single();
+            try {
+                const { data: customer, error } = await supabase
+                    .from('customers')
+                    .select('*')
+                    .eq('id', customerId)
+                    .single();
 
-            if (error) {
-                console.error('Error fetching customer:', error);
-                showToast('Failed to fetch customer', 'error');
-                return;
+                if (error) {
+                    throw error;
+                }
+
+                document.getElementById('customer-modal-title').textContent = 'Edit Customer';
+                document.getElementById('customer-id').value = customer.id;
+                document.getElementById('customer-name').value = customer.name;
+                document.getElementById('customer-contact').value = customer.contact_person;
+                document.getElementById('customer-email').value = customer.email || '';
+                document.getElementById('customer-phone').value = customer.phone;
+                document.getElementById('customer-address').value = customer.address;
+                document.getElementById('customer-status').value = customer.status;
+                document.getElementById('customer-modal').classList.add('active');
+            } catch (error) {
+                showToast('Failed to fetch customer: ' + error.message, 'error');
             }
-
-            document.getElementById('customer-modal-title').textContent = 'Edit Customer';
-            document.getElementById('customer-id').value = customer.id;
-            document.getElementById('customer-name').value = customer.name;
-            document.getElementById('customer-contact').value = customer.contact_person;
-            document.getElementById('customer-email').value = customer.email || '';
-            document.getElementById('customer-phone').value = customer.phone;
-            document.getElementById('customer-address').value = customer.address;
-            document.getElementById('customer-status').value = customer.status;
-            document.getElementById('customer-modal').classList.add('active');
         }
 
         // Hide customer modal
@@ -814,28 +844,30 @@
 
         // Show edit location modal
         async function showEditLocationModal(customerId, locationId) {
-            const { data: location, error } = await supabase
-                .from('locations')
-                .select('*')
-                .eq('id', locationId)
-                .single();
+            try {
+                const { data: location, error } = await supabase
+                    .from('locations')
+                    .select('*')
+                    .eq('id', locationId)
+                    .single();
 
-            if (error) {
-                console.error('Error fetching location:', error);
-                showToast('Failed to fetch location', 'error');
-                return;
+                if (error) {
+                    throw error;
+                }
+
+                document.getElementById('location-modal-title').textContent = 'Edit Location';
+                document.getElementById('location-id').value = location.id;
+                document.getElementById('location-customer-id').value = customerId;
+                document.getElementById('location-name').value = location.name;
+                document.getElementById('location-contact').value = location.contact_person;
+                document.getElementById('location-email').value = location.email || '';
+                document.getElementById('location-phone').value = location.phone;
+                document.getElementById('location-address').value = location.address;
+                document.getElementById('location-status').value = location.status;
+                document.getElementById('location-modal').classList.add('active');
+            } catch (error) {
+                showToast('Failed to fetch location: ' + error.message, 'error');
             }
-
-            document.getElementById('location-modal-title').textContent = 'Edit Location';
-            document.getElementById('location-id').value = location.id;
-            document.getElementById('location-customer-id').value = customerId;
-            document.getElementById('location-name').value = location.name;
-            document.getElementById('location-contact').value = location.contact_person;
-            document.getElementById('location-email').value = location.email || '';
-            document.getElementById('location-phone').value = location.phone;
-            document.getElementById('location-address').value = location.address;
-            document.getElementById('location-status').value = location.status;
-            document.getElementById('location-modal').classList.add('active');
         }
 
         // Hide location modal
@@ -852,7 +884,7 @@
 
             setTimeout(() => {
                 toast.style.display = 'none';
-            }, 3000);
+            }, 5000);
         }
 
         // Placeholder for coming soon features
