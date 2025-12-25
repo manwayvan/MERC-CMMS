@@ -4,6 +4,6 @@
   "private": true,
   "description": "MERC-CMMS Enterprise Medical Device Management System",
   "scripts": {
-    "build": "echo 'Build completed for static site.'"
+    "vercel-build": "echo 'Static build completed.'"
   }
 }
