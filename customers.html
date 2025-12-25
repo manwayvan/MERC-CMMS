@@ -483,11 +483,18 @@
         const customerModal = document.getElementById('customer-modal');
         const locationModal = document.getElementById('location-modal');
 
-        // Initialize Supabase client
+        // Initialize Supabase client with your credentials
         document.addEventListener('DOMContentLoaded', () => {
             const supabaseUrl = 'https://hmdemsbqiqlqcggwblvl.supabase.co';
-            const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhtZGVtc2JxaXFscWNnZ3dibHZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY1MjQ1NTQsImV4cCI6MjA4MjEwMDU1NH0.RDp1lqV7eTr7uxRkzdWnJP0H09xSAQGxOgBcWEMO69w';
+            const supabaseKey = 'sb_publishable_Z9oNxTGDCCz3EZnh6NqySg_QzF6amCN';
+            
+            if (!window.supabase) {
+                showToast('Supabase library not loaded. Please check your internet connection.', 'error');
+                return;
+            }
+            
             supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+            console.log('✅ Supabase client initialized successfully');
 
             // Load customers on page load
             loadCustomers();
