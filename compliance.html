@@ -4,9 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Compliance & Reports - MERC-CMMS</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
@@ -48,7 +45,7 @@
             transform: translate(-50%, -50%);
         }
         .compliance-header-bg {
-            background-image: url('./resources/compliance-bg.jpg');
+            background-image: url('resources/compliance-bg.jpg');
             background-size: cover;
             background-position: center;
         }
@@ -160,22 +157,39 @@
             border-radius: 50%;
             margin: 0 auto;
         }
+        #mobile-menu {
+            position: fixed;
+            top: 64px;
+            left: 0;
+            right: 0;
+            z-index: 40;
+            background: linear-gradient(135deg, #1e293b 0%, #2563eb 50%, #0891b2 100%);
+            padding: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transform: translateY(0);
+            visibility: visible;
+            opacity: 1;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+        #mobile-menu.hidden {
+            transform: translateY(-100%);
+            opacity: 0;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800">
-    <!-- Navigation Bar -->
+    <!-- Standard Header -->
     <nav class="fixed top-0 left-0 right-0 z-50 medical-gradient shadow-lg">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
-                <!-- Logo and Brand -->
                 <div class="flex items-center space-x-4">
-                    <img src="https://raw.githubusercontent.com/manwayvan/MERC-CMMS/main/resources/logo.png" alt="MERC-CMMS logo" class="w-8 h-8 rounded-full bg-white object-contain p-1">
+                    <img src="resources/logo.png" alt="MERC-CMMS logo" class="w-10 h-10 rounded-full bg-white object-contain p-1">
                     <div>
                         <h1 class="text-white text-xl font-bold">MERC-CMMS</h1>
                         <p class="text-blue-200 text-xs">Enterprise Medical Device Management</p>
                     </div>
                 </div>
-                <!-- Navigation Menu -->
                 <div class="hidden md:flex items-center space-x-8">
                     <a href="index.html" class="text-blue-200 hover:text-white transition-colors">Dashboard</a>
                     <a href="customers.html" class="text-blue-200 hover:text-white transition-colors">Customers</a>
@@ -183,7 +197,6 @@
                     <a href="work-orders.html" class="text-blue-200 hover:text-white transition-colors">Work Orders</a>
                     <a href="compliance.html" class="text-white font-semibold border-b-2 border-blue-300 pb-1">Compliance</a>
                 </div>
-                <!-- User Profile and Notifications -->
                 <div class="flex items-center space-x-4">
                     <button id="mobile-menu-button" class="md:hidden text-white hover:text-blue-200 transition-colors" aria-label="Open menu" aria-expanded="false">
                         <i class="fas fa-bars text-xl"></i>
@@ -226,7 +239,7 @@
                 <div class="text-center">
                     <h1 class="text-4xl md:text-5xl font-bold text-white mb-4">Compliance & Reports</h1>
                     <p class="text-xl text-blue-200 mb-8 max-w-3xl mx-auto">
-                        Comprehensive regulatory compliance management with real-time monitoring, 
+                        Comprehensive regulatory compliance management with real-time monitoring,
                         audit trails, and enterprise reporting capabilities
                     </p>
                 </div>
@@ -605,6 +618,9 @@
     <!-- Toast Notification Container -->
     <div id="toast-container" class="fixed bottom-4 right-4 z-50"></div>
 
-    <script src="main.js"></script>
-</body>
-</html>
+    <!-- Scripts at the end of body -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/js/all.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+   
