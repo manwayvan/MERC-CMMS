@@ -1309,12 +1309,26 @@
             try {
                 console.log('➕ Adding customer:', customerData.name);
                 
-                // Remove the id field and let the database generate it
+                // Remove the id field - let database handle it
                 delete customerData.id;
+                
+                // Don't auto-generate customer_id - user enters it or leaves blank
+                // All fields are optional except name
+                const insertData = {
+                    customer_id: customerData.customer_id || null,
+                    name: customerData.name,
+                    contact_person: customerData.contact_person || null,
+                    email: customerData.email || null,
+                    phone: customerData.phone || null,
+                    address: customerData.address || null,
+                    status: customerData.status || 'active'
+                };
+                
+                console.log('📤 Inserting to database:', insertData);
                 
                 const { data, error } = await supabaseClient
                     .from('customers')
-                    .insert([customerData])
+                    .insert([insertData])
                     .select();
 
                 if (error) {
@@ -1324,9 +1338,13 @@
 
                 console.log('✅ Customer added successfully:', data);
                 showToast('Customer added successfully!', 'success');
-                loadCustomers();
+                
+                // Clear cache and reload
+                customers = [];
+                await loadCustomers();
             } catch (error) {
                 console.error('❌ Failed to add customer:', error);
+                showToast(`Failed to add: ${error.message}`, 'error');
                 throw error;
             }
         }
