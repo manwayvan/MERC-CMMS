@@ -528,15 +528,23 @@
             // Customer form submission
             customerForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const formData = new FormData(e.target);
+                
+                // Validate only customer name is required
+                const customerName = document.getElementById('customer-name').value.trim();
+                if (!customerName) {
+                    showToast('Customer Name is required', 'error');
+                    return;
+                }
+                
                 const customerData = {
-                    id: document.getElementById('customer-id').value || `CUST-${Date.now()}`,
-                    name: formData.get('customer-name'),
-                    contact_person: formData.get('customer-contact'),
-                    email: formData.get('customer-email'),
-                    phone: formData.get('customer-phone'),
-                    address: formData.get('customer-address'),
-                    status: formData.get('customer-status')
+                    id: document.getElementById('customer-id').value || null,
+                    customer_id: document.getElementById('customer-cid').value.trim() || null,
+                    name: customerName,
+                    contact_person: document.getElementById('customer-contact').value.trim() || null,
+                    email: document.getElementById('customer-email').value.trim() || null,
+                    phone: document.getElementById('customer-phone').value.trim() || null,
+                    address: document.getElementById('customer-address').value.trim() || null,
+                    status: document.getElementById('customer-status').value
                 };
 
                 try {
