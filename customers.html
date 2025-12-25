@@ -585,20 +585,49 @@
         // Load customers from Supabase
         async function loadCustomers() {
             try {
+                console.log('📡 Loading customers from Supabase...');
                 const { data: customersData, error } = await supabaseClient
                     .from('customers')
-                    .select('*, locations(*)');
+                    .select('*, locations(*)')
+                    .order('created_at', { ascending: false });
 
                 if (error) {
+                    console.error('❌ Error loading customers:', error);
                     throw error;
                 }
 
                 customers = customersData || [];
-                filterAndRenderCustomers();
-                updateStatistics(customers);
+                console.log(`✅ Loaded ${customers.length} customers`);
+                
+                // Handle empty state
+                if (customers.length === 0) {
+                    showEmptyState();
+                } else {
+                    filterAndRenderCustomers();
+                    updateStatistics(customers);
+                }
             } catch (error) {
-                showToast(`Failed to load customers: ${error.message}`, 'error');
+                console.error('❌ Failed to load customers:', error);
+                showToast(`Failed to load customers: ${error.message}. Please check your database connection.`, 'error');
+                showEmptyState();
             }
+        }
+        
+        // Show empty state when no customers exist
+        function showEmptyState() {
+            const customerGrid = document.getElementById('customer-grid');
+            customerGrid.innerHTML = `
+                <div class="col-span-3 text-center py-12">
+                    <i class="fas fa-building text-6xl text-slate-300 mb-4"></i>
+                    <h3 class="text-xl font-semibold text-slate-700 mb-2">No customers yet</h3>
+                    <p class="text-slate-500 mb-6">Get started by adding your first customer</p>
+                    <button onclick="showAddCustomerModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors inline-flex items-center space-x-2">
+                        <i class="fas fa-plus"></i>
+                        <span>Add Your First Customer</span>
+                    </button>
+                </div>
+            `;
+            updateStatistics([]);
         }
 
         // Filter and render customers based on search and status filter
