@@ -712,8 +712,10 @@
         // Show empty state when no customers exist
         function showEmptyState() {
             const customerGrid = document.getElementById('customer-grid');
-            customerGrid.innerHTML = `
-                <div class="col-span-3 text-center py-12">
+            const customerList = document.getElementById('customer-list');
+            
+            const emptyContent = `
+                <div class="text-center py-12 bg-slate-50 rounded-lg">
                     <i class="fas fa-building text-6xl text-slate-300 mb-4"></i>
                     <h3 class="text-xl font-semibold text-slate-700 mb-2">No customers yet</h3>
                     <p class="text-slate-500 mb-6">Get started by adding your first customer</p>
@@ -723,6 +725,15 @@
                     </button>
                 </div>
             `;
+            
+            if (currentView === 'grid') {
+                customerGrid.innerHTML = `<div class="col-span-3">${emptyContent}</div>`;
+                customerList.innerHTML = '';
+            } else {
+                customerList.innerHTML = emptyContent;
+                customerGrid.innerHTML = '';
+            }
+            
             updateStatistics([]);
         }
 
