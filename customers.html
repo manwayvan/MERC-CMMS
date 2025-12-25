@@ -254,19 +254,19 @@
                 <h2 class="text-3xl font-bold text-slate-800 mb-8 text-center">Customer Overview</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <div class="bg-slate-50 rounded-lg p-4 text-center">
-                        <div class="text-2xl font-bold text-blue-600">47</div>
+                        <div class="text-2xl font-bold text-blue-600" id="total-customers">0</div>
                         <div class="text-slate-600 text-sm">Total Customers</div>
                     </div>
                     <div class="bg-slate-50 rounded-lg p-4 text-center">
-                        <div class="text-2xl font-bold text-green-600">38</div>
+                        <div class="text-2xl font-bold text-green-600" id="active-customers">0</div>
                         <div class="text-slate-600 text-sm">Active Customers</div>
                     </div>
                     <div class="bg-slate-50 rounded-lg p-4 text-center">
-                        <div class="text-2xl font-bold text-amber-600">9</div>
+                        <div class="text-2xl font-bold text-amber-600" id="inactive-customers">0</div>
                         <div class="text-slate-600 text-sm">Inactive Customers</div>
                     </div>
                     <div class="bg-slate-50 rounded-lg p-4 text-center">
-                        <div class="text-2xl font-bold text-slate-800">217</div>
+                        <div class="text-2xl font-bold text-slate-800" id="total-locations">0</div>
                         <div class="text-slate-600 text-sm">Total Locations</div>
                     </div>
                 </div>
@@ -433,6 +433,322 @@
                 mobileMenu.classList.toggle('hidden');
             });
         }
+
+        // Supabase client initialization
+        const supabaseUrl = 'YOUR_SUPABASE_URL';
+        const supabaseKey = 'YOUR_SUPABASE_KEY';
+        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+        // Customer and Location Management Functions
+        async function loadCustomers() {
+            const { data: customers, error } = await supabase
+                .from('customers')
+                .select('*, locations(*)');
+
+            if (error) {
+                console.error('Error loading customers:', error);
+                return;
+            }
+
+            renderCustomers(customers);
+            updateStatistics(customers);
+        }
+
+        function renderCustomers(customers) {
+            const customerGrid = document.getElementById('customer-grid');
+            customerGrid.innerHTML = '';
+
+            customers.forEach(customer => {
+                const customerCard = document.createElement('div');
+                customerCard.className = 'customer-card card-hover';
+                customerCard.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="text-xl font-bold text-slate-800">${customer.name}</h3>
+                            <p class="text-sm text-slate-600">Contact: ${customer.contact_person}</p>
+                            <p class="text-sm text-slate-600">Phone: ${customer.phone}</p>
+                            <p class="text-sm text-slate-600">Status: <span class="status-indicator status-${customer.status}"></span>${customer.status}</p>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button onclick="showEditCustomerModal('${customer.id}')" class="text-blue-600 hover:text-blue-800">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button onclick="deleteCustomer('${customer.id}')" class="text-red-600 hover:text-red-800">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <h4 class="font-semibold text-slate-700 mb-2">Locations</h4>
+                        <div id="locations-${customer.id}" class="space-y-2">
+                            ${customer.locations.map(location => `
+                                <div class="location-card" data-id="${location.id}">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <h5 class="font-medium text-slate-800">${location.name}</h5>
+                                            <p class="text-sm text-slate-600">${location.address}</p>
+                                            <p class="text-sm text-slate-600">Phone: ${location.phone}</p>
+                                            <p class="text-sm text-slate-600">Status: <span class="status-indicator status-${location.status}"></span>${location.status}</p>
+                                        </div>
+                                        <div class="flex space-x-2">
+                                            <button onclick="showEditLocationModal('${customer.id}', '${location.id}')" class="text-blue-600 hover:text-blue-800">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button onclick="deleteLocation('${location.id}')" class="text-red-600 hover:text-red-800">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <button onclick="showAddLocationModal('${customer.id}')" class="mt-4 text-sm text-blue-600 hover:text-blue-800 flex items-center space-x-1">
+                            <i class="fas fa-plus"></i>
+                            <span>Add Location</span>
+                        </button>
+                    </div>
+                `;
+                customerGrid.appendChild(customerCard);
+            });
+        }
+
+        function updateStatistics(customers) {
+            const totalCustomers = customers.length;
+            const activeCustomers = customers.filter(c => c.status === 'active').length;
+            const inactiveCustomers = customers.filter(c => c.status === 'inactive').length;
+            const totalLocations = customers.reduce((sum, customer) => sum + customer.locations.length, 0);
+
+            document.getElementById('total-customers').textContent = totalCustomers;
+            document.getElementById('active-customers').textContent = activeCustomers;
+            document.getElementById('inactive-customers').textContent = inactiveCustomers;
+            document.getElementById('total-locations').textContent = totalLocations;
+        }
+
+        async function addCustomer(customerData) {
+            const { data, error } = await supabase
+                .from('customers')
+                .insert([customerData])
+                .select();
+
+            if (error) {
+                console.error('Error adding customer:', error);
+                showToast('Failed to add customer', 'error');
+            } else {
+                showToast('Customer added successfully', 'success');
+                loadCustomers();
+            }
+        }
+
+        async function updateCustomer(customerId, customerData) {
+            const { data, error } = await supabase
+                .from('customers')
+                .update(customerData)
+                .eq('id', customerId)
+                .select();
+
+            if (error) {
+                console.error('Error updating customer:', error);
+                showToast('Failed to update customer', 'error');
+            } else {
+                showToast('Customer updated successfully', 'success');
+                loadCustomers();
+            }
+        }
+
+        async function deleteCustomer(customerId) {
+            const { error } = await supabase
+                .from('customers')
+                .delete()
+                .eq('id', customerId);
+
+            if (error) {
+                console.error('Error deleting customer:', error);
+                showToast('Failed to delete customer', 'error');
+            } else {
+                showToast('Customer deleted successfully', 'success');
+                loadCustomers();
+            }
+        }
+
+        async function addLocation(customerId, locationData) {
+            const { data, error } = await supabase
+                .from('locations')
+                .insert([{ ...locationData, customer_id: customerId }])
+                .select();
+
+            if (error) {
+                console.error('Error adding location:', error);
+                showToast('Failed to add location', 'error');
+            } else {
+                showToast('Location added successfully', 'success');
+                loadCustomers();
+            }
+        }
+
+        async function updateLocation(locationId, locationData) {
+            const { data, error } = await supabase
+                .from('locations')
+                .update(locationData)
+                .eq('id', locationId)
+                .select();
+
+            if (error) {
+                console.error('Error updating location:', error);
+                showToast('Failed to update location', 'error');
+            } else {
+                showToast('Location updated successfully', 'success');
+                loadCustomers();
+            }
+        }
+
+        async function deleteLocation(locationId) {
+            const { error } = await supabase
+                .from('locations')
+                .delete()
+                .eq('id', locationId);
+
+            if (error) {
+                console.error('Error deleting location:', error);
+                showToast('Failed to delete location', 'error');
+            } else {
+                showToast('Location deleted successfully', 'success');
+                loadCustomers();
+            }
+        }
+
+        // Modal Functions
+        function showAddCustomerModal() {
+            document.getElementById('customer-modal-title').textContent = 'Add Customer';
+            document.getElementById('customer-form').reset();
+            document.getElementById('customer-id').value = '';
+            document.getElementById('customer-modal').classList.add('active');
+        }
+
+        function showEditCustomerModal(customerId) {
+            const customer = customers.find(c => c.id === customerId);
+            if (customer) {
+                document.getElementById('customer-modal-title').textContent = 'Edit Customer';
+                document.getElementById('customer-id').value = customer.id;
+                document.getElementById('customer-name').value = customer.name;
+                document.getElementById('customer-contact').value = customer.contact_person;
+                document.getElementById('customer-email').value = customer.email || '';
+                document.getElementById('customer-phone').value = customer.phone;
+                document.getElementById('customer-address').value = customer.address;
+                document.getElementById('customer-status').value = customer.status;
+                document.getElementById('customer-modal').classList.add('active');
+            }
+        }
+
+        function hideCustomerModal() {
+            document.getElementById('customer-modal').classList.remove('active');
+        }
+
+        function showAddLocationModal(customerId) {
+            document.getElementById('location-modal-title').textContent = 'Add Location';
+            document.getElementById('location-form').reset();
+            document.getElementById('location-id').value = '';
+            document.getElementById('location-customer-id').value = customerId;
+            document.getElementById('location-modal').classList.add('active');
+        }
+
+        function showEditLocationModal(customerId, locationId) {
+            const customer = customers.find(c => c.id === customerId);
+            if (customer) {
+                const location = customer.locations.find(l => l.id === locationId);
+                if (location) {
+                    document.getElementById('location-modal-title').textContent = 'Edit Location';
+                    document.getElementById('location-id').value = location.id;
+                    document.getElementById('location-customer-id').value = customerId;
+                    document.getElementById('location-name').value = location.name;
+                    document.getElementById('location-contact').value = location.contact_person;
+                    document.getElementById('location-email').value = location.email || '';
+                    document.getElementById('location-phone').value = location.phone;
+                    document.getElementById('location-address').value = location.address;
+                    document.getElementById('location-status').value = location.status;
+                    document.getElementById('location-modal').classList.add('active');
+                }
+            }
+        }
+
+        function hideLocationModal() {
+            document.getElementById('location-modal').classList.remove('active');
+        }
+
+        // Form Submission Handlers
+        document.getElementById('customer-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const customerId = document.getElementById('customer-id').value;
+            const customerData = {
+                name: document.getElementById('customer-name').value,
+                contact_person: document.getElementById('customer-contact').value,
+                email: document.getElementById('customer-email').value,
+                phone: document.getElementById('customer-phone').value,
+                address: document.getElementById('customer-address').value,
+                status: document.getElementById('customer-status').value
+            };
+
+            if (customerId) {
+                await updateCustomer(customerId, customerData);
+            } else {
+                await addCustomer(customerData);
+            }
+            hideCustomerModal();
+        });
+
+        document.getElementById('location-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const locationId = document.getElementById('location-id').value;
+            const customerId = document.getElementById('location-customer-id').value;
+            const locationData = {
+                name: document.getElementById('location-name').value,
+                contact_person: document.getElementById('location-contact').value,
+                email: document.getElementById('location-email').value,
+                phone: document.getElementById('location-phone').value,
+                address: document.getElementById('location-address').value,
+                status: document.getElementById('location-status').value
+            };
+
+            if (locationId) {
+                await updateLocation(locationId, locationData);
+            } else {
+                await addLocation(customerId, locationData);
+            }
+            hideLocationModal();
+        });
+
+        // Toast Notification
+        function showToast(message, type) {
+            const toastContainer = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `bg-white border-l-4 ${type === 'success' ? 'border-green-500' : 'border-red-500'} rounded-lg shadow-lg p-4 mb-2 flex items-center space-x-3`;
+            toast.innerHTML = `
+                <div class="flex-shrink-0">
+                    <i class="fas ${type === 'success' ? 'fa-check-circle text-green-500' : 'fa-exclamation-circle text-red-500'}"></i>
+                </div>
+                <div class="flex-1">
+                    <p class="text-sm font-medium ${type === 'success' ? 'text-green-800' : 'text-red-800'}">${message}</p>
+                </div>
+                <button class="text-slate-500 hover:text-slate-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            toastContainer.appendChild(toast);
+
+            // Remove toast after 5 seconds
+            setTimeout(() => {
+                toast.remove();
+            }, 5000);
+
+            // Close button
+            toast.querySelector('button').addEventListener('click', () => {
+                toast.remove();
+            });
+        }
+
+        // Initial Load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadCustomers();
+        });
     </script>
 
     <!-- Footer -->
@@ -451,6 +767,5 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-    <script src="main.js"></script>
 </body>
 </html>
