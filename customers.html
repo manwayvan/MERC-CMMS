@@ -396,11 +396,17 @@
                             <div class="filter-chip" data-status="active">Active</div>
                             <div class="filter-chip" data-status="inactive">Inactive</div>
                         </div>
-                        <!-- Export Button -->
-                        <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2" onclick="showComingSoon()">
-                            <i class="fas fa-download"></i>
-                            <span>Export</span>
-                        </button>
+                        <!-- Bulk Actions -->
+                        <div class="flex gap-2">
+                            <button class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2" onclick="showBulkImportModal()" data-testid="bulk-import-btn">
+                                <i class="fas fa-file-upload"></i>
+                                <span>Bulk Import</span>
+                            </button>
+                            <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2" onclick="exportCustomers()" data-testid="export-btn">
+                                <i class="fas fa-download"></i>
+                                <span>Export CSV</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
