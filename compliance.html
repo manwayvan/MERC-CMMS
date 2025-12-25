@@ -175,21 +175,22 @@
             transform: translateY(-100%);
             opacity: 0;
             pointer-events: none;
+            visibility: hidden;
         }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800">
     <!-- Standard Header -->
-    <nav class="fixed top-0 left-0 right-0 z-50 medical-gradient shadow-lg">
+    <nav class="fixed top-0 left-0 right-0 z-50 medical-gradient shadow-lg overflow-hidden">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
-                <div class="flex items-center space-x-4">
-                    <img src="/resources/logo.png" alt="MERC-CMMS logo" class="w-10 h-10 rounded-full bg-white object-contain p-1">
-                    <div>
-                        <h1 class="text-white text-xl font-bold">MERC-CMMS</h1>
-                        <p class="text-blue-200 text-xs">Enterprise Medical Device Management</p>
+                <a href="index.html" class="flex items-center space-x-4" aria-label="Go to dashboard">
+                    <img src="/resources/logo.png" alt="MERC-CMMS logo" class="w-10 h-10 rounded-full bg-white object-contain p-1 block flex-shrink-0">
+                    <div class="leading-tight">
+                        <h1 class="text-white text-xl font-bold leading-none">MERC-CMMS</h1>
+                        <p class="text-blue-200 text-xs leading-tight">Enterprise Medical Device Management</p>
                     </div>
-                </div>
+                </a>
                 <div class="hidden md:flex items-center space-x-8">
                     <a href="index.html" class="text-blue-200 hover:text-white transition-colors">Dashboard</a>
                     <a href="customers.html" class="text-blue-200 hover:text-white transition-colors">Customers</a>
