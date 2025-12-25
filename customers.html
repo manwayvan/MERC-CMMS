@@ -100,7 +100,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
                 <div class="flex items-center space-x-4">
-                    <img src="/resources/logo.png" alt="MERC-CMMS logo" class="w-8 h-8 rounded-full bg-white object-contain p-1">
+                    <img src="/resources/logo.png" alt="MERC-CMMS logo" class="w-10 h-10 rounded-full bg-white object-contain p-1">
                     <div>
                         <h1 class="text-white text-xl font-bold">MERC-CMMS</h1>
                         <p class="text-blue-200 text-xs">Enterprise Medical Device Management</p>
@@ -278,7 +278,15 @@
         </div>
     </div>
 
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-4 right-4 z-50"></div>
+
+    <!-- Scripts at the end of body -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/js/all.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/supabase@1.15.2/dist/supabase.min.js"></script>
     <script>
+        // Mobile Menu Toggle
         const mobileMenuButton = document.getElementById('mobile-menu-button');
         const mobileMenu = document.getElementById('mobile-menu');
 
@@ -289,16 +297,7 @@
                 mobileMenu.classList.toggle('hidden');
             });
         }
-    </script>
 
-    <!-- Toast Notification Container -->
-    <div id="toast-container" class="fixed bottom-4 right-4 z-50"></div>
-
-    <!-- Scripts at the end of body -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/js/all.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/supabase@1.15.2/dist/supabase.min.js"></script>
-    <script>
         document.addEventListener('DOMContentLoaded', () => {
             // Initialize Supabase Client
             const supabaseUrl = 'https://hmdemsbqiqlqcggwblvl.supabase.co';
