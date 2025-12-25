@@ -871,6 +871,7 @@
         // Show add customer modal
         function showAddCustomerModal() {
             document.getElementById('customer-id').value = '';
+            document.getElementById('customer-cid').value = '';
             document.getElementById('customer-name').value = '';
             document.getElementById('customer-contact').value = '';
             document.getElementById('customer-email').value = '';
@@ -886,11 +887,12 @@
             const customer = customers.find(c => c.id === customerId);
             if (customer) {
                 document.getElementById('customer-id').value = customer.id;
+                document.getElementById('customer-cid').value = customer.customer_id || '';
                 document.getElementById('customer-name').value = customer.name;
-                document.getElementById('customer-contact').value = customer.contact_person;
+                document.getElementById('customer-contact').value = customer.contact_person || '';
                 document.getElementById('customer-email').value = customer.email || '';
-                document.getElementById('customer-phone').value = customer.phone;
-                document.getElementById('customer-address').value = customer.address;
+                document.getElementById('customer-phone').value = customer.phone || '';
+                document.getElementById('customer-address').value = customer.address || '';
                 document.getElementById('customer-status').value = customer.status;
                 document.getElementById('customer-modal-title').textContent = 'Edit Customer';
                 customerModal.classList.add('active');
