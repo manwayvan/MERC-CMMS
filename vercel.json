@@ -3,6 +3,10 @@
   "buildCommand": "echo 'Static site - no build step required'",
   "outputDirectory": ".",
   "routes": [
-    { "src": "/(.*)", "dest": "/" }
+    { "src": "/index.html", "dest": "/index.html" },
+    { "src": "/compliance.html", "dest": "/compliance.html" },
+    { "src": "/assets.html", "dest": "/assets.html" },
+    { "src": "/work-orders.html", "dest": "/work-orders.html" },
+    { "src": "/(.*)", "dest": "/$1" }
   ]
 }
