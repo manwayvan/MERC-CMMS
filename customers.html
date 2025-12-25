@@ -1343,10 +1343,20 @@
         // Update location
         async function updateLocation(locationId, locationData) {
             try {
-                console.log('🔄 Updating location:', locationId);
+                console.log('🔄 Updating location ID:', locationId);
+                console.log('📝 Location data:', JSON.stringify(locationData, null, 2));
                 
-                // Remove id from update data
-                const { id, ...updateData } = locationData;
+                // Build update object explicitly
+                const updateData = {
+                    name: locationData.name || null,
+                    contact_person: locationData.contact_person || null,
+                    email: locationData.email || null,
+                    phone: locationData.phone || null,
+                    address: locationData.address || null,
+                    status: locationData.status || 'active'
+                };
+                
+                console.log('📤 Sending location update:', JSON.stringify(updateData, null, 2));
                 
                 const { data, error } = await supabaseClient
                     .from('locations')
@@ -1359,11 +1369,22 @@
                     throw error;
                 }
 
-                console.log('✅ Location updated successfully:', data);
+                if (!data || data.length === 0) {
+                    console.error('⚠️ Update returned no data');
+                    throw new Error('Update failed - no data returned. Check permissions.');
+                }
+
+                console.log('✅ Location updated:', JSON.stringify(data, null, 2));
                 showToast('Location updated successfully!', 'success');
-                loadCustomers();
+                
+                // Clear cache and reload
+                customers = [];
+                await loadCustomers();
+                
+                return data;
             } catch (error) {
                 console.error('❌ Failed to update location:', error);
+                showToast(`Update failed: ${error.message}`, 'error');
                 throw error;
             }
         }
