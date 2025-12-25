@@ -701,13 +701,18 @@
                     return;
                 }
                 
+                // Format phone number before saving
+                const phoneInput = document.getElementById('customer-phone');
+                const formattedPhone = formatPhoneNumber(phoneInput.value);
+                phoneInput.value = formattedPhone;
+                
                 const customerData = {
                     id: document.getElementById('customer-id').value || null,
                     customer_id: document.getElementById('customer-cid').value.trim() || null,
                     name: customerName,
                     contact_person: document.getElementById('customer-contact').value.trim() || null,
                     email: document.getElementById('customer-email').value.trim() || null,
-                    phone: document.getElementById('customer-phone').value.trim() || null,
+                    phone: formattedPhone || null,
                     address: document.getElementById('customer-address').value.trim() || null,
                     status: document.getElementById('customer-status').value
                 };
