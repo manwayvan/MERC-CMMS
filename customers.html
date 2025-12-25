@@ -1423,8 +1423,7 @@
             try {
                 console.log('➕ Adding location for customer:', customerId);
                 
-                // Remove id and add customer_id - all fields optional
-                delete locationData.id;
+                // Build insert data - NEVER send id field, let database generate it
                 const insertData = {
                     customer_id: customerId,
                     name: locationData.name || null,
@@ -1435,6 +1434,7 @@
                     status: locationData.status || 'active'
                 };
                 
+                // DO NOT include 'id' in insert data - database generates it
                 console.log('📤 Inserting location:', insertData);
                 
                 const { data, error } = await supabaseClient
@@ -1444,6 +1444,7 @@
 
                 if (error) {
                     console.error('❌ Error adding location:', error);
+                    console.error('Error details:', JSON.stringify(error, null, 2));
                     throw error;
                 }
 
@@ -1455,7 +1456,7 @@
                 await loadCustomers();
             } catch (error) {
                 console.error('❌ Failed to add location:', error);
-                showToast(`Failed to add: ${error.message}`, 'error');
+                showToast(`Failed to add location: ${error.message}`, 'error');
                 throw error;
             }
         }
