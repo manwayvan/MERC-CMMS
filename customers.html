@@ -772,6 +772,7 @@
         // Render customers to the UI
         function renderCustomers(customersToRender) {
             const customerGrid = document.getElementById('customer-grid');
+            const customerList = document.getElementById('customer-list');
             
             if (customersToRender.length === 0) {
                 showEmptyState();
@@ -779,6 +780,7 @@
             }
             
             customerGrid.innerHTML = '';
+            customerList.innerHTML = ''; // Clear list view
 
             customersToRender.forEach(customer => {
                 const locationCount = customer.locations ? customer.locations.length : 0;
