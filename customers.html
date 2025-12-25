@@ -1651,6 +1651,69 @@
         }
 
         // ==========================================
+        // PHONE NUMBER FORMATTING
+        // ==========================================
+
+        // Format phone number to (XXX) XXX-XXXX format
+        function formatPhoneNumber(phone) {
+            if (!phone) return '';
+            
+            // Remove all non-numeric characters
+            const cleaned = phone.replace(/\D/g, '');
+            
+            // Handle different lengths
+            if (cleaned.length === 0) return '';
+            if (cleaned.length <= 3) return cleaned;
+            if (cleaned.length <= 6) return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3)}`;
+            if (cleaned.length <= 10) return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
+            
+            // Handle numbers longer than 10 digits (international)
+            if (cleaned.length === 11 && cleaned[0] === '1') {
+                // US number with country code
+                return `+1 (${cleaned.slice(1, 4)}) ${cleaned.slice(4, 7)}-${cleaned.slice(7, 11)}`;
+            }
+            
+            // For very long numbers, just format the last 10 digits
+            return `(${cleaned.slice(-10, -7)}) ${cleaned.slice(-7, -4)}-${cleaned.slice(-4)}`;
+        }
+
+        // Apply phone formatting to input field
+        function applyPhoneFormatting(inputElement) {
+            if (!inputElement) return;
+            
+            inputElement.addEventListener('input', function(e) {
+                const cursorPosition = e.target.selectionStart;
+                const oldLength = e.target.value.length;
+                const formatted = formatPhoneNumber(e.target.value);
+                e.target.value = formatted;
+                
+                // Adjust cursor position after formatting
+                const newLength = formatted.length;
+                const diff = newLength - oldLength;
+                e.target.setSelectionRange(cursorPosition + diff, cursorPosition + diff);
+            });
+            
+            inputElement.addEventListener('blur', function(e) {
+                e.target.value = formatPhoneNumber(e.target.value);
+            });
+        }
+
+        // Initialize phone formatting on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            // Apply to customer phone field
+            const customerPhone = document.getElementById('customer-phone');
+            if (customerPhone) {
+                applyPhoneFormatting(customerPhone);
+            }
+            
+            // Apply to location phone field
+            const locationPhone = document.getElementById('location-phone');
+            if (locationPhone) {
+                applyPhoneFormatting(locationPhone);
+            }
+        });
+
+        // ==========================================
         // BULK IMPORT/EXPORT FUNCTIONALITY
         // ==========================================
 
