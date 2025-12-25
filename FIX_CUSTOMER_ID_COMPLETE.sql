@@ -41,8 +41,6 @@ END $$;
 CREATE INDEX IF NOT EXISTS idx_customers_customer_id 
 ON public.customers(customer_id);
 
-RAISE NOTICE '✅ Index created/verified';
-
 -- Step 4: Auto-generate customer_id for existing records WITHOUT customer_id
 DO $$
 DECLARE
