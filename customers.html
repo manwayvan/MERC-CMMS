@@ -560,6 +560,69 @@
                 </form>
             </div>
         </div>
+
+        <!-- Bulk Import Modal -->
+        <div id="bulk-import-modal" class="modal">
+            <div class="modal-content max-w-3xl">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 id="bulk-import-modal-title" class="text-2xl font-bold text-slate-800">Bulk Import Customers & Locations</h2>
+                    <button onclick="hideBulkImportModal()" class="text-slate-400 hover:text-slate-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                <div class="space-y-6">
+                    <!-- Instructions -->
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <h3 class="font-semibold text-blue-900 mb-2 flex items-center">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            How to Import
+                        </h3>
+                        <ol class="text-sm text-blue-800 space-y-1 ml-6 list-decimal">
+                            <li>Download the CSV template below</li>
+                            <li>Fill in your customer and location data</li>
+                            <li>Upload the completed CSV file</li>
+                            <li>Review and confirm the import</li>
+                        </ol>
+                    </div>
+
+                    <!-- Template Download -->
+                    <div class="border border-slate-200 rounded-lg p-4">
+                        <h3 class="font-semibold text-slate-800 mb-3">Step 1: Download Template</h3>
+                        <button onclick="downloadTemplate()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2">
+                            <i class="fas fa-download"></i>
+                            <span>Download CSV Template</span>
+                        </button>
+                        <p class="text-xs text-slate-500 mt-2">
+                            The template includes columns for: Customer Name, Customer ID, Contact Person, Phone, Email, Address, Status, Location Name, Location Contact, Location Phone, Location Email, Location Address, Location Status
+                        </p>
+                    </div>
+
+                    <!-- File Upload -->
+                    <div class="border border-slate-200 rounded-lg p-4">
+                        <h3 class="font-semibold text-slate-800 mb-3">Step 2: Upload CSV File</h3>
+                        <input type="file" id="csv-file-input" accept=".csv" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <p class="text-xs text-slate-500 mt-2">
+                            Maximum file size: 5MB. Only CSV format supported.
+                        </p>
+                    </div>
+
+                    <!-- Preview Area -->
+                    <div id="import-preview" class="hidden border border-slate-200 rounded-lg p-4">
+                        <h3 class="font-semibold text-slate-800 mb-3">Step 3: Preview Import</h3>
+                        <div id="import-preview-content" class="max-h-60 overflow-y-auto"></div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex justify-end space-x-4 pt-6 border-t border-slate-200">
+                        <button type="button" onclick="hideBulkImportModal()" class="px-6 py-2 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 transition-colors">Cancel</button>
+                        <button type="button" id="process-import-btn" onclick="processImport()" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors hidden">
+                            <i class="fas fa-upload mr-2"></i>
+                            Import Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </main>
 
     <script>
