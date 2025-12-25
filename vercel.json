@@ -14,11 +14,5 @@
       "src": "/resources/(.*)",
       "dest": "/resources/$1"
     }
-  ],
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/$1.html"
-    }
   ]
 }
