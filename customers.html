@@ -218,6 +218,64 @@
             cursor: pointer;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
+        .view-toggle-btn {
+            color: #64748b;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+        }
+        .view-toggle-btn.active {
+            background: white;
+            color: #2563eb;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        .list-view-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        .list-view-table thead {
+            background: #f8fafc;
+        }
+        .list-view-table th {
+            padding: 16px;
+            text-align: left;
+            font-weight: 600;
+            color: #475569;
+            border-bottom: 2px solid #e2e8f0;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .list-view-table td {
+            padding: 16px;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: top;
+        }
+        .list-view-table tbody tr {
+            transition: background-color 0.2s;
+        }
+        .list-view-table tbody tr:hover {
+            background-color: #f8fafc;
+        }
+        .list-view-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+        .location-list-item {
+            background: #f8fafc;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            border-left: 3px solid #2563eb;
+        }
+        .location-list-item:last-child {
+            margin-bottom: 0;
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800">
