@@ -562,15 +562,15 @@
             // Location form submission
             locationForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const formData = new FormData(e.target);
+                
                 const locationData = {
-                    id: document.getElementById('location-id').value || `LOC-${Date.now()}`,
-                    name: formData.get('location-name'),
-                    contact_person: formData.get('location-contact'),
-                    email: formData.get('location-email'),
-                    phone: formData.get('location-phone'),
-                    address: formData.get('location-address'),
-                    status: formData.get('location-status')
+                    id: document.getElementById('location-id').value || null,
+                    name: document.getElementById('location-name').value.trim() || null,
+                    contact_person: document.getElementById('location-contact').value.trim() || null,
+                    email: document.getElementById('location-email').value.trim() || null,
+                    phone: document.getElementById('location-phone').value.trim() || null,
+                    address: document.getElementById('location-address').value.trim() || null,
+                    status: document.getElementById('location-status').value
                 };
 
                 try {
