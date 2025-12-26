@@ -166,322 +166,1138 @@ visibility: hidden;
 }
 </style>
 </head>
-<body class="bg-slate-50 text-slate-800">
-<!-- Standard Header -->
-<nav class="fixed top-0 left-0 right-0 z-50 medical-gradient shadow-lg">
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-<div class="flex justify-between items-center h-16">
-<a href="index.html" class="flex items-center space-x-4" aria-label="Go to dashboard">
-<img src="/resources/Logo_without%20name.png" alt="MERC-CMMS logo" class="w-10 h-10 rounded-full bg-white object-contain p-1 block flex-shrink-0 overflow-hidden">
-<div>
-<h1 class="text-white text-xl font-bold">MERC-CMMS</h1>
-<p class="text-blue-200 text-xs">Enterprise Medical Device Management</p>
-</div>
-</a>
-<div class="hidden md:flex items-center space-x-8">
-<a href="index.html" class="text-blue-200 hover:text-white transition-colors">Dashboard</a>
-<a href="customers.html" class="text-blue-200 hover:text-white transition-colors">Customers</a>
-<a href="assets.html" class="text-white font-semibold border-b-2 border-blue-300 pb-1">Assets</a>
-<a href="work-orders.html" class="text-blue-200 hover:text-white transition-colors">Work Orders</a>
-<a href="compliance.html" class="text-blue-200 hover:text-white transition-colors">Compliance</a>
-</div>
-<div class="flex items-center space-x-4">
-<button id="mobile-menu-button" class="md:hidden text-white hover:text-blue-200 transition-colors" aria-label="Open menu" aria-expanded="false">
-<i class="fas fa-bars text-xl"></i>
-</button>
-<div class="relative">
-<button class="text-white hover:text-blue-200 transition-colors">
-<i class="fas fa-bell text-xl"></i>
-</button>
-<div class="notification-badge">3</div>
-</div>
-<div class="flex items-center space-x-2">
-<div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-<i class="fas fa-user text-white text-sm"></i>
-</div>
-<div class="hidden md:block">
-<p class="text-white text-sm font-medium">System Admin</p>
-<p class="text-blue-200 text-xs">Super Administrator</p>
-</div>
-</div>
-</div>
-</div>
-</div>
-</nav>
-<div id="mobile-menu" class="md:hidden hidden medical-gradient shadow-lg">
-<div class="px-4 py-4 space-y-2">
-<a href="index.html" class="block text-blue-200 hover:text-white transition-colors">Dashboard</a>
-<a href="customers.html" class="block text-blue-200 hover:text-white transition-colors">Customers</a>
-<a href="assets.html" class="block text-white font-semibold">Assets</a>
-<a href="work-orders.html" class="block text-blue-200 hover:text-white transition-colors">Work Orders</a>
-<a href="compliance.html" class="block text-blue-200 hover:text-white transition-colors">Compliance</a>
-</div>
-</div>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-slate-800 via-blue-600 to-cyan-600 shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <a href="index.html" class="flex items-center space-x-4">
+                    <img src="/resources/Logo_without%20name.png" alt="MERC-CMMS" class="w-10 h-10 rounded-full bg-white object-contain p-1">
+                    <div>
+                        <h1 class="text-white text-xl font-bold">MERC-CMMS</h1>
+                        <p class="text-blue-200 text-xs">Enterprise Medical Device Management</p>
+                    </div>
+                </a>
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="index.html" class="text-blue-200 hover:text-white transition-colors">
+                        <i class="fas fa-home mr-2"></i>Dashboard
+                    </a>
+                    <a href="customers.html" class="text-blue-200 hover:text-white transition-colors">
+                        <i class="fas fa-building mr-2"></i>Customers
+                    </a>
+                    <a href="assets.html" class="text-white font-semibold border-b-2 border-blue-300 pb-1">
+                        <i class="fas fa-boxes mr-2"></i>Assets
+                    </a>
+                    <a href="work-orders.html" class="text-blue-200 hover:text-white transition-colors">
+                        <i class="fas fa-clipboard-list mr-2"></i>Work Orders
+                    </a>
+                    <a href="compliance.html" class="text-blue-200 hover:text-white transition-colors">
+                        <i class="fas fa-shield-alt mr-2"></i>Compliance
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
 
-<!-- Main Content -->
-<main class="pt-16">
-<!-- Header Section -->
-<section class="asset-header-bg relative">
-<div class="absolute inset-0 bg-slate-900 bg-opacity-70"></div>
-<div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-<div class="text-center">
-<h1 class="text-4xl md:text-5xl font-bold text-white mb-4">Asset Management</h1>
-<p class="text-xl text-blue-200 mb-8 max-w-3xl mx-auto">
-Complete medical device lifecycle management with real-time tracking,
-compliance monitoring, and predictive maintenance scheduling
-</p>
-</div>
-</div>
-</section>
+    <!-- Main Content -->
+    <main class="pt-20 pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <!-- Page Header -->
+        <div class="mb-8">
+            <h1 class="text-4xl font-bold text-gray-900 mb-2">
+                <i class="fas fa-boxes text-blue-600 mr-3"></i>Asset Management
+            </h1>
+            <p class="text-gray-600">Complete medical device lifecycle management with automated PM scheduling and compliance tracking</p>
+        </div>
 
-<!-- Asset Statistics -->
-<section class="py-8 bg-white">
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-<h2 class="text-3xl font-bold text-slate-800 mb-8 text-center">Real-Time System Statistics</h2>
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-<div class="bg-slate-50 rounded-lg p-4 text-center">
-<div class="text-2xl font-bold text-slate-800">2,847</div>
-<div class="text-slate-600 text-sm">Total Assets</div>
-</div>
-<div class="bg-slate-50 rounded-lg p-4 text-center">
-<div class="text-2xl font-bold text-green-600">2,156</div>
-<div class="text-slate-600 text-sm">Active Assets</div>
-</div>
-<div class="bg-slate-50 rounded-lg p-4 text-center">
-<div class="text-2xl font-bold text-amber-600">234</div>
-<div class="text-slate-600 text-sm">In Maintenance</div>
-</div>
-<div class="bg-slate-50 rounded-lg p-4 text-center">
-<div class="text-2xl font-bold text-red-600">89</div>
-<div class="text-slate-600 text-sm">Overdue Service</div>
-</div>
-</div>
-</div>
-</section>
+        <!-- Statistics Dashboard -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+            <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500 hover:shadow-lg transition-shadow">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="text-sm text-gray-600 font-medium">Total Assets</p>
+                        <p class="text-3xl font-bold text-gray-900 mt-1" id="stat-total">0</p>
+                    </div>
+                    <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-boxes text-blue-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
 
-<!-- Search and Filter Controls -->
-<section class="py-6 bg-slate-50">
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-<div class="bg-white rounded-lg shadow p-6">
-<div class="flex flex-col lg:flex-row gap-4 items-center">
-<!-- Search Bar -->
-<div class="flex-1 w-full lg:w-auto">
-<div class="relative">
-<i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
-<input type="text" id="asset-search" placeholder="Search assets by name, serial number, or location..."
-class="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-</div>
-</div>
-<!-- Category Filter -->
-<div class="flex flex-wrap gap-2">
-<div class="filter-chip active" data-category="all">All Categories</div>
-<div class="filter-chip" data-category="diagnostic">Diagnostic</div>
-<div class="filter-chip" data-category="therapeutic">Therapeutic</div>
-<div class="filter-chip" data-category="surgical">Surgical</div>
-<div class="filter-chip" data-category="monitoring">Monitoring</div>
-<div class="filter-chip" data-category="imaging">Imaging</div>
-<div class="filter-chip" data-category="laboratory">Laboratory</div>
-</div>
-<!-- Export Button -->
-<button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2" onclick="showComingSoon()">
-<i class="fas fa-download"></i>
-<span>Export</span>
-</button>
-</div>
-</div>
-</div>
-</section>
+            <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-green-500 hover:shadow-lg transition-shadow">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="text-sm text-gray-600 font-medium">Active</p>
+                        <p class="text-3xl font-bold text-green-600 mt-1" id="stat-active">0</p>
+                    </div>
+                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-check-circle text-green-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
 
-<!-- Asset Categories Overview -->
-<section class="py-8 bg-white">
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-<h2 class="text-2xl font-bold text-slate-800 mb-6">Asset Categories</h2>
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-<!-- Diagnostic Equipment -->
-<div class="bg-slate-50 rounded-lg p-6 card-hover cursor-pointer" onclick="filterByCategory('diagnostic')">
-<div class="flex items-center mb-4">
-<div class="category-icon category-diagnostic">
-<i class="fas fa-x-ray"></i>
-</div>
-<div>
-<h3 class="text-lg font-semibold text-slate-800">Diagnostic Equipment</h3>
-<p class="text-slate-600 text-sm">MRI, CT, X-ray, Ultrasound</p>
-</div>
-</div>
-<div class="flex justify-between items-center">
-<span class="text-2xl font-bold text-slate-800">456</span>
-<span class="text-green-600 text-sm">98% uptime</span>
-</div>
-</div>
-<!-- Therapeutic Equipment -->
-<div class="bg-slate-50 rounded-lg p-6 card-hover cursor-pointer" onclick="filterByCategory('therapeutic')">
-<div class="flex items-center mb-4">
-<div class="category-icon category-therapeutic">
-<i class="fas fa-heartbeat"></i>
-</div>
-<div>
-<h3 class="text-lg font-semibold text-slate-800">Therapeutic Equipment</h3>
-<p class="text-slate-600 text-sm">Infusion pumps, ventilators</p>
-</div>
-</div>
-<div class="flex justify-between items-center">
-<span class="text-2xl font-bold text-slate-800">892</span>
-<span class="text-green-600 text-sm">99% uptime</span>
-</div>
-</div>
-<!-- Surgical Equipment -->
-<div class="bg-slate-50 rounded-lg p-6 card-hover cursor-pointer" onclick="filterByCategory('surgical')">
-<div class="flex items-center mb-4">
-<div class="category-icon category-surgical">
-<i class="fas fa-cut"></i>
-</div>
-<div>
-<h3 class="text-lg font-semibold text-slate-800">Surgical Equipment</h3>
-<p class="text-slate-600 text-sm">Operating room equipment</p>
-</div>
-</div>
-<div class="flex justify-between items-center">
-<span class="text-2xl font-bold text-slate-800">234</span>
-<span class="text-green-600 text-sm">97% uptime</span>
-</div>
-</div>
-<!-- Monitoring Devices -->
-<div class="bg-slate-50 rounded-lg p-6 card-hover cursor-pointer" onclick="filterByCategory('monitoring')">
-<div class="flex items-center mb-4">
-<div class="category-icon category-monitoring">
-<i class="fas fa-chart-line"></i>
-</div>
-<div>
-<h3 class="text-lg font-semibold text-slate-800">Monitoring Devices</h3>
-<p class="text-slate-600 text-sm">Patient monitors, defibrillators</p>
-</div>
-</div>
-<div class="flex justify-between items-center">
-<span class="text-2xl font-bold text-slate-800">567</span>
-<span class="text-green-600 text-sm">99% uptime</span>
-</div>
-</div>
-<!-- Imaging Equipment -->
-<div class="bg-slate-50 rounded-lg p-6 card-hover cursor-pointer" onclick="filterByCategory('imaging')">
-<div class="flex items-center mb-4">
-<div class="category-icon category-imaging">
-<i class="fas fa-camera"></i>
-</div>
-<div>
-<h3 class="text-lg font-semibold text-slate-800">Imaging Equipment</h3>
-<p class="text-slate-600 text-sm">Digital imaging systems</p>
-</div>
-</div>
-<div class="flex justify-between items-center">
-<span class="text-2xl font-bold text-slate-800">189</span>
-<span class="text-green-600 text-sm">96% uptime</span>
-</div>
-</div>
-<!-- Laboratory Equipment -->
-<div class="bg-slate-50 rounded-lg p-6 card-hover cursor-pointer" onclick="filterByCategory('laboratory')">
-<div class="flex items-center mb-4">
-<div class="category-icon category-laboratory">
-<i class="fas fa-microscope"></i>
-</div>
-<div>
-<h3 class="text-lg font-semibold text-slate-800">Laboratory Equipment</h3>
-<p class="text-slate-600 text-sm">Analyzers, centrifuges</p>
-</div>
-</div>
-<div class="flex justify-between items-center">
-<span class="text-2xl font-bold text-slate-800">509</span>
-<span class="text-green-600 text-sm">98% uptime</span>
-</div>
-</div>
-</div>
-</div>
-</section>
+            <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-yellow-500 hover:shadow-lg transition-shadow">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="text-sm text-gray-600 font-medium">Maintenance</p>
+                        <p class="text-3xl font-bold text-yellow-600 mt-1" id="stat-maintenance">0</p>
+                    </div>
+                    <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-wrench text-yellow-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
 
-<!-- Asset Registry Table -->
-<section class="py-8 bg-slate-50">
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-<div class="bg-white rounded-lg shadow-lg overflow-hidden">
-<div class="px-6 py-4 border-b border-slate-200">
-<div class="flex justify-between items-center">
-<h3 class="text-xl font-semibold text-slate-800">Asset Registry</h3>
-<div class="flex space-x-2">
-<button class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2" onclick="showComingSoon()">
-<i class="fas fa-plus"></i>
-<span>Add Asset</span>
-</button>
-<button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2" onclick="showComingSoon()">
-<i class="fas fa-edit"></i>
-<span>Bulk Edit</span>
-</button>
-</div>
-</div>
-</div>
-<div class="overflow-x-auto">
-<table class="min-w-full">
-<thead class="bg-slate-50">
-<tr>
-<th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-<input type="checkbox" class="rounded border-slate-300">
-</th>
-<th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Asset ID</th>
-<th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Name</th>
-<th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Category</th>
-<th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Location</th>
-<th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
-<th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Warranty Expiry</th>
-<th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
-</tr>
-</thead>
-<tbody id="asset-table-body" class="bg-white divide-y divide-slate-200">
-<!-- Table rows will be populated by JavaScript -->
-</tbody>
-</table>
-</div>
-<div class="px-6 py-4 border-t border-slate-200 flex items-center justify-between">
-<div class="text-sm text-slate-700">
-Showing <span id="showing-start">1</span> to <span id="showing-end">10</span> of <span id="total-assets">2,847</span> assets
-</div>
-<div class="flex space-x-2">
-<button class="px-3 py-1 border border-slate-300 rounded text-sm hover:bg-slate-50" onclick="changePage('prev')">Previous</button>
-<button class="px-3 py-1 bg-blue-600 text-white rounded text-sm">1</button>
-<button class="px-3 py-1 border border-slate-300 rounded text-sm hover:bg-slate-50">2</button>
-<button class="px-3 py-1 border border-slate-300 rounded text-sm hover:bg-slate-50">3</button>
-<button class="px-3 py-1 border border-slate-300 rounded text-sm hover:bg-slate-50" onclick="changePage('next')">Next</button>
-</div>
-</div>
-</div>
-</div>
-</section>
-</main>
+            <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-red-500 hover:shadow-lg transition-shadow">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="text-sm text-gray-600 font-medium">Overdue PM</p>
+                        <p class="text-3xl font-bold text-red-600 mt-1" id="stat-overdue">0</p>
+                    </div>
+                    <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
 
-<script>
-const mobileMenuButton = document.getElementById('mobile-menu-button');
-const mobileMenu = document.getElementById('mobile-menu');
+            <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-purple-500 hover:shadow-lg transition-shadow">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="text-sm text-gray-600 font-medium">Compliant</p>
+                        <p class="text-3xl font-bold text-purple-600 mt-1" id="stat-compliant">0%</p>
+                    </div>
+                    <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-shield-alt text-purple-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-if (mobileMenuButton && mobileMenu) {
-mobileMenuButton.addEventListener('click', () => {
-const isExpanded = mobileMenuButton.getAttribute('aria-expanded') === 'true';
-mobileMenuButton.setAttribute('aria-expanded', String(!isExpanded));
-mobileMenu.classList.toggle('hidden');
-});
-}
-</script>
+        <!-- Controls Bar -->
+        <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+            <div class="flex flex-wrap gap-4 items-center">
+                <!-- Search -->
+                <div class="flex-1 min-w-[300px]">
+                    <div class="relative">
+                        <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                        <input 
+                            type="text" 
+                            id="search-input" 
+                            placeholder="Search by name, ID, serial number..." 
+                            class="form-input pl-12"
+                        >
+                    </div>
+                </div>
 
-<!-- Footer -->
-<footer class="bg-slate-800 text-white py-8">
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-<p class="text-slate-400">&copy; 2025 MERC-CMMS Enterprise. All rights reserved. | Medical Device Management System</p>
-</div>
-</footer>
+                <!-- Filters -->
+                <select id="category-filter" class="form-input max-w-[200px]">
+                    <option value="">All Categories</option>
+                    <option value="diagnostic">Diagnostic</option>
+                    <option value="therapeutic">Therapeutic</option>
+                    <option value="surgical">Surgical</option>
+                    <option value="monitoring">Monitoring</option>
+                    <option value="imaging">Imaging</option>
+                    <option value="laboratory">Laboratory</option>
+                </select>
 
-<!-- Toast Notification Container -->
-<div id="toast-container" class="fixed bottom-4 right-4 z-50"></div>
+                <select id="status-filter" class="form-input max-w-[180px]">
+                    <option value="">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="maintenance">Maintenance</option>
+                    <option value="inactive">Inactive</option>
+                    <option value="retired">Retired</option>
+                </select>
 
-<!-- Scripts at the end of body -->
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/js/all.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
-<script src="main.js"></script>
+                <!-- Action Buttons -->
+                <button onclick="exportToCSV()" class="btn btn-success">
+                    <i class="fas fa-download"></i>
+                    Export CSV
+                </button>
+
+                <button onclick="showAddAssetModal()" class="btn btn-primary">
+                    <i class="fas fa-plus"></i>
+                    Add Asset
+                </button>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loading" class="text-center py-16">
+            <div class="loading-spinner mx-auto mb-4"></div>
+            <p class="text-gray-600 font-medium">Loading assets from Supabase...</p>
+        </div>
+
+        <!-- Assets Grid -->
+        <div id="assets-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 fade-in" style="display:none"></div>
+
+        <!-- Empty State -->
+        <div id="empty-state" class="text-center py-16 bg-white rounded-xl shadow-md" style="display:none">
+            <i class="fas fa-box-open text-6xl text-gray-300 mb-4"></i>
+            <h3 class="text-2xl font-bold text-gray-700 mb-2">No Assets Found</h3>
+            <p class="text-gray-500 mb-6">Get started by adding your first medical device asset</p>
+            <button onclick="showAddAssetModal()" class="btn btn-primary">
+                <i class="fas fa-plus"></i>
+                Add Your First Asset
+            </button>
+        </div>
+
+        <!-- Asset Program Overview -->
+        <section class="mt-12 bg-white rounded-2xl shadow-md p-8">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-sitemap text-blue-600 text-xl"></i>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-900">Asset Program Overview</h2>
+                    <p class="text-gray-600">Clarify preventive maintenance, labor, work orders, vendors, and inventory requirements.</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="border border-gray-200 rounded-xl p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3">Preventive Maintenance (PM)</h3>
+                    <p class="text-gray-600 mb-4">
+                        Performed regularly based on calendar time or runtime (see Equipment Management). Generate work
+                        orders with procedures, task details, parts, tools, and labor.
+                    </p>
+                    <ul class="space-y-2 text-gray-700 text-sm">
+                        <li><i class="fas fa-check text-blue-500 mr-2"></i>Priority and frequency settings.</li>
+                        <li><i class="fas fa-check text-blue-500 mr-2"></i>Calendar (weekly, monthly, seasonal) or runtime (miles, hours).</li>
+                        <li><i class="fas fa-check text-blue-500 mr-2"></i>Parts with required quantities and labor by craft category.</li>
+                        <li><i class="fas fa-check text-blue-500 mr-2"></i>Outside contractor support and equipment-module links.</li>
+                    </ul>
+                    <div class="mt-4 text-xs text-gray-500">
+                        Tables: pm, pm_step, pm_dependency, pm_comment, pm_tool, pm_audit, pm_part, pm_meter,
+                        pm_safety, pm_downtime, pm_season, pm_labor, pm_asset, pm_doc
+                    </div>
+                </div>
+
+                <div class="border border-gray-200 rounded-xl p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3">Labor</h3>
+                    <p class="text-gray-600 mb-4">
+                        Manage hourly wage rates, overtime accommodations, and craft codes for maintenance teams.
+                    </p>
+                    <ul class="space-y-2 text-gray-700 text-sm">
+                        <li><i class="fas fa-check text-blue-500 mr-2"></i>Categories: shift, vacation, sick.</li>
+                        <li><i class="fas fa-check text-blue-500 mr-2"></i>Labor reports by account, employee, period, and equipment.</li>
+                        <li><i class="fas fa-check text-blue-500 mr-2"></i>Productivity reporting (estimated vs. actual hours).</li>
+                    </ul>
+                </div>
+
+                <div class="border border-gray-200 rounded-xl p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3">Work Order System (WO)</h3>
+                    <p class="text-gray-600 mb-4">
+                        Stores preventive and corrective plans, including emergency and scheduled work. Supports
+                        departmental requests, priorities, and user-defined categories and codes.
+                    </p>
+                    <ul class="space-y-2 text-gray-700 text-sm">
+                        <li><i class="fas fa-check text-blue-500 mr-2"></i>Status, failure, action, labor, and material tracking.</li>
+                        <li><i class="fas fa-check text-blue-500 mr-2"></i>Downtime tracking (planned vs. unplanned).</li>
+                        <li><i class="fas fa-check text-blue-500 mr-2"></i>Cost summaries, backlog planning, and RIF-based scheduling.</li>
+                    </ul>
+                    <div class="mt-4 text-xs text-gray-500">
+                        Tables: workorder, wo_step, wo_labor, wo_sched_labor, wo_part, wo_comment, wo_semaphor,
+                        wo_attachment, wo_meter, wo_tool, wo_status_log, wo_safety, wo_doc, wo_generation,
+                        wo_planned_downtime, wo_planned_part, wo_planned_labor, wo_planned_tool
+                    </div>
+                </div>
+
+                <div class="border border-gray-200 rounded-xl p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3">Vendor & Inventory</h3>
+                    <div class="space-y-4 text-sm text-gray-700">
+                        <div>
+                            <p class="font-semibold text-gray-900 mb-1">Vendor</p>
+                            <p>Reports: label printing, contact reports, and cost variance.</p>
+                        </div>
+                        <div>
+                            <p class="font-semibold text-gray-900 mb-1">Inventory</p>
+                            <p>
+                                User-defined reorder points, purchasing, EOQ/ROP modeling, item transactions,
+                                descriptions, and substitutes.
+                            </p>
+                            <div class="mt-2 text-xs text-gray-500">
+                                Tables: inventory, in_tran, in_vendor, in_comment, in_type, in_doc, in_reserved,
+                                in_audit, in_location, in_trans_worksheet, in_stock
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Add/Edit Asset Modal -->
+    <div id="asset-modal" class="modal">
+        <div class="modal-content">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-2xl font-bold text-gray-900" id="modal-title">Add New Asset</h2>
+                    <button onclick="closeAssetModal()" class="text-gray-400 hover:text-gray-600 text-2xl">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+
+            <form id="asset-form" class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Basic Information -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Asset Name *</label>
+                        <input type="text" name="name" required class="form-input" placeholder="e.g., MRI Scanner">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Category *</label>
+                        <select name="category" required class="form-input">
+                            <option value="">Select Category</option>
+                            <option value="diagnostic">Diagnostic</option>
+                            <option value="therapeutic">Therapeutic</option>
+                            <option value="surgical">Surgical</option>
+                            <option value="monitoring">Monitoring</option>
+                            <option value="imaging">Imaging</option>
+                            <option value="laboratory">Laboratory</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Manufacturer *</label>
+                        <input type="text" name="manufacturer" required class="form-input" placeholder="e.g., GE Healthcare">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Model *</label>
+                        <input type="text" name="model" required class="form-input" placeholder="e.g., SIGNA Explorer">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Serial Number *</label>
+                        <input type="text" name="serial_number" required class="form-input" placeholder="e.g., SN123456789">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Status</label>
+                        <select name="status" class="form-input">
+                            <option value="active">Active</option>
+                            <option value="maintenance">Maintenance</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="retired">Retired</option>
+                        </select>
+                    </div>
+
+                    <!-- Purchase Information -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Purchase Date</label>
+                        <input type="date" name="purchase_date" class="form-input">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Purchase Cost ($)</label>
+                        <input type="number" name="purchase_cost" step="0.01" class="form-input" placeholder="0.00">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Warranty Expiry</label>
+                        <input type="date" name="warranty_expiry" class="form-input">
+                    </div>
+
+                    <!-- Assignment -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Customer</label>
+                        <select name="customer_id" id="customer-select" class="form-input">
+                            <option value="">Select Customer</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Location</label>
+                        <select name="location_id" id="location-select" class="form-input">
+                            <option value="">Select Location</option>
+                        </select>
+                    </div>
+
+                    <!-- PM Scheduling -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">PM Schedule</label>
+                        <select name="pm_schedule_type" class="form-input">
+                            <option value="">No PM Schedule</option>
+                            <option value="daily">Daily</option>
+                            <option value="weekly">Weekly</option>
+                            <option value="biweekly">Bi-Weekly</option>
+                            <option value="monthly">Monthly</option>
+                            <option value="quarterly">Quarterly (90 days)</option>
+                            <option value="semiannually">Semi-Annually (180 days)</option>
+                            <option value="annually">Annually (365 days)</option>
+                            <option value="custom">Custom Interval</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Custom Interval (days)</label>
+                        <input type="number" name="pm_interval_days" class="form-input" placeholder="e.g., 45">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Last Maintenance</label>
+                        <input type="date" name="last_maintenance" class="form-input">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Auto-Generate Work Orders</label>
+                        <select name="auto_generate_wo" class="form-input">
+                            <option value="true">Yes</option>
+                            <option value="false">No</option>
+                        </select>
+                    </div>
+
+                    <!-- Description -->
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+                        <textarea name="description" rows="3" class="form-input" placeholder="Additional notes about this asset..."></textarea>
+                    </div>
+                </div>
+
+                <input type="hidden" name="id" id="edit-asset-id">
+
+                <div class="flex justify-end gap-3 mt-8">
+                    <button type="button" onclick="closeAssetModal()" class="btn btn-secondary">
+                        <i class="fas fa-times"></i>
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i>
+                        <span id="submit-btn-text">Save Asset</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- View Asset Modal -->
+    <div id="view-modal" class="modal">
+        <div class="modal-content">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-900" id="view-modal-title">Asset Details</h2>
+                        <p class="text-sm text-gray-500 mt-1" id="view-modal-id"></p>
+                    </div>
+                    <button onclick="closeViewModal()" class="text-gray-400 hover:text-gray-600 text-2xl">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-6" id="view-modal-body">
+                <!-- Content will be populated dynamically -->
+            </div>
+
+            <div class="p-6 border-t border-gray-200 flex justify-end gap-3">
+                <button onclick="closeViewModal()" class="btn btn-secondary">
+                    <i class="fas fa-times"></i>
+                    Close
+                </button>
+                <button onclick="editAssetFromView()" class="btn btn-primary">
+                    <i class="fas fa-edit"></i>
+                    Edit Asset
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <!-- Scripts -->
+    <script>
+        // Supabase Configuration
+        const SUPABASE_URL = 'https://hmdemsbqiqlqcggwblvl.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhtZGVtc2JxaXFscWNnZ3dibHZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY4OTI0NDEsImV4cCI6MjA1MjQ2ODQ0MX0.M4jPVy_rFPJGnq5iU3oXJMnDCvN0yxgvjKZBHa9t8nQ';
+
+        let supabaseClient;
+
+        // Global State
+        let allAssets = [];
+        let filteredAssets = [];
+        let customers = [];
+        let locations = [];
+        let currentEditingAsset = null;
+
+        // Initialize Application
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!window.supabase) {
+                showToast('Supabase library not loaded. Please check your connection.', 'error');
+                console.error('❌ Supabase library not available');
+                return;
+            }
+
+            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+            try {
+                await Promise.all([
+                    loadAssets(),
+                    loadCustomers(),
+                    loadLocations()
+                ]);
+            } finally {
+                setupEventListeners();
+            }
+        });
+
+        // Load Assets
+        async function loadAssets() {
+            try {
+                showLoading(true);
+                console.log('🔄 Loading assets from Supabase...');
+
+                const { data, error } = await supabaseClient
+                    .from('assets')
+                    .select(`
+                        *,
+                        customers(id, name),
+                        locations(id, name)
+                    `)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                allAssets = data || [];
+                filteredAssets = [...allAssets];
+                
+                console.log(`✅ Loaded ${allAssets.length} assets`);
+                
+                updateStatistics();
+                renderAssets();
+                showToast(`Loaded ${allAssets.length} assets successfully`, 'success');
+            } catch (error) {
+                console.error('❌ Error loading assets:', error);
+                showToast(`Failed to load assets: ${error.message}`, 'error');
+                allAssets = [];
+                filteredAssets = [];
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Load Customers
+        async function loadCustomers() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('customers')
+                    .select('id, name')
+                    .eq('status', 'active')
+                    .order('name');
+
+                if (error) throw error;
+
+                customers = data || [];
+                updateCustomerDropdown();
+            } catch (error) {
+                console.error('❌ Error loading customers:', error);
+            }
+        }
+
+        // Load Locations
+        async function loadLocations() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('locations')
+                    .select('id, name, customer_id')
+                    .eq('status', 'active')
+                    .order('name');
+
+                if (error) throw error;
+
+                locations = data || [];
+                updateLocationDropdown();
+            } catch (error) {
+                console.error('❌ Error loading locations:', error);
+            }
+        }
+
+        // Update Customer Dropdown
+        function updateCustomerDropdown() {
+            const select = document.getElementById('customer-select');
+            select.innerHTML = '<option value="">Select Customer</option>';
+            customers.forEach(customer => {
+                const option = document.createElement('option');
+                option.value = customer.id;
+                option.textContent = customer.name;
+                select.appendChild(option);
+            });
+        }
+
+        // Update Location Dropdown
+        function updateLocationDropdown(customerId = null) {
+            const select = document.getElementById('location-select');
+            select.innerHTML = '<option value="">Select Location</option>';
+            
+            const filteredLocations = customerId 
+                ? locations.filter(loc => loc.customer_id === customerId)
+                : locations;
+
+            filteredLocations.forEach(location => {
+                const option = document.createElement('option');
+                option.value = location.id;
+                option.textContent = location.name;
+                select.appendChild(option);
+            });
+        }
+
+        // Update Statistics
+        function updateStatistics() {
+            const total = allAssets.length;
+            const active = allAssets.filter(a => a.status === 'active').length;
+            const maintenance = allAssets.filter(a => a.status === 'maintenance').length;
+            const overdue = allAssets.filter(a => {
+                if (!a.next_maintenance) return false;
+                return new Date(a.next_maintenance) < new Date();
+            }).length;
+            const compliant = total > 0 ? Math.round(((total - overdue) / total) * 100) : 0;
+
+            document.getElementById('stat-total').textContent = total;
+            document.getElementById('stat-active').textContent = active;
+            document.getElementById('stat-maintenance').textContent = maintenance;
+            document.getElementById('stat-overdue').textContent = overdue;
+            document.getElementById('stat-compliant').textContent = compliant + '%';
+        }
+
+        // Render Assets
+        function renderAssets() {
+            const grid = document.getElementById('assets-grid');
+            const empty = document.getElementById('empty-state');
+
+            if (filteredAssets.length === 0) {
+                grid.style.display = 'none';
+                empty.style.display = 'block';
+                return;
+            }
+
+            grid.style.display = 'grid';
+            empty.style.display = 'none';
+            grid.innerHTML = filteredAssets.map(asset => createAssetCard(asset)).join('');
+        }
+
+        // Create Asset Card
+        function createAssetCard(asset) {
+            const compliance = getComplianceStatus(asset.next_maintenance);
+            const days = getDaysUntil(asset.next_maintenance);
+            
+            return `
+                <div class="asset-card bg-white rounded-xl p-6 shadow-md ${compliance.cardClass}">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="flex-1">
+                            <h3 class="text-xl font-bold text-gray-900 mb-1">${escapeHtml(asset.name)}</h3>
+                            <p class="text-sm text-gray-500">${asset.id}</p>
+                        </div>
+                        <span class="status-badge status-${asset.status}">
+                            ${asset.status}
+                        </span>
+                    </div>
+
+                    <div class="space-y-3 mb-4">
+                        <div class="flex items-center text-sm">
+                            <i class="fas fa-tag w-5 text-gray-400"></i>
+                            <span class="text-gray-700">${escapeHtml(asset.category || 'N/A')}</span>
+                        </div>
+                        <div class="flex items-center text-sm">
+                            <i class="fas fa-industry w-5 text-gray-400"></i>
+                            <span class="text-gray-700">${escapeHtml(asset.manufacturer || 'N/A')}</span>
+                        </div>
+                        <div class="flex items-center text-sm">
+                            <i class="fas fa-building w-5 text-gray-400"></i>
+                            <span class="text-gray-700">${escapeHtml(asset.customers?.name || 'Unassigned')}</span>
+                        </div>
+                        <div class="flex items-center text-sm">
+                            <i class="fas fa-map-marker-alt w-5 text-gray-400"></i>
+                            <span class="text-gray-700">${escapeHtml(asset.locations?.name || 'No Location')}</span>
+                        </div>
+                    </div>
+
+                    <div class="border-t pt-4 mb-4">
+                        <div class="grid grid-cols-2 gap-3 text-sm">
+                            <div>
+                                <span class="text-gray-500 block">Last PM:</span>
+                                <span class="font-medium text-gray-900">${formatDate(asset.last_maintenance)}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-500 block">Next PM:</span>
+                                <span class="font-medium ${days !== null && days < 0 ? 'text-red-600' : 'text-gray-900'}">${formatDate(asset.next_maintenance)}</span>
+                            </div>
+                        </div>
+                        ${days !== null ? `
+                            <div class="mt-3 text-sm">
+                                <span class="text-gray-500">PM Status:</span>
+                                <span class="font-bold ${days < 0 ? 'text-red-600' : days <= 7 ? 'text-orange-600' : 'text-green-600'}">
+                                    ${days < 0 ? `${Math.abs(days)} days OVERDUE` : `${days} days remaining`}
+                                </span>
+                            </div>
+                        ` : ''}
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button onclick='viewAsset(${JSON.stringify(asset).replace(/'/g, "&#39;")})' class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
+                            <i class="fas fa-eye mr-2"></i>View
+                        </button>
+                        <button onclick='editAsset(${JSON.stringify(asset).replace(/'/g, "&#39;")})' class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="deleteAsset('${asset.id}')" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Get Compliance Status
+        function getComplianceStatus(nextMaintenance) {
+            if (!nextMaintenance) {
+                return { 
+                    cardClass: 'compliance-good', 
+                    text: 'No PM Scheduled',
+                    color: 'blue'
+                };
+            }
+
+            const days = getDaysUntil(nextMaintenance);
+            
+            if (days < 0) {
+                return { 
+                    cardClass: 'compliance-critical', 
+                    text: 'Overdue',
+                    color: 'red'
+                };
+            } else if (days <= 7) {
+                return { 
+                    cardClass: 'compliance-warning', 
+                    text: 'Due Soon',
+                    color: 'orange'
+                };
+            } else if (days <= 30) {
+                return { 
+                    cardClass: 'compliance-good', 
+                    text: 'Due This Month',
+                    color: 'blue'
+                };
+            } else {
+                return { 
+                    cardClass: 'compliance-excellent', 
+                    text: 'Compliant',
+                    color: 'green'
+                };
+            }
+        }
+
+        // Calculate Days Until Date
+        function getDaysUntil(date) {
+            if (!date) return null;
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const targetDate = new Date(date);
+            targetDate.setHours(0, 0, 0, 0);
+            return Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24));
+        }
+
+        // Format Date
+        function formatDate(date) {
+            if (!date) return 'N/A';
+            return new Date(date).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+
+        // Escape HTML
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // View Asset
+        function viewAsset(asset) {
+            currentEditingAsset = asset;
+            
+            document.getElementById('view-modal-title').textContent = asset.name;
+            document.getElementById('view-modal-id').textContent = asset.id;
+            
+            const compliance = getComplianceStatus(asset.next_maintenance);
+            const days = getDaysUntil(asset.next_maintenance);
+            
+            document.getElementById('view-modal-body').innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Basic Information</h3>
+                        <div class="space-y-3">
+                            <div>
+                                <span class="text-sm text-gray-500">Category:</span>
+                                <p class="font-medium">${escapeHtml(asset.category || 'N/A')}</p>
+                            </div>
+                            <div>
+                                <span class="text-sm text-gray-500">Status:</span>
+                                <p><span class="status-badge status-${asset.status}">${asset.status}</span></p>
+                            </div>
+                            <div>
+                                <span class="text-sm text-gray-500">Manufacturer:</span>
+                                <p class="font-medium">${escapeHtml(asset.manufacturer || 'N/A')}</p>
+                            </div>
+                            <div>
+                                <span class="text-sm text-gray-500">Model:</span>
+                                <p class="font-medium">${escapeHtml(asset.model || 'N/A')}</p>
+                            </div>
+                            <div>
+                                <span class="text-sm text-gray-500">Serial Number:</span>
+                                <p class="font-medium">${escapeHtml(asset.serial_number || 'N/A')}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Purchase Information</h3>
+                        <div class="space-y-3">
+                            <div>
+                                <span class="text-sm text-gray-500">Purchase Date:</span>
+                                <p class="font-medium">${formatDate(asset.purchase_date)}</p>
+                            </div>
+                            <div>
+                                <span class="text-sm text-gray-500">Purchase Cost:</span>
+                                <p class="font-medium">${asset.purchase_cost ? '$' + parseFloat(asset.purchase_cost).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : 'N/A'}</p>
+                            </div>
+                            <div>
+                                <span class="text-sm text-gray-500">Warranty Expiry:</span>
+                                <p class="font-medium">${formatDate(asset.warranty_expiry)}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Assignment</h3>
+                        <div class="space-y-3">
+                            <div>
+                                <span class="text-sm text-gray-500">Customer:</span>
+                                <p class="font-medium">${escapeHtml(asset.customers?.name || 'Unassigned')}</p>
+                            </div>
+                            <div>
+                                <span class="text-sm text-gray-500">Location:</span>
+                                <p class="font-medium">${escapeHtml(asset.locations?.name || 'No Location')}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Maintenance Schedule</h3>
+                        <div class="space-y-3">
+                            <div>
+                                <span class="text-sm text-gray-500">PM Schedule:</span>
+                                <p class="font-medium">${asset.pm_schedule_type || 'Not Scheduled'}</p>
+                            </div>
+                            <div>
+                                <span class="text-sm text-gray-500">Last PM:</span>
+                                <p class="font-medium">${formatDate(asset.last_maintenance)}</p>
+                            </div>
+                            <div>
+                                <span class="text-sm text-gray-500">Next PM:</span>
+                                <p class="font-medium ${days !== null && days < 0 ? 'text-red-600' : ''}">${formatDate(asset.next_maintenance)}</p>
+                            </div>
+                            ${days !== null ? `
+                                <div>
+                                    <span class="text-sm text-gray-500">PM Status:</span>
+                                    <p class="font-bold ${days < 0 ? 'text-red-600' : days <= 7 ? 'text-orange-600' : 'text-green-600'}">
+                                        ${days < 0 ? `${Math.abs(days)} days OVERDUE` : `${days} days remaining`}
+                                    </p>
+                                </div>
+                            ` : ''}
+                            <div>
+                                <span class="text-sm text-gray-500">Auto-Generate WO:</span>
+                                <p class="font-medium">${asset.auto_generate_wo !== false ? 'Yes' : 'No'}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    ${asset.description ? `
+                        <div class="md:col-span-2">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Description</h3>
+                            <p class="text-gray-700">${escapeHtml(asset.description)}</p>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+
+            document.getElementById('view-modal').classList.add('active');
+        }
+
+        // Close View Modal
+        function closeViewModal() {
+            document.getElementById('view-modal').classList.remove('active');
+            currentEditingAsset = null;
+        }
+
+        // Edit Asset From View
+        function editAssetFromView() {
+            closeViewModal();
+            editAsset(currentEditingAsset);
+        }
+
+        // Show Add Asset Modal
+        function showAddAssetModal() {
+            currentEditingAsset = null;
+            document.getElementById('modal-title').textContent = 'Add New Asset';
+            document.getElementById('submit-btn-text').textContent = 'Save Asset';
+            document.getElementById('asset-form').reset();
+            document.getElementById('edit-asset-id').value = '';
+            document.getElementById('asset-modal').classList.add('active');
+        }
+
+        // Edit Asset
+        function editAsset(asset) {
+            currentEditingAsset = asset;
+            document.getElementById('modal-title').textContent = 'Edit Asset';
+            document.getElementById('submit-btn-text').textContent = 'Update Asset';
+            
+            const form = document.getElementById('asset-form');
+            form.name.value = asset.name || '';
+            form.category.value = asset.category || '';
+            form.manufacturer.value = asset.manufacturer || '';
+            form.model.value = asset.model || '';
+            form.serial_number.value = asset.serial_number || '';
+            form.status.value = asset.status || 'active';
+            form.purchase_date.value = asset.purchase_date || '';
+            form.purchase_cost.value = asset.purchase_cost || '';
+            form.warranty_expiry.value = asset.warranty_expiry || '';
+            form.customer_id.value = asset.customer_id || '';
+            form.location_id.value = asset.location_id || '';
+            form.pm_schedule_type.value = asset.pm_schedule_type || '';
+            form.pm_interval_days.value = asset.pm_interval_days || '';
+            form.last_maintenance.value = asset.last_maintenance || '';
+            form.auto_generate_wo.value = asset.auto_generate_wo !== false ? 'true' : 'false';
+            form.description.value = asset.description || '';
+            
+            document.getElementById('edit-asset-id').value = asset.id;
+            
+            if (asset.customer_id) {
+                updateLocationDropdown(asset.customer_id);
+            }
+            
+            document.getElementById('asset-modal').classList.add('active');
+        }
+
+        // Close Asset Modal
+        function closeAssetModal() {
+            document.getElementById('asset-modal').classList.remove('active');
+            currentEditingAsset = null;
+        }
+
+        // Delete Asset
+        async function deleteAsset(assetId) {
+            if (!confirm('Are you sure you want to delete this asset? This action cannot be undone.')) {
+                return;
+            }
+
+            try {
+                const { error } = await supabaseClient
+                    .from('assets')
+                    .delete()
+                    .eq('id', assetId);
+
+                if (error) throw error;
+
+                showToast('Asset deleted successfully', 'success');
+                await loadAssets();
+            } catch (error) {
+                console.error('❌ Error deleting asset:', error);
+                showToast(`Failed to delete asset: ${error.message}`, 'error');
+            }
+        }
+
+        // Handle Form Submit
+        document.getElementById('asset-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const assetData = {
+                name: formData.get('name'),
+                category: formData.get('category'),
+                manufacturer: formData.get('manufacturer'),
+                model: formData.get('model'),
+                serial_number: formData.get('serial_number'),
+                status: formData.get('status'),
+                purchase_date: formData.get('purchase_date') || null,
+                purchase_cost: formData.get('purchase_cost') || null,
+                warranty_expiry: formData.get('warranty_expiry') || null,
+                customer_id: formData.get('customer_id') || null,
+                location_id: formData.get('location_id') || null,
+                pm_schedule_type: formData.get('pm_schedule_type') || null,
+                pm_interval_days: formData.get('pm_interval_days') || null,
+                last_maintenance: formData.get('last_maintenance') || null,
+                auto_generate_wo: formData.get('auto_generate_wo') === 'true',
+                description: formData.get('description') || null
+            };
+
+            const assetId = document.getElementById('edit-asset-id').value;
+
+            try {
+                if (assetId) {
+                    // Update existing asset
+                    const { error } = await supabaseClient
+                        .from('assets')
+                        .update(assetData)
+                        .eq('id', assetId);
+
+                    if (error) throw error;
+                    showToast('Asset updated successfully', 'success');
+                } else {
+                    // Create new asset
+                    const { error } = await supabaseClient
+                        .from('assets')
+                        .insert([assetData]);
+
+                    if (error) throw error;
+                    showToast('Asset created successfully', 'success');
+                }
+
+                closeAssetModal();
+                await loadAssets();
+            } catch (error) {
+                console.error('❌ Error saving asset:', error);
+                showToast(`Failed to save asset: ${error.message}`, 'error');
+            }
+        });
+
+        // Setup Event Listeners
+        function setupEventListeners() {
+            // Search
+            document.getElementById('search-input').addEventListener('input', debounce((e) => {
+                const searchTerm = e.target.value.toLowerCase();
+                filteredAssets = allAssets.filter(asset => 
+                    asset.name?.toLowerCase().includes(searchTerm) ||
+                    asset.id?.toLowerCase().includes(searchTerm) ||
+                    asset.serial_number?.toLowerCase().includes(searchTerm) ||
+                    asset.manufacturer?.toLowerCase().includes(searchTerm) ||
+                    asset.model?.toLowerCase().includes(searchTerm)
+                );
+                renderAssets();
+            }, 300));
+
+            // Category Filter
+            document.getElementById('category-filter').addEventListener('change', (e) => {
+                applyFilters();
+            });
+
+            // Status Filter
+            document.getElementById('status-filter').addEventListener('change', (e) => {
+                applyFilters();
+            });
+
+            // Customer change updates locations
+            document.getElementById('customer-select').addEventListener('change', (e) => {
+                const customerId = e.target.value;
+                updateLocationDropdown(customerId);
+            });
+        }
+
+        // Apply Filters
+        function applyFilters() {
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+            const category = document.getElementById('category-filter').value;
+            const status = document.getElementById('status-filter').value;
+
+            filteredAssets = allAssets.filter(asset => {
+                const matchesSearch = !searchTerm || 
+                    asset.name?.toLowerCase().includes(searchTerm) ||
+                    asset.id?.toLowerCase().includes(searchTerm) ||
+                    asset.serial_number?.toLowerCase().includes(searchTerm);
+                
+                const matchesCategory = !category || asset.category === category;
+                const matchesStatus = !status || asset.status === status;
+
+                return matchesSearch && matchesCategory && matchesStatus;
+            });
+
+            renderAssets();
+        }
+
+        // Export to CSV
+        function exportToCSV() {
+            try {
+                const headers = [
+                    'Asset ID', 'Name', 'Category', 'Status', 'Serial Number',
+                    'Manufacturer', 'Model', 'Customer', 'Location',
+                    'Purchase Date', 'Purchase Cost', 'Last PM', 'Next PM'
+                ];
+
+                const rows = filteredAssets.map(asset => [
+                    asset.id,
+                    asset.name,
+                    asset.category,
+                    asset.status,
+                    asset.serial_number,
+                    asset.manufacturer,
+                    asset.model,
+                    asset.customers?.name || '',
+                    asset.locations?.name || '',
+                    asset.purchase_date || '',
+                    asset.purchase_cost || '',
+                    asset.last_maintenance || '',
+                    asset.next_maintenance || ''
+                ]);
+
+                const csvContent = [
+                    headers.join(','),
+                    ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+                ].join('\n');
+
+                const blob = new Blob([csvContent], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `assets_export_${new Date().toISOString().split('T')[0]}.csv`;
+                a.click();
+
+                showToast(`Exported ${filteredAssets.length} assets`, 'success');
+            } catch (error) {
+                console.error('Export error:', error);
+                showToast('Export failed', 'error');
+            }
+        }
+
+        // Show Loading
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+            document.getElementById('assets-grid').style.display = show ? 'none' : 'grid';
+        }
+
+        // Show Toast
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 4000);
+        }
+
+        // Debounce Helper
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+    </script>
 </body>
 </html>
