@@ -1714,11 +1714,21 @@ visibility: hidden;
             e.preventDefault();
             
             const formData = new FormData(e.target);
+            
+            // Get the text values from the cascading dropdowns
+            const categorySelect = document.getElementById('category-select');
+            const makeSelect = document.getElementById('make-select');
+            const modelSelect = document.getElementById('model-select');
+            
+            const categoryText = categorySelect.options[categorySelect.selectedIndex]?.text || '';
+            const makeText = makeSelect.options[makeSelect.selectedIndex]?.text || '';
+            const modelText = modelSelect.options[modelSelect.selectedIndex]?.text || '';
+            
             const assetData = {
                 name: formData.get('name'),
-                category: formData.get('category'),
-                manufacturer: formData.get('manufacturer'),
-                model: formData.get('model'),
+                category: categoryText.replace('+ Add New Category...', '').replace('+ Add New Make...', '').replace('+ Add New Model...', ''),
+                manufacturer: makeText.replace('+ Add New Make...', ''),
+                model: modelText.replace('+ Add New Model...', ''),
                 serial_number: formData.get('serial_number'),
                 status: formData.get('status'),
                 purchase_date: formData.get('purchase_date') || null,
