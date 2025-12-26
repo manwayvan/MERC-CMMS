@@ -864,18 +864,45 @@ visibility: hidden;
                 showLoading(true);
                 console.log('🔄 Loading assets from Supabase...');
 
-                const { data, error } = await supabaseClient
+                // Load assets without foreign key joins (they may not be configured in Supabase)
+                const { data: assetsData, error: assetsError } = await supabaseClient
                     .from('assets')
-                    .select(`
-                        *,
-                        customers(id, name),
-                        locations(id, name)
-                    `)
+                    .select('*')
                     .order('created_at', { ascending: false });
 
-                if (error) throw error;
+                if (assetsError) throw assetsError;
 
-                allAssets = data || [];
+                // Manually enrich with customer and location names
+                const enrichedAssets = await Promise.all((assetsData || []).map(async (asset) => {
+                    let customerName = null;
+                    let locationName = null;
+
+                    if (asset.customer_id) {
+                        const { data: customer } = await supabaseClient
+                            .from('customers')
+                            .select('name')
+                            .eq('id', asset.customer_id)
+                            .single();
+                        customerName = customer?.name;
+                    }
+
+                    if (asset.location_id) {
+                        const { data: location } = await supabaseClient
+                            .from('locations')
+                            .select('name')
+                            .eq('id', asset.location_id)
+                            .single();
+                        locationName = location?.name;
+                    }
+
+                    return {
+                        ...asset,
+                        customers: customerName ? { name: customerName } : null,
+                        locations: locationName ? { name: locationName } : null
+                    };
+                }));
+
+                allAssets = enrichedAssets;
                 filteredAssets = [...allAssets];
                 
                 console.log(`✅ Loaded ${allAssets.length} assets`);
