@@ -809,6 +809,11 @@ visibility: hidden;
         let customers = [];
         let locations = [];
         let currentEditingAsset = null;
+        
+        // Master Device Catalog State
+        let deviceCategories = [];
+        let deviceMakes = [];
+        let deviceModels = [];
 
         async function ensureSupabaseLoaded() {
             if (window.supabase) {
@@ -823,6 +828,354 @@ visibility: hidden;
                 script.onerror = () => reject(new Error('Supabase library failed to load'));
                 document.head.appendChild(script);
             });
+        }
+        
+        // ============================================
+        // MASTER DEVICE CATALOG FUNCTIONS
+        // ============================================
+        
+        // Initialize device catalog tables if they don't exist
+        async function initDeviceCatalog() {
+            try {
+                // Try to load categories - if table doesn't exist, use defaults
+                await loadDeviceCategories();
+                console.log('✅ Device catalog initialized');
+            } catch (error) {
+                console.log('⚠️ Device catalog tables may not exist, using defaults');
+                deviceCategories = getDefaultCategories();
+            }
+        }
+        
+        function getDefaultCategories() {
+            return [
+                { id: 'aed', name: 'AED', description: 'Automated External Defibrillator' },
+                { id: 'diagnostic', name: 'Diagnostic', description: 'Diagnostic Equipment' },
+                { id: 'therapeutic', name: 'Therapeutic', description: 'Therapeutic Equipment' },
+                { id: 'surgical', name: 'Surgical', description: 'Surgical Equipment' },
+                { id: 'monitoring', name: 'Monitoring', description: 'Patient Monitoring Equipment' },
+                { id: 'imaging', name: 'Imaging', description: 'Medical Imaging Equipment' },
+                { id: 'laboratory', name: 'Laboratory', description: 'Laboratory Equipment' },
+                { id: 'infusion', name: 'Infusion Pump', description: 'Infusion Pumps and IV Equipment' },
+                { id: 'ventilator', name: 'Ventilator', description: 'Respiratory and Ventilation Equipment' },
+                { id: 'other', name: 'Other', description: 'Other Medical Equipment' }
+            ];
+        }
+        
+        // Load device categories from database
+        async function loadDeviceCategories() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('device_categories')
+                    .select('*')
+                    .order('name');
+                
+                if (error) {
+                    // Table might not exist, use defaults
+                    deviceCategories = getDefaultCategories();
+                } else {
+                    deviceCategories = data && data.length > 0 ? data : getDefaultCategories();
+                }
+                updateCategoryDropdowns();
+            } catch (error) {
+                deviceCategories = getDefaultCategories();
+                updateCategoryDropdowns();
+            }
+        }
+        
+        // Load makes for a specific category
+        async function loadDeviceMakes(categoryId) {
+            if (!categoryId) {
+                deviceMakes = [];
+                updateMakeDropdown();
+                return;
+            }
+            
+            try {
+                const { data, error } = await supabaseClient
+                    .from('device_makes')
+                    .select('*')
+                    .eq('category_id', categoryId)
+                    .order('name');
+                
+                if (error) {
+                    deviceMakes = [];
+                } else {
+                    deviceMakes = data || [];
+                }
+            } catch (error) {
+                deviceMakes = [];
+            }
+            updateMakeDropdown();
+        }
+        
+        // Load models for a specific make
+        async function loadDeviceModels(makeId) {
+            if (!makeId) {
+                deviceModels = [];
+                updateModelDropdown();
+                return;
+            }
+            
+            try {
+                const { data, error } = await supabaseClient
+                    .from('device_models')
+                    .select('*')
+                    .eq('make_id', makeId)
+                    .order('name');
+                
+                if (error) {
+                    deviceModels = [];
+                } else {
+                    deviceModels = data || [];
+                }
+            } catch (error) {
+                deviceModels = [];
+            }
+            updateModelDropdown();
+        }
+        
+        // Add new category
+        async function addNewCategory(name) {
+            if (!name || name.trim() === '') return null;
+            
+            const newCategory = {
+                id: name.toLowerCase().replace(/\s+/g, '_'),
+                name: name.trim(),
+                description: name.trim()
+            };
+            
+            try {
+                const { data, error } = await supabaseClient
+                    .from('device_categories')
+                    .insert([newCategory])
+                    .select()
+                    .single();
+                
+                if (error) throw error;
+                
+                deviceCategories.push(data);
+                updateCategoryDropdowns();
+                showToast(`Category "${name}" added successfully`, 'success');
+                return data;
+            } catch (error) {
+                // If table doesn't exist, just add to local array
+                deviceCategories.push(newCategory);
+                updateCategoryDropdowns();
+                showToast(`Category "${name}" added (local only)`, 'warning');
+                return newCategory;
+            }
+        }
+        
+        // Add new make
+        async function addNewMake(name, categoryId) {
+            if (!name || name.trim() === '' || !categoryId) return null;
+            
+            const newMake = {
+                id: `${categoryId}_${name.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}`,
+                name: name.trim(),
+                category_id: categoryId
+            };
+            
+            try {
+                const { data, error } = await supabaseClient
+                    .from('device_makes')
+                    .insert([newMake])
+                    .select()
+                    .single();
+                
+                if (error) throw error;
+                
+                deviceMakes.push(data);
+                updateMakeDropdown();
+                showToast(`Make "${name}" added successfully`, 'success');
+                return data;
+            } catch (error) {
+                // If table doesn't exist, just add to local array
+                deviceMakes.push(newMake);
+                updateMakeDropdown();
+                showToast(`Make "${name}" added (local only)`, 'warning');
+                return newMake;
+            }
+        }
+        
+        // Add new model
+        async function addNewModel(name, makeId) {
+            if (!name || name.trim() === '' || !makeId) return null;
+            
+            const newModel = {
+                id: `${makeId}_${name.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}`,
+                name: name.trim(),
+                make_id: makeId
+            };
+            
+            try {
+                const { data, error } = await supabaseClient
+                    .from('device_models')
+                    .insert([newModel])
+                    .select()
+                    .single();
+                
+                if (error) throw error;
+                
+                deviceModels.push(data);
+                updateModelDropdown();
+                showToast(`Model "${name}" added successfully`, 'success');
+                return data;
+            } catch (error) {
+                // If table doesn't exist, just add to local array
+                deviceModels.push(newModel);
+                updateModelDropdown();
+                showToast(`Model "${name}" added (local only)`, 'warning');
+                return newModel;
+            }
+        }
+        
+        // Update category dropdowns
+        function updateCategoryDropdowns() {
+            const categorySelect = document.getElementById('category-select');
+            const filterSelect = document.getElementById('category-filter');
+            
+            if (categorySelect) {
+                const currentVal = categorySelect.value;
+                categorySelect.innerHTML = '<option value="">Select Category</option>';
+                deviceCategories.forEach(cat => {
+                    const option = document.createElement('option');
+                    option.value = cat.id;
+                    option.textContent = cat.name;
+                    categorySelect.appendChild(option);
+                });
+                categorySelect.innerHTML += '<option value="__add_new__" class="text-blue-600 font-semibold">+ Add New Category...</option>';
+                if (currentVal) categorySelect.value = currentVal;
+            }
+            
+            if (filterSelect) {
+                const currentVal = filterSelect.value;
+                filterSelect.innerHTML = '<option value="">All Categories</option>';
+                deviceCategories.forEach(cat => {
+                    const option = document.createElement('option');
+                    option.value = cat.id;
+                    option.textContent = cat.name;
+                    filterSelect.appendChild(option);
+                });
+                if (currentVal) filterSelect.value = currentVal;
+            }
+        }
+        
+        // Update make dropdown
+        function updateMakeDropdown() {
+            const makeSelect = document.getElementById('make-select');
+            if (!makeSelect) return;
+            
+            const currentVal = makeSelect.value;
+            makeSelect.innerHTML = '<option value="">Select Make/Manufacturer</option>';
+            deviceMakes.forEach(make => {
+                const option = document.createElement('option');
+                option.value = make.id;
+                option.textContent = make.name;
+                makeSelect.appendChild(option);
+            });
+            makeSelect.innerHTML += '<option value="__add_new__" class="text-blue-600 font-semibold">+ Add New Make...</option>';
+            if (currentVal && deviceMakes.find(m => m.id === currentVal)) {
+                makeSelect.value = currentVal;
+            }
+        }
+        
+        // Update model dropdown
+        function updateModelDropdown() {
+            const modelSelect = document.getElementById('model-select');
+            if (!modelSelect) return;
+            
+            const currentVal = modelSelect.value;
+            modelSelect.innerHTML = '<option value="">Select Model</option>';
+            deviceModels.forEach(model => {
+                const option = document.createElement('option');
+                option.value = model.id;
+                option.textContent = model.name;
+                modelSelect.appendChild(option);
+            });
+            modelSelect.innerHTML += '<option value="__add_new__" class="text-blue-600 font-semibold">+ Add New Model...</option>';
+            if (currentVal && deviceModels.find(m => m.id === currentVal)) {
+                modelSelect.value = currentVal;
+            }
+        }
+        
+        // Handle category change
+        async function handleCategoryChange(e) {
+            const value = e.target.value;
+            
+            if (value === '__add_new__') {
+                const name = prompt('Enter new category name:');
+                if (name) {
+                    const newCat = await addNewCategory(name);
+                    if (newCat) {
+                        e.target.value = newCat.id;
+                        await loadDeviceMakes(newCat.id);
+                    }
+                } else {
+                    e.target.value = '';
+                }
+            } else if (value) {
+                await loadDeviceMakes(value);
+            } else {
+                deviceMakes = [];
+                deviceModels = [];
+                updateMakeDropdown();
+                updateModelDropdown();
+            }
+        }
+        
+        // Handle make change
+        async function handleMakeChange(e) {
+            const value = e.target.value;
+            const categorySelect = document.getElementById('category-select');
+            const categoryId = categorySelect?.value;
+            
+            if (value === '__add_new__') {
+                if (!categoryId) {
+                    showToast('Please select a category first', 'warning');
+                    e.target.value = '';
+                    return;
+                }
+                const name = prompt('Enter new make/manufacturer name:');
+                if (name) {
+                    const newMake = await addNewMake(name, categoryId);
+                    if (newMake) {
+                        e.target.value = newMake.id;
+                        await loadDeviceModels(newMake.id);
+                    }
+                } else {
+                    e.target.value = '';
+                }
+            } else if (value) {
+                await loadDeviceModels(value);
+            } else {
+                deviceModels = [];
+                updateModelDropdown();
+            }
+        }
+        
+        // Handle model change
+        async function handleModelChange(e) {
+            const value = e.target.value;
+            const makeSelect = document.getElementById('make-select');
+            const makeId = makeSelect?.value;
+            
+            if (value === '__add_new__') {
+                if (!makeId) {
+                    showToast('Please select a make first', 'warning');
+                    e.target.value = '';
+                    return;
+                }
+                const name = prompt('Enter new model name:');
+                if (name) {
+                    const newModel = await addNewModel(name, makeId);
+                    if (newModel) {
+                        e.target.value = newModel.id;
+                    }
+                } else {
+                    e.target.value = '';
+                }
+            }
         }
 
         // Initialize Application
