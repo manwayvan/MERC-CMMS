@@ -687,6 +687,7 @@ visibility: hidden;
                 showToast(`Failed to load assets: ${error.message}`, 'error');
                 allAssets = [];
                 filteredAssets = [];
+                renderAssets();
             } finally {
                 showLoading(false);
             }
