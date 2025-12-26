@@ -636,25 +636,26 @@ visibility: hidden;
 
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">Category *</label>
-                        <select name="category" required class="form-input">
+                        <select name="category" id="category-select" required class="form-input" onchange="handleCategoryChange(event)">
                             <option value="">Select Category</option>
-                            <option value="diagnostic">Diagnostic</option>
-                            <option value="therapeutic">Therapeutic</option>
-                            <option value="surgical">Surgical</option>
-                            <option value="monitoring">Monitoring</option>
-                            <option value="imaging">Imaging</option>
-                            <option value="laboratory">Laboratory</option>
                         </select>
+                        <p class="text-xs text-gray-500 mt-1">Select or add a device category</p>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Manufacturer *</label>
-                        <input type="text" name="manufacturer" required class="form-input" placeholder="e.g., GE Healthcare">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Make/Manufacturer *</label>
+                        <select name="manufacturer" id="make-select" required class="form-input" onchange="handleMakeChange(event)">
+                            <option value="">Select Make/Manufacturer</option>
+                        </select>
+                        <p class="text-xs text-gray-500 mt-1">Select category first, then choose or add make</p>
                     </div>
 
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">Model *</label>
-                        <input type="text" name="model" required class="form-input" placeholder="e.g., SIGNA Explorer">
+                        <select name="model" id="model-select" required class="form-input" onchange="handleModelChange(event)">
+                            <option value="">Select Model</option>
+                        </select>
+                        <p class="text-xs text-gray-500 mt-1">Select make first, then choose or add model</p>
                     </div>
 
                     <div>
