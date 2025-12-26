@@ -9,311 +9,64 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-* {
-font-family: 'Inter', sans-serif;
-}
-.medical-gradient {
-background: linear-gradient(135deg, #1e293b 0%, #2563eb 50%, #0891b2 100%);
-}
-.card-hover {
-transition: all 0.3s ease;
-}
-.card-hover:hover {
-transform: translateY(-2px);
-box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-}
-.medical-cross {
-position: relative;
-}
-.medical-cross::before,
-.medical-cross::after {
-content: '';
-position: absolute;
-background: #0891b2;
-border-radius: 2px;
-}
-.medical-cross::before {
-width: 20px;
-height: 4px;
-top: 50%;
-left: 50%;
-transform: translate(-50%, -50%);
-}
-.medical-cross::after {
-width: 4px;
-height: 20px;
-top: 50%;
-left: 50%;
-transform: translate(-50%, -50%);
-}
-.asset-header-bg {
-background-image: url('/resources/asset-header.jpg');
-background-size: cover;
-background-position: center;
-}
-.glass-effect {
-backdrop-filter: blur(10px);
-background: rgba(255, 255, 255, 0.1);
-border: 1px solid rgba(255, 255, 255, 0.2);
-}
-.notification-badge {
-position: absolute;
-top: -8px;
-right: -8px;
-background: #dc2626;
-color: white;
-border-radius: 50%;
-width: 20px;
-height: 20px;
-display: flex;
-align-items: center;
-justify-content: center;
-font-size: 12px;
-font-weight: bold;
-}
-.status-indicator {
-width: 12px;
-height: 12px;
-border-radius: 50%;
-display: inline-block;
-margin-right: 8px;
-}
+* { font-family: 'Inter', sans-serif; }
+.medical-gradient { background: linear-gradient(135deg, #1e293b 0%, #2563eb 50%, #0891b2 100%); }
+.card-hover { transition: all 0.3s ease; }
+.card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
+.notification-badge { position: absolute; top: -8px; right: -8px; background: #dc2626; color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; }
+.status-indicator { width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-right: 8px; }
 .status-active { background-color: #059669; }
 .status-inactive { background-color: #6b7280; }
 .status-maintenance { background-color: #d97706; }
 .status-retired { background-color: #dc2626; }
-.asset-header-bg {
-background-image: url('/resources/asset-header.jpg');
-background-size: cover;
-background-position: center;
-}
-.glass-effect {
-backdrop-filter: blur(10px);
-background: rgba(255, 255, 255, 0.1);
-border: 1px solid rgba(255, 255, 255, 0.2);
-}
-.notification-badge {
-position: absolute;
-top: -8px;
-right: -8px;
-background: #dc2626;
-color: white;
-border-radius: 50%;
-width: 20px;
-height: 20px;
-display: flex;
-align-items: center;
-justify-content: center;
-font-size: 12px;
-font-weight: bold;
-}
-.table-row:hover {
-background-color: #f8fafc;
-}
-.filter-chip {
-background: #e2e8f0;
-color: #475569;
-padding: 4px 12px;
-border-radius: 20px;
-font-size: 14px;
-display: inline-flex;
-align-items: center;
-margin: 2px;
-cursor: pointer;
-transition: all 0.2s;
-}
-.filter-chip:hover {
-background: #cbd5e1;
-}
-.filter-chip.active {
-background: #2563eb;
-color: white;
-}
-/* Form and Button Styles */
-.form-input {
-width: 100%;
-padding: 10px 16px;
-border: 1px solid #cbd5e1;
-border-radius: 8px;
-font-size: 14px;
-transition: all 0.2s;
-}
-.form-input:focus {
-outline: none;
-border-color: #2563eb;
-box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-}
-.btn {
-display: inline-flex;
-align-items: center;
-gap: 8px;
-padding: 10px 20px;
-border-radius: 8px;
-font-weight: 600;
-font-size: 14px;
-cursor: pointer;
-transition: all 0.2s;
-border: none;
-}
-.btn-primary {
-background: #2563eb;
-color: white;
-}
-.btn-primary:hover {
-background: #1d4ed8;
-}
-.btn-secondary {
-background: #e2e8f0;
-color: #475569;
-}
-.btn-secondary:hover {
-background: #cbd5e1;
-}
-.btn-success {
-background: #059669;
-color: white;
-}
-.btn-success:hover {
-background: #047857;
-}
-/* Loading Spinner */
-.loading-spinner {
-width: 40px;
-height: 40px;
-border: 4px solid #e2e8f0;
-border-top-color: #2563eb;
-border-radius: 50%;
-animation: spin 1s linear infinite;
-}
-@keyframes spin {
-to { transform: rotate(360deg); }
-}
-/* Fade In Animation */
-.fade-in {
-animation: fadeIn 0.3s ease-in-out;
-}
-@keyframes fadeIn {
-from { opacity: 0; transform: translateY(10px); }
-to { opacity: 1; transform: translateY(0); }
-}
-/* Toast Notifications */
-#toast-container {
-position: fixed;
-bottom: 20px;
-right: 20px;
-z-index: 10000;
-display: flex;
-flex-direction: column;
-gap: 10px;
-}
-.toast {
-padding: 12px 20px;
-border-radius: 8px;
-color: white;
-box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-animation: slideIn 0.3s ease-out;
-max-width: 400px;
-}
+.asset-header-bg { background-image: url('/resources/asset-header.jpg'); background-size: cover; background-position: center; }
+.form-input { width: 100%; padding: 10px 16px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; transition: all 0.2s; }
+.form-input:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s; border: none; }
+.btn-primary { background: #2563eb; color: white; }
+.btn-primary:hover { background: #1d4ed8; }
+.btn-secondary { background: #e2e8f0; color: #475569; }
+.btn-secondary:hover { background: #cbd5e1; }
+.btn-success { background: #059669; color: white; }
+.btn-success:hover { background: #047857; }
+.loading-spinner { width: 40px; height: 40px; border: 4px solid #e2e8f0; border-top-color: #2563eb; border-radius: 50%; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.fade-in { animation: fadeIn 0.3s ease-in-out; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+#toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 10000; display: flex; flex-direction: column; gap: 10px; }
+.toast { padding: 12px 20px; border-radius: 8px; color: white; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); animation: slideIn 0.3s ease-out; max-width: 400px; }
 .toast-success { background: #059669; }
 .toast-error { background: #dc2626; }
 .toast-warning { background: #d97706; }
 .toast-info { background: #2563eb; }
-@keyframes slideIn {
-from { transform: translateX(100%); opacity: 0; }
-to { transform: translateX(0); opacity: 1; }
-}
-/* Status Badge */
-.status-badge {
-display: inline-block;
-padding: 4px 12px;
-border-radius: 20px;
-font-size: 12px;
-font-weight: 600;
-text-transform: capitalize;
-}
-.status-active { background: #d1fae5; color: #059669; }
-.status-inactive { background: #f3f4f6; color: #6b7280; }
-.status-maintenance { background: #fef3c7; color: #d97706; }
-.status-retired { background: #fee2e2; color: #dc2626; }
-/* Asset Card Compliance Styles */
-.asset-card {
-border-left: 4px solid #e2e8f0;
-}
-.compliance-excellent { border-left-color: #059669; }
-.compliance-good { border-left-color: #2563eb; }
-.compliance-warning { border-left-color: #d97706; }
-.compliance-critical { border-left-color: #dc2626; }
-/* Modal Styles */
-.modal {
-display: none;
-position: fixed;
-top: 0;
-left: 0;
-width: 100%;
-height: 100%;
-background: rgba(0, 0, 0, 0.5);
-z-index: 1000;
-}
-.modal.active {
-display: flex;
-align-items: center;
-justify-content: center;
-}
-.modal-content {
-background: white;
-border-radius: 16px;
-max-width: 800px;
-width: 95%;
-max-height: 90vh;
-overflow-y: auto;
-box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-}
-.category-icon {
-width: 40px;
-height: 40px;
-border-radius: 8px;
-display: flex;
-align-items: center;
-justify-content: center;
-font-size: 18px;
-color: white;
-margin-right: 12px;
-}
-.category-diagnostic { background: #2563eb; }
-.category-therapeutic { background: #059669; }
-.category-surgical { background: #dc2626; }
-.category-monitoring { background: #d97706; }
-.category-imaging { background: #7c3aed; }
-.category-laboratory { background: #0891b2; }
-#mobile-menu {
-position: fixed;
-top: 64px;
-left: 0;
-right: 0;
-z-index: 40;
-background: linear-gradient(135deg, #1e293b 0%, #2563eb 50%, #0891b2 100%);
-padding: 1rem;
-box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-transform: translateY(0);
-visibility: visible;
-opacity: 1;
-transition: transform 0.3s ease, opacity 0.3s ease;
-}
-#mobile-menu.hidden {
-transform: translateY(-100%);
-opacity: 0;
-pointer-events: none;
-visibility: hidden;
-}
+@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+.status-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: capitalize; }
+.modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 1000; }
+.modal.active { display: flex; align-items: center; justify-content: center; }
+.modal-content { background: white; border-radius: 16px; max-width: 900px; width: 95%; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); }
+.tab-button { padding: 12px 24px; border-bottom: 2px solid transparent; font-weight: 600; cursor: pointer; transition: all 0.2s; color: #64748b; }
+.tab-button.active { color: #2563eb; border-bottom-color: #2563eb; background: #eff6ff; }
+.tab-button:hover { background: #f8fafc; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+#mobile-menu { position: fixed; top: 64px; left: 0; right: 0; z-index: 40; background: linear-gradient(135deg, #1e293b 0%, #2563eb 50%, #0891b2 100%); padding: 1rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); transform: translateY(0); visibility: visible; opacity: 1; transition: transform 0.3s ease, opacity 0.3s ease; }
+#mobile-menu.hidden { transform: translateY(-100%); opacity: 0; pointer-events: none; visibility: hidden; }
+.drag-drop-zone { border: 2px dashed #cbd5e1; border-radius: 8px; padding: 40px; text-align: center; transition: all 0.2s; cursor: pointer; }
+.drag-drop-zone.drag-over { border-color: #2563eb; background: #eff6ff; }
+.wo-card { background: white; border-radius: 8px; padding: 16px; margin-bottom: 12px; border-left: 4px solid #2563eb; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); }
+.wo-card.priority-critical { border-left-color: #dc2626; }
+.wo-card.priority-high { border-left-color: #d97706; }
+.wo-card.priority-medium { border-left-color: #2563eb; }
+.wo-card.priority-low { border-left-color: #6b7280; }
 </style>
 </head>
 <body class="bg-slate-50 text-slate-800">
-    <!-- Standard Header -->
+    <!-- Header -->
     <nav class="fixed top-0 left-0 right-0 z-50 medical-gradient shadow-lg">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
-                <a href="index.html" class="flex items-center space-x-4" aria-label="Go to dashboard">
-                    <img src="/resources/Logo_without%20name.png" alt="MERC-CMMS logo" class="w-10 h-10 rounded-full bg-white object-contain p-1 block flex-shrink-0 overflow-hidden">
+                <a href="index.html" class="flex items-center space-x-4">
+                    <img src="/resources/Logo_without%20name.png" alt="MERC-CMMS logo" class="w-10 h-10 rounded-full bg-white object-contain p-1">
                     <div>
                         <h1 class="text-white text-xl font-bold">MERC-CMMS</h1>
                         <p class="text-blue-200 text-xs">Enterprise Medical Device Management</p>
@@ -327,7 +80,7 @@ visibility: hidden;
                     <a href="compliance.html" class="text-blue-200 hover:text-white transition-colors">Compliance</a>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <button id="mobile-menu-button" class="md:hidden text-white hover:text-blue-200 transition-colors" aria-label="Open menu" aria-expanded="false">
+                    <button id="mobile-menu-button" class="md:hidden text-white hover:text-blue-200 transition-colors">
                         <i class="fas fa-bars text-xl"></i>
                     </button>
                     <div class="relative">
@@ -349,7 +102,7 @@ visibility: hidden;
             </div>
         </div>
     </nav>
-    <div id="mobile-menu" class="md:hidden hidden medical-gradient shadow-lg">
+    <div id="mobile-menu" class="md:hidden hidden">
         <div class="px-4 py-4 space-y-2">
             <a href="index.html" class="block text-blue-200 hover:text-white transition-colors">Dashboard</a>
             <a href="customers.html" class="block text-blue-200 hover:text-white transition-colors">Customers</a>
@@ -377,7 +130,6 @@ visibility: hidden;
         <!-- Statistics Dashboard -->
         <section class="py-8 bg-white">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <h2 class="text-3xl font-bold text-slate-800 mb-8 text-center">Asset Overview</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
             <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500 hover:shadow-lg transition-shadow">
                 <div class="flex justify-between items-center">
@@ -390,7 +142,6 @@ visibility: hidden;
                     </div>
                 </div>
             </div>
-
             <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-green-500 hover:shadow-lg transition-shadow">
                 <div class="flex justify-between items-center">
                     <div>
@@ -402,7 +153,6 @@ visibility: hidden;
                     </div>
                 </div>
             </div>
-
             <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-yellow-500 hover:shadow-lg transition-shadow">
                 <div class="flex justify-between items-center">
                     <div>
@@ -414,7 +164,6 @@ visibility: hidden;
                     </div>
                 </div>
             </div>
-
             <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-red-500 hover:shadow-lg transition-shadow">
                 <div class="flex justify-between items-center">
                     <div>
@@ -426,7 +175,6 @@ visibility: hidden;
                     </div>
                 </div>
             </div>
-
             <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-purple-500 hover:shadow-lg transition-shadow">
                 <div class="flex justify-between items-center">
                     <div>
@@ -447,30 +195,15 @@ visibility: hidden;
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="bg-white rounded-xl shadow-md p-6">
                     <div class="flex flex-wrap gap-4 items-center">
-                        <!-- Search -->
                         <div class="flex-1 min-w-[300px]">
                             <div class="relative">
                                 <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-                                <input 
-                                    type="text" 
-                                    id="search-input" 
-                                    placeholder="Search by name, ID, serial number..." 
-                                    class="form-input pl-12"
-                                >
+                                <input type="text" id="search-input" placeholder="Search by name, ID, serial number..." class="form-input pl-12">
                             </div>
                         </div>
-
-                        <!-- Filters -->
                         <select id="category-filter" class="form-input max-w-[200px]">
                             <option value="">All Categories</option>
-                            <option value="diagnostic">Diagnostic</option>
-                            <option value="therapeutic">Therapeutic</option>
-                            <option value="surgical">Surgical</option>
-                            <option value="monitoring">Monitoring</option>
-                            <option value="imaging">Imaging</option>
-                            <option value="laboratory">Laboratory</option>
                         </select>
-
                         <select id="status-filter" class="form-input max-w-[180px]">
                     <option value="">All Status</option>
                     <option value="active">Active</option>
@@ -478,13 +211,14 @@ visibility: hidden;
                     <option value="inactive">Inactive</option>
                     <option value="retired">Retired</option>
                 </select>
-
-                <!-- Action Buttons -->
+                <button onclick="showBulkImportModal()" class="btn btn-secondary">
+                    <i class="fas fa-file-import"></i>
+                    Bulk Import
+                </button>
                 <button onclick="exportToCSV()" class="btn btn-success">
                     <i class="fas fa-download"></i>
                     Export CSV
                 </button>
-
                 <button onclick="showAddAssetModal()" class="btn btn-primary">
                     <i class="fas fa-plus"></i>
                     Add Asset
@@ -501,11 +235,7 @@ visibility: hidden;
                     <div class="loading-spinner mx-auto mb-4"></div>
                     <p class="text-gray-600 font-medium">Loading assets from Supabase...</p>
                 </div>
-
-                <!-- Assets Grid -->
                 <div id="assets-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 fade-in" style="display:none"></div>
-
-                <!-- Empty State -->
                 <div id="empty-state" class="text-center py-16 bg-slate-50 rounded-xl" style="display:none">
                     <i class="fas fa-box-open text-6xl text-gray-300 mb-4"></i>
                     <h3 class="text-2xl font-bold text-gray-700 mb-2">No Assets Found</h3>
@@ -517,278 +247,229 @@ visibility: hidden;
                 </div>
             </div>
         </section>
-
-        <!-- Asset Program Overview -->
-        <section class="py-8 bg-slate-50">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="bg-white rounded-2xl shadow-md p-8">
-                    <div class="flex items-center gap-3 mb-6">
-                        <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                            <i class="fas fa-sitemap text-blue-600 text-xl"></i>
-                        </div>
-                        <div>
-                            <h2 class="text-2xl font-bold text-gray-900">Asset Program Overview</h2>
-                            <p class="text-gray-600">Clarify preventive maintenance, labor, work orders, vendors, and inventory requirements.</p>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div class="border border-gray-200 rounded-xl p-6">
-                            <h3 class="text-lg font-semibold text-gray-900 mb-3">Preventive Maintenance (PM)</h3>
-                            <p class="text-gray-600 mb-4">
-                                Performed regularly based on calendar time or runtime (see Equipment Management). Generate work
-                                orders with procedures, task details, parts, tools, and labor.
-                            </p>
-                            <ul class="space-y-2 text-gray-700 text-sm">
-                                <li><i class="fas fa-check text-blue-500 mr-2"></i>Priority and frequency settings.</li>
-                                <li><i class="fas fa-check text-blue-500 mr-2"></i>Calendar (weekly, monthly, seasonal) or runtime (miles, hours).</li>
-                                <li><i class="fas fa-check text-blue-500 mr-2"></i>Parts with required quantities and labor by craft category.</li>
-                                <li><i class="fas fa-check text-blue-500 mr-2"></i>Outside contractor support and equipment-module links.</li>
-                            </ul>
-                            <div class="mt-4 text-xs text-gray-500">
-                        Tables: pm, pm_step, pm_dependency, pm_comment, pm_tool, pm_audit, pm_part, pm_meter,
-                        pm_safety, pm_downtime, pm_season, pm_labor, pm_asset, pm_doc
-                    </div>
-                </div>
-
-                <div class="border border-gray-200 rounded-xl p-6">
-                    <h3 class="text-lg font-semibold text-gray-900 mb-3">Labor</h3>
-                    <p class="text-gray-600 mb-4">
-                        Manage hourly wage rates, overtime accommodations, and craft codes for maintenance teams.
-                    </p>
-                    <ul class="space-y-2 text-gray-700 text-sm">
-                        <li><i class="fas fa-check text-blue-500 mr-2"></i>Categories: shift, vacation, sick.</li>
-                        <li><i class="fas fa-check text-blue-500 mr-2"></i>Labor reports by account, employee, period, and equipment.</li>
-                        <li><i class="fas fa-check text-blue-500 mr-2"></i>Productivity reporting (estimated vs. actual hours).</li>
-                    </ul>
-                </div>
-
-                <div class="border border-gray-200 rounded-xl p-6">
-                    <h3 class="text-lg font-semibold text-gray-900 mb-3">Work Order System (WO)</h3>
-                    <p class="text-gray-600 mb-4">
-                        Stores preventive and corrective plans, including emergency and scheduled work. Supports
-                        departmental requests, priorities, and user-defined categories and codes.
-                    </p>
-                    <ul class="space-y-2 text-gray-700 text-sm">
-                        <li><i class="fas fa-check text-blue-500 mr-2"></i>Status, failure, action, labor, and material tracking.</li>
-                        <li><i class="fas fa-check text-blue-500 mr-2"></i>Downtime tracking (planned vs. unplanned).</li>
-                        <li><i class="fas fa-check text-blue-500 mr-2"></i>Cost summaries, backlog planning, and RIF-based scheduling.</li>
-                    </ul>
-                    <div class="mt-4 text-xs text-gray-500">
-                        Tables: workorder, wo_step, wo_labor, wo_sched_labor, wo_part, wo_comment, wo_semaphor,
-                        wo_attachment, wo_meter, wo_tool, wo_status_log, wo_safety, wo_doc, wo_generation,
-                        wo_planned_downtime, wo_planned_part, wo_planned_labor, wo_planned_tool
-                    </div>
-                </div>
-
-                <div class="border border-gray-200 rounded-xl p-6">
-                    <h3 class="text-lg font-semibold text-gray-900 mb-3">Vendor & Inventory</h3>
-                    <div class="space-y-4 text-sm text-gray-700">
-                        <div>
-                            <p class="font-semibold text-gray-900 mb-1">Vendor</p>
-                            <p>Reports: label printing, contact reports, and cost variance.</p>
-                        </div>
-                        <div>
-                            <p class="font-semibold text-gray-900 mb-1">Inventory</p>
-                            <p>
-                                User-defined reorder points, purchasing, EOQ/ROP modeling, item transactions,
-                                descriptions, and substitutes.
-                            </p>
-                            <div class="mt-2 text-xs text-gray-500">
-                                Tables: inventory, in_tran, in_vendor, in_comment, in_type, in_doc, in_reserved,
-                                in_audit, in_location, in_trans_worksheet, in_stock
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                    </div>
-                </div>
-            </div>
-        </section>
     </main>
 
     <!-- Footer -->
     <footer class="bg-slate-800 text-white py-8">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <p class="text-slate-400">&copy; 2025 MERC-CMMS Enterprise. All rights reserved. | Medical Device Management System</p>
+            <p class="text-slate-400">&copy; 2025 MERC-CMMS Enterprise. All rights reserved.</p>
         </div>
     </footer>
 
-    <!-- Add/Edit Asset Modal -->
+    <!-- Bulk Import Modal -->
+    <div id="bulk-import-modal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-2xl font-bold text-gray-900">Bulk Import Assets</h2>
+                    <button onclick="closeBulkImportModal()" class="text-gray-400 hover:text-gray-600 text-2xl">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-6">
+                <div class="mb-6">
+                    <h3 class="font-semibold text-gray-900 mb-2">CSV Format Requirements:</h3>
+                    <p class="text-sm text-gray-600 mb-3">Your CSV file should include the following columns:</p>
+                    <div class="bg-slate-50 p-4 rounded-lg text-sm font-mono">
+                        name,category,manufacturer,model,serial_number,status,purchase_date,purchase_cost,warranty_expiry,customer_id,location_id,description
+                    </div>
+                    <button onclick="downloadTemplate()" class="mt-3 text-blue-600 hover:text-blue-700 text-sm font-semibold">
+                        <i class="fas fa-download mr-2"></i>Download CSV Template
+                    </button>
+                </div>
+                <div class="drag-drop-zone" id="drop-zone">
+                    <i class="fas fa-cloud-upload-alt text-5xl text-gray-400 mb-4"></i>
+                    <p class="text-lg font-semibold text-gray-700 mb-2">Drag and drop your CSV file here</p>
+                    <p class="text-sm text-gray-500 mb-4">or</p>
+                    <button onclick="document.getElementById('csv-file-input').click()" class="btn btn-primary">
+                        <i class="fas fa-file-csv mr-2"></i>Select CSV File
+                    </button>
+                    <input type="file" id="csv-file-input" accept=".csv" style="display: none;" onchange="handleFileSelect(event)">
+                </div>
+                <div id="import-preview" class="mt-6" style="display: none;">
+                    <h3 class="font-semibold text-gray-900 mb-2">Import Preview:</h3>
+                    <div id="preview-content" class="bg-slate-50 p-4 rounded-lg max-h-48 overflow-auto"></div>
+                    <div class="flex justify-end gap-3 mt-4">
+                        <button onclick="cancelImport()" class="btn btn-secondary">Cancel</button>
+                        <button onclick="confirmImport()" class="btn btn-primary">
+                            <i class="fas fa-check mr-2"></i>Import Assets
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Asset View/Edit Modal with Tabs -->
     <div id="asset-modal" class="modal">
         <div class="modal-content">
             <div class="p-6 border-b border-gray-200">
                 <div class="flex justify-between items-center">
-                    <h2 class="text-2xl font-bold text-gray-900" id="modal-title">Add New Asset</h2>
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-900" id="modal-title">Asset Details</h2>
+                        <p class="text-sm text-gray-500 mt-1" id="modal-subtitle"></p>
+                    </div>
                     <button onclick="closeAssetModal()" class="text-gray-400 hover:text-gray-600 text-2xl">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
-            </div>
-
-            <form id="asset-form" class="p-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Basic Information -->
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Asset Name *</label>
-                        <input type="text" name="name" required class="form-input" placeholder="e.g., MRI Scanner">
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Category *</label>
-                        <select name="category" id="category-select" required class="form-input" onchange="handleCategoryChange(event)">
-                            <option value="">Select Category</option>
-                        </select>
-                        <p class="text-xs text-gray-500 mt-1">Select or add a device category</p>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Make/Manufacturer *</label>
-                        <select name="manufacturer" id="make-select" required class="form-input" onchange="handleMakeChange(event)">
-                            <option value="">Select Make/Manufacturer</option>
-                        </select>
-                        <p class="text-xs text-gray-500 mt-1">Select category first, then choose or add make</p>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Model *</label>
-                        <select name="model" id="model-select" required class="form-input" onchange="handleModelChange(event)">
-                            <option value="">Select Model</option>
-                        </select>
-                        <p class="text-xs text-gray-500 mt-1">Select make first, then choose or add model</p>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Serial Number *</label>
-                        <input type="text" name="serial_number" required class="form-input" placeholder="e.g., SN123456789">
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Status</label>
-                        <select name="status" class="form-input">
-                            <option value="active">Active</option>
-                            <option value="maintenance">Maintenance</option>
-                            <option value="inactive">Inactive</option>
-                            <option value="retired">Retired</option>
-                        </select>
-                    </div>
-
-                    <!-- Purchase Information -->
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Purchase Date</label>
-                        <input type="date" name="purchase_date" class="form-input">
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Purchase Cost ($)</label>
-                        <input type="number" name="purchase_cost" step="0.01" class="form-input" placeholder="0.00">
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Warranty Expiry</label>
-                        <input type="date" name="warranty_expiry" class="form-input">
-                    </div>
-
-                    <!-- Assignment -->
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Customer</label>
-                        <select name="customer_id" id="customer-select" class="form-input">
-                            <option value="">Select Customer</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Location</label>
-                        <select name="location_id" id="location-select" class="form-input">
-                            <option value="">Select Location</option>
-                        </select>
-                    </div>
-
-                    <!-- PM Scheduling -->
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">PM Schedule</label>
-                        <select name="pm_schedule_type" class="form-input">
-                            <option value="">No PM Schedule</option>
-                            <option value="daily">Daily</option>
-                            <option value="weekly">Weekly</option>
-                            <option value="biweekly">Bi-Weekly</option>
-                            <option value="monthly">Monthly</option>
-                            <option value="quarterly">Quarterly (90 days)</option>
-                            <option value="semiannually">Semi-Annually (180 days)</option>
-                            <option value="annually">Annually (365 days)</option>
-                            <option value="custom">Custom Interval</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Custom Interval (days)</label>
-                        <input type="number" name="pm_interval_days" class="form-input" placeholder="e.g., 45">
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Last Maintenance</label>
-                        <input type="date" name="last_maintenance" class="form-input">
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Auto-Generate Work Orders</label>
-                        <select name="auto_generate_wo" class="form-input">
-                            <option value="true">Yes</option>
-                            <option value="false">No</option>
-                        </select>
-                    </div>
-
-                    <!-- Description -->
-                    <div class="md:col-span-2">
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Description</label>
-                        <textarea name="description" rows="3" class="form-input" placeholder="Additional notes about this asset..."></textarea>
-                    </div>
-                </div>
-
-                <input type="hidden" name="id" id="edit-asset-id">
-
-                <div class="flex justify-end gap-3 mt-8">
-                    <button type="button" onclick="closeAssetModal()" class="btn btn-secondary">
-                        <i class="fas fa-times"></i>
-                        Cancel
+                <!-- Tabs -->
+                <div class="flex gap-2 mt-4 border-b">
+                    <button class="tab-button active" onclick="switchTab('details')">
+                        <i class="fas fa-info-circle mr-2"></i>Details
                     </button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save"></i>
-                        <span id="submit-btn-text">Save Asset</span>
+                    <button class="tab-button" onclick="switchTab('workorders')" id="wo-tab-button">
+                        <i class="fas fa-clipboard-list mr-2"></i>Work Orders <span id="wo-count" class="ml-1 bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-xs"></span>
                     </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- View Asset Modal -->
-    <div id="view-modal" class="modal">
-        <div class="modal-content">
-            <div class="p-6 border-b border-gray-200">
-                <div class="flex justify-between items-center">
-                    <div>
-                        <h2 class="text-2xl font-bold text-gray-900" id="view-modal-title">Asset Details</h2>
-                        <p class="text-sm text-gray-500 mt-1" id="view-modal-id"></p>
-                    </div>
-                    <button onclick="closeViewModal()" class="text-gray-400 hover:text-gray-600 text-2xl">
-                        <i class="fas fa-times"></i>
+                    <button class="tab-button" onclick="switchTab('pmschedule')">
+                        <i class="fas fa-calendar-alt mr-2"></i>PM Schedule
                     </button>
                 </div>
             </div>
 
-            <div class="p-6" id="view-modal-body">
-                <!-- Content will be populated dynamically -->
+            <!-- Details Tab -->
+            <div id="details-tab" class="tab-content active p-6">
+                <form id="asset-form">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Asset Name *</label>
+                            <input type="text" name="name" required class="form-input" placeholder="e.g., MRI Scanner">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Category *</label>
+                            <select name="category" required class="form-input">
+                                <option value="">Select Category</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Manufacturer *</label>
+                            <input type="text" name="manufacturer" required class="form-input">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Model *</label>
+                            <input type="text" name="model" required class="form-input">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Serial Number *</label>
+                            <input type="text" name="serial_number" required class="form-input">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Status</label>
+                            <select name="status" class="form-input">
+                                <option value="active">Active</option>
+                                <option value="maintenance">Maintenance</option>
+                                <option value="inactive">Inactive</option>
+                                <option value="retired">Retired</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Purchase Date</label>
+                            <input type="date" name="purchase_date" class="form-input">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Purchase Cost ($)</label>
+                            <input type="number" name="purchase_cost" step="0.01" class="form-input">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Warranty Expiry</label>
+                            <input type="date" name="warranty_expiry" class="form-input">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Customer</label>
+                            <select name="customer_id" id="customer-select" class="form-input">
+                                <option value="">Select Customer</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Location</label>
+                            <select name="location_id" id="location-select" class="form-input">
+                                <option value="">Select Location</option>
+                            </select>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+                            <textarea name="description" rows="3" class="form-input"></textarea>
+                        </div>
+                    </div>
+                    <input type="hidden" name="id" id="edit-asset-id">
+                    <div class="flex justify-end gap-3 mt-8">
+                        <button type="button" onclick="closeAssetModal()" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> <span id="submit-btn-text">Save Asset</span>
+                        </button>
+                    </div>
+                </form>
             </div>
 
-            <div class="p-6 border-t border-gray-200 flex justify-end gap-3">
-                <button onclick="closeViewModal()" class="btn btn-secondary">
-                    <i class="fas fa-times"></i>
-                    Close
-                </button>
-                <button onclick="editAssetFromView()" class="btn btn-primary">
-                    <i class="fas fa-edit"></i>
-                    Edit Asset
-                </button>
+            <!-- Work Orders Tab -->
+            <div id="workorders-tab" class="tab-content p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900">Work Orders for this Asset</h3>
+                    <button onclick="createWorkOrderForAsset()" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus"></i> Create Work Order
+                    </button>
+                </div>
+                <div id="asset-work-orders-list">
+                    <p class="text-center text-gray-500 py-8">Loading work orders...</p>
+                </div>
+            </div>
+
+            <!-- PM Schedule Tab -->
+            <div id="pmschedule-tab" class="tab-content p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-6">Preventive Maintenance Schedule</h3>
+                <form id="pm-schedule-form">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">PM Schedule Type</label>
+                            <select name="pm_schedule_type" id="pm-schedule-type" class="form-input">
+                                <option value="">No PM Schedule</option>
+                                <option value="daily">Daily (Every 24 hours)</option>
+                                <option value="weekly">Weekly (Every 7 days)</option>
+                                <option value="biweekly">Bi-Weekly (Every 14 days)</option>
+                                <option value="monthly">Monthly (Every 30 days)</option>
+                                <option value="quarterly">Quarterly (Every 90 days)</option>
+                                <option value="semiannually">Semi-Annually (Every 180 days)</option>
+                                <option value="annually">Annually (Every 365 days)</option>
+                                <option value="custom">Custom Interval</option>
+                            </select>
+                        </div>
+                        <div id="custom-interval-wrapper" style="display: none;">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Custom Interval (days)</label>
+                            <input type="number" name="pm_interval_days" id="pm-interval-days" class="form-input" min="1" placeholder="e.g., 45">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Last Maintenance Date</label>
+                            <input type="date" name="last_maintenance" id="last-maintenance" class="form-input">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Next Maintenance Due</label>
+                            <input type="date" name="next_maintenance" id="next-maintenance" class="form-input" readonly style="background: #f8fafc;">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="flex items-center gap-2">
+                                <input type="checkbox" name="auto_generate_wo" id="auto-generate-wo" class="rounded border-gray-300">
+                                <span class="text-sm font-semibold text-gray-700">Auto-Generate Work Orders (7 days before PM due)</span>
+                            </label>
+                        </div>
+                        <div class="md:col-span-2 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <h4 class="font-semibold text-blue-900 mb-2">PM Schedule Preview</h4>
+                            <div id="pm-preview" class="text-sm text-blue-800">
+                                <p>Select a PM schedule type to see upcoming maintenance dates.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex justify-end gap-3 mt-8">
+                        <button type="button" onclick="clearPMSchedule()" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Clear Schedule
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Save PM Schedule
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -796,442 +477,47 @@ visibility: hidden;
     <!-- Toast Container -->
     <div id="toast-container"></div>
 
-    <!-- Scripts -->
     <script>
-        // Supabase Configuration
         const SUPABASE_URL = 'https://hmdemsbqiqlqcggwblvl.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_Z9oNxTGDCCz3EZnh6NqySg_QzF6amCN';
-
         let supabaseClient;
-
-        // Global State
         let allAssets = [];
         let filteredAssets = [];
         let customers = [];
         let locations = [];
-        let currentEditingAsset = null;
-        
-        // Master Device Catalog State
-        let deviceCategories = [];
-        let deviceMakes = [];
-        let deviceModels = [];
+        let currentAsset = null;
+        let csvData = null;
 
-        async function ensureSupabaseLoaded() {
-            if (window.supabase) {
-                return window.supabase;
-            }
-
-            return new Promise((resolve, reject) => {
-                const script = document.createElement('script');
-                script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
-                script.async = true;
-                script.onload = () => resolve(window.supabase);
-                script.onerror = () => reject(new Error('Supabase library failed to load'));
-                document.head.appendChild(script);
-            });
-        }
-        
-        // ============================================
-        // MASTER DEVICE CATALOG FUNCTIONS
-        // ============================================
-        
-        // Initialize device catalog tables if they don't exist
-        async function initDeviceCatalog() {
-            try {
-                // Try to load categories - if table doesn't exist, use defaults
-                await loadDeviceCategories();
-                console.log('✅ Device catalog initialized');
-            } catch (error) {
-                console.log('⚠️ Device catalog tables may not exist, using defaults');
-                deviceCategories = getDefaultCategories();
-            }
-        }
-        
-        function getDefaultCategories() {
-            return [
-                { id: 'aed', name: 'AED', description: 'Automated External Defibrillator' },
-                { id: 'diagnostic', name: 'Diagnostic', description: 'Diagnostic Equipment' },
-                { id: 'therapeutic', name: 'Therapeutic', description: 'Therapeutic Equipment' },
-                { id: 'surgical', name: 'Surgical', description: 'Surgical Equipment' },
-                { id: 'monitoring', name: 'Monitoring', description: 'Patient Monitoring Equipment' },
-                { id: 'imaging', name: 'Imaging', description: 'Medical Imaging Equipment' },
-                { id: 'laboratory', name: 'Laboratory', description: 'Laboratory Equipment' },
-                { id: 'infusion', name: 'Infusion Pump', description: 'Infusion Pumps and IV Equipment' },
-                { id: 'ventilator', name: 'Ventilator', description: 'Respiratory and Ventilation Equipment' },
-                { id: 'other', name: 'Other', description: 'Other Medical Equipment' }
-            ];
-        }
-        
-        // Load device categories from database
-        async function loadDeviceCategories() {
-            try {
-                const { data, error } = await supabaseClient
-                    .from('device_categories')
-                    .select('*')
-                    .order('name');
-                
-                if (error) {
-                    // Table might not exist, use defaults
-                    deviceCategories = getDefaultCategories();
-                } else {
-                    deviceCategories = data && data.length > 0 ? data : getDefaultCategories();
-                }
-                updateCategoryDropdowns();
-            } catch (error) {
-                deviceCategories = getDefaultCategories();
-                updateCategoryDropdowns();
-            }
-        }
-        
-        // Load makes for a specific category
-        async function loadDeviceMakes(categoryId) {
-            if (!categoryId) {
-                deviceMakes = [];
-                updateMakeDropdown();
-                return;
-            }
-            
-            try {
-                const { data, error } = await supabaseClient
-                    .from('device_makes')
-                    .select('*')
-                    .eq('category_id', categoryId)
-                    .order('name');
-                
-                if (error) {
-                    deviceMakes = [];
-                } else {
-                    deviceMakes = data || [];
-                }
-            } catch (error) {
-                deviceMakes = [];
-            }
-            updateMakeDropdown();
-        }
-        
-        // Load models for a specific make
-        async function loadDeviceModels(makeId) {
-            if (!makeId) {
-                deviceModels = [];
-                updateModelDropdown();
-                return;
-            }
-            
-            try {
-                const { data, error } = await supabaseClient
-                    .from('device_models')
-                    .select('*')
-                    .eq('make_id', makeId)
-                    .order('name');
-                
-                if (error) {
-                    deviceModels = [];
-                } else {
-                    deviceModels = data || [];
-                }
-            } catch (error) {
-                deviceModels = [];
-            }
-            updateModelDropdown();
-        }
-        
-        // Add new category
-        async function addNewCategory(name) {
-            if (!name || name.trim() === '') return null;
-            
-            const newCategory = {
-                id: name.toLowerCase().replace(/\s+/g, '_'),
-                name: name.trim(),
-                description: name.trim()
-            };
-            
-            try {
-                const { data, error } = await supabaseClient
-                    .from('device_categories')
-                    .insert([newCategory])
-                    .select()
-                    .single();
-                
-                if (error) throw error;
-                
-                deviceCategories.push(data);
-                updateCategoryDropdowns();
-                showToast(`Category "${name}" added successfully`, 'success');
-                return data;
-            } catch (error) {
-                // If table doesn't exist, just add to local array
-                deviceCategories.push(newCategory);
-                updateCategoryDropdowns();
-                showToast(`Category "${name}" added (local only)`, 'warning');
-                return newCategory;
-            }
-        }
-        
-        // Add new make
-        async function addNewMake(name, categoryId) {
-            if (!name || name.trim() === '' || !categoryId) return null;
-            
-            const newMake = {
-                id: `${categoryId}_${name.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}`,
-                name: name.trim(),
-                category_id: categoryId
-            };
-            
-            try {
-                const { data, error } = await supabaseClient
-                    .from('device_makes')
-                    .insert([newMake])
-                    .select()
-                    .single();
-                
-                if (error) throw error;
-                
-                deviceMakes.push(data);
-                updateMakeDropdown();
-                showToast(`Make "${name}" added successfully`, 'success');
-                return data;
-            } catch (error) {
-                // If table doesn't exist, just add to local array
-                deviceMakes.push(newMake);
-                updateMakeDropdown();
-                showToast(`Make "${name}" added (local only)`, 'warning');
-                return newMake;
-            }
-        }
-        
-        // Add new model
-        async function addNewModel(name, makeId) {
-            if (!name || name.trim() === '' || !makeId) return null;
-            
-            const newModel = {
-                id: `${makeId}_${name.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}`,
-                name: name.trim(),
-                make_id: makeId
-            };
-            
-            try {
-                const { data, error } = await supabaseClient
-                    .from('device_models')
-                    .insert([newModel])
-                    .select()
-                    .single();
-                
-                if (error) throw error;
-                
-                deviceModels.push(data);
-                updateModelDropdown();
-                showToast(`Model "${name}" added successfully`, 'success');
-                return data;
-            } catch (error) {
-                // If table doesn't exist, just add to local array
-                deviceModels.push(newModel);
-                updateModelDropdown();
-                showToast(`Model "${name}" added (local only)`, 'warning');
-                return newModel;
-            }
-        }
-        
-        // Update category dropdowns
-        function updateCategoryDropdowns() {
-            const categorySelect = document.getElementById('category-select');
-            const filterSelect = document.getElementById('category-filter');
-            
-            if (categorySelect) {
-                const currentVal = categorySelect.value;
-                categorySelect.innerHTML = '<option value="">Select Category</option>';
-                deviceCategories.forEach(cat => {
-                    const option = document.createElement('option');
-                    option.value = cat.id;
-                    option.textContent = cat.name;
-                    categorySelect.appendChild(option);
-                });
-                categorySelect.innerHTML += '<option value="__add_new__" class="text-blue-600 font-semibold">+ Add New Category...</option>';
-                if (currentVal) categorySelect.value = currentVal;
-            }
-            
-            if (filterSelect) {
-                const currentVal = filterSelect.value;
-                filterSelect.innerHTML = '<option value="">All Categories</option>';
-                deviceCategories.forEach(cat => {
-                    const option = document.createElement('option');
-                    option.value = cat.id;
-                    option.textContent = cat.name;
-                    filterSelect.appendChild(option);
-                });
-                if (currentVal) filterSelect.value = currentVal;
-            }
-        }
-        
-        // Update make dropdown
-        function updateMakeDropdown() {
-            const makeSelect = document.getElementById('make-select');
-            if (!makeSelect) return;
-            
-            const currentVal = makeSelect.value;
-            makeSelect.innerHTML = '<option value="">Select Make/Manufacturer</option>';
-            deviceMakes.forEach(make => {
-                const option = document.createElement('option');
-                option.value = make.id;
-                option.textContent = make.name;
-                makeSelect.appendChild(option);
-            });
-            makeSelect.innerHTML += '<option value="__add_new__" class="text-blue-600 font-semibold">+ Add New Make...</option>';
-            if (currentVal && deviceMakes.find(m => m.id === currentVal)) {
-                makeSelect.value = currentVal;
-            }
-        }
-        
-        // Update model dropdown
-        function updateModelDropdown() {
-            const modelSelect = document.getElementById('model-select');
-            if (!modelSelect) return;
-            
-            const currentVal = modelSelect.value;
-            modelSelect.innerHTML = '<option value="">Select Model</option>';
-            deviceModels.forEach(model => {
-                const option = document.createElement('option');
-                option.value = model.id;
-                option.textContent = model.name;
-                modelSelect.appendChild(option);
-            });
-            modelSelect.innerHTML += '<option value="__add_new__" class="text-blue-600 font-semibold">+ Add New Model...</option>';
-            if (currentVal && deviceModels.find(m => m.id === currentVal)) {
-                modelSelect.value = currentVal;
-            }
-        }
-        
-        // Handle category change
-        async function handleCategoryChange(e) {
-            const value = e.target.value;
-            
-            if (value === '__add_new__') {
-                const name = prompt('Enter new category name:');
-                if (name) {
-                    const newCat = await addNewCategory(name);
-                    if (newCat) {
-                        e.target.value = newCat.id;
-                        await loadDeviceMakes(newCat.id);
-                    }
-                } else {
-                    e.target.value = '';
-                }
-            } else if (value) {
-                await loadDeviceMakes(value);
-            } else {
-                deviceMakes = [];
-                deviceModels = [];
-                updateMakeDropdown();
-                updateModelDropdown();
-            }
-        }
-        
-        // Handle make change
-        async function handleMakeChange(e) {
-            const value = e.target.value;
-            const categorySelect = document.getElementById('category-select');
-            const categoryId = categorySelect?.value;
-            
-            if (value === '__add_new__') {
-                if (!categoryId) {
-                    showToast('Please select a category first', 'warning');
-                    e.target.value = '';
-                    return;
-                }
-                const name = prompt('Enter new make/manufacturer name:');
-                if (name) {
-                    const newMake = await addNewMake(name, categoryId);
-                    if (newMake) {
-                        e.target.value = newMake.id;
-                        await loadDeviceModels(newMake.id);
-                    }
-                } else {
-                    e.target.value = '';
-                }
-            } else if (value) {
-                await loadDeviceModels(value);
-            } else {
-                deviceModels = [];
-                updateModelDropdown();
-            }
-        }
-        
-        // Handle model change
-        async function handleModelChange(e) {
-            const value = e.target.value;
-            const makeSelect = document.getElementById('make-select');
-            const makeId = makeSelect?.value;
-            
-            if (value === '__add_new__') {
-                if (!makeId) {
-                    showToast('Please select a make first', 'warning');
-                    e.target.value = '';
-                    return;
-                }
-                const name = prompt('Enter new model name:');
-                if (name) {
-                    const newModel = await addNewModel(name, makeId);
-                    if (newModel) {
-                        e.target.value = newModel.id;
-                    }
-                } else {
-                    e.target.value = '';
-                }
-            }
-        }
-
-        // Initialize Application
         document.addEventListener('DOMContentLoaded', async () => {
-            // Mobile menu toggle
             const mobileMenuButton = document.getElementById('mobile-menu-button');
             const mobileMenu = document.getElementById('mobile-menu');
-
             if (mobileMenuButton && mobileMenu) {
                 mobileMenuButton.addEventListener('click', () => {
-                    const isExpanded = mobileMenuButton.getAttribute('aria-expanded') === 'true';
-                    mobileMenuButton.setAttribute('aria-expanded', String(!isExpanded));
                     mobileMenu.classList.toggle('hidden');
                 });
             }
 
             if (!window.supabase) {
-                showToast('Supabase library not loaded. Please check your connection.', 'error');
-                console.error('❌ Supabase library not available');
+                showToast('Supabase library not loaded', 'error');
                 return;
             }
-
             supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-            try {
-                await Promise.all([
-                    loadAssets(),
-                    loadCustomers(),
-                    loadLocations(),
-                    initDeviceCatalog()
-                ]);
-            } finally {
-                setupEventListeners();
-            }
+            await Promise.all([loadAssets(), loadCustomers(), loadLocations()]);
+            setupEventListeners();
+            setupDragDrop();
         });
 
-        // Load Assets
         async function loadAssets() {
             try {
                 showLoading(true);
-                console.log('🔄 Loading assets from Supabase...');
-
-                // Load assets without foreign key joins (they may not be configured in Supabase)
-                const { data: assetsData, error: assetsError } = await supabaseClient
+                const { data, error } = await supabaseClient
                     .from('assets')
                     .select('*')
-                    .order('created_at', { ascending: false });
+                    .order('id', { ascending: false });
+                if (error) throw error;
 
-                if (assetsError) throw assetsError;
-
-                // Manually enrich with customer and location names
-                const enrichedAssets = await Promise.all((assetsData || []).map(async (asset) => {
-                    let customerName = null;
-                    let locationName = null;
-
+                const enrichedAssets = await Promise.all((data || []).map(async (asset) => {
+                    let customerName = null, locationName = null;
                     if (asset.customer_id) {
                         const { data: customer } = await supabaseClient
                             .from('customers')
@@ -1240,7 +526,6 @@ visibility: hidden;
                             .single();
                         customerName = customer?.name;
                     }
-
                     if (asset.location_id) {
                         const { data: location } = await supabaseClient
                             .from('locations')
@@ -1249,7 +534,6 @@ visibility: hidden;
                             .single();
                         locationName = location?.name;
                     }
-
                     return {
                         ...asset,
                         customers: customerName ? { name: customerName } : null,
@@ -1259,14 +543,11 @@ visibility: hidden;
 
                 allAssets = enrichedAssets;
                 filteredAssets = [...allAssets];
-                
-                console.log(`✅ Loaded ${allAssets.length} assets`);
-                
                 updateStatistics();
                 renderAssets();
                 showToast(`Loaded ${allAssets.length} assets successfully`, 'success');
             } catch (error) {
-                console.error('❌ Error loading assets:', error);
+                console.error('Error loading assets:', error);
                 showToast(`Failed to load assets: ${error.message}`, 'error');
                 allAssets = [];
                 filteredAssets = [];
@@ -1276,7 +557,6 @@ visibility: hidden;
             }
         }
 
-        // Load Customers
         async function loadCustomers() {
             try {
                 const { data, error } = await supabaseClient
@@ -1284,17 +564,14 @@ visibility: hidden;
                     .select('id, name')
                     .eq('status', 'active')
                     .order('name');
-
                 if (error) throw error;
-
                 customers = data || [];
                 updateCustomerDropdown();
             } catch (error) {
-                console.error('❌ Error loading customers:', error);
+                console.error('Error loading customers:', error);
             }
         }
 
-        // Load Locations
         async function loadLocations() {
             try {
                 const { data, error } = await supabaseClient
@@ -1302,17 +579,14 @@ visibility: hidden;
                     .select('id, name, customer_id')
                     .eq('status', 'active')
                     .order('name');
-
                 if (error) throw error;
-
                 locations = data || [];
                 updateLocationDropdown();
             } catch (error) {
-                console.error('❌ Error loading locations:', error);
+                console.error('Error loading locations:', error);
             }
         }
 
-        // Update Customer Dropdown
         function updateCustomerDropdown() {
             const select = document.getElementById('customer-select');
             select.innerHTML = '<option value="">Select Customer</option>';
@@ -1324,16 +598,11 @@ visibility: hidden;
             });
         }
 
-        // Update Location Dropdown
         function updateLocationDropdown(customerId = null) {
             const select = document.getElementById('location-select');
             select.innerHTML = '<option value="">Select Location</option>';
-            
-            const filteredLocations = customerId 
-                ? locations.filter(loc => loc.customer_id === customerId)
-                : locations;
-
-            filteredLocations.forEach(location => {
+            const filteredLocs = customerId ? locations.filter(loc => loc.customer_id === customerId) : locations;
+            filteredLocs.forEach(location => {
                 const option = document.createElement('option');
                 option.value = location.id;
                 option.textContent = location.name;
@@ -1341,7 +610,6 @@ visibility: hidden;
             });
         }
 
-        // Update Statistics
         function updateStatistics() {
             const total = allAssets.length;
             const active = allAssets.filter(a => a.status === 'active').length;
@@ -1351,7 +619,6 @@ visibility: hidden;
                 return new Date(a.next_maintenance) < new Date();
             }).length;
             const compliant = total > 0 ? Math.round(((total - overdue) / total) * 100) : 0;
-
             document.getElementById('stat-total').textContent = total;
             document.getElementById('stat-active').textContent = active;
             document.getElementById('stat-maintenance').textContent = maintenance;
@@ -1359,134 +626,59 @@ visibility: hidden;
             document.getElementById('stat-compliant').textContent = compliant + '%';
         }
 
-        // Render Assets
         function renderAssets() {
             const grid = document.getElementById('assets-grid');
             const empty = document.getElementById('empty-state');
-
             if (filteredAssets.length === 0) {
                 grid.style.display = 'none';
                 empty.style.display = 'block';
                 return;
             }
-
             grid.style.display = 'grid';
             empty.style.display = 'none';
             grid.innerHTML = filteredAssets.map(asset => createAssetCard(asset)).join('');
         }
 
-        // Create Asset Card
         function createAssetCard(asset) {
-            const compliance = getComplianceStatus(asset.next_maintenance);
             const days = getDaysUntil(asset.next_maintenance);
-            
+            const statusColors = {
+                active: 'bg-green-100 text-green-800',
+                maintenance: 'bg-yellow-100 text-yellow-800',
+                inactive: 'bg-gray-100 text-gray-800',
+                retired: 'bg-red-100 text-red-800'
+            };
             return `
-                <div class="asset-card bg-white rounded-xl p-6 shadow-md ${compliance.cardClass}">
+                <div class="bg-white rounded-xl p-6 shadow-md card-hover border-l-4 ${days !== null && days < 0 ? 'border-red-500' : days !== null && days <= 7 ? 'border-orange-500' : 'border-green-500'}">
                     <div class="flex justify-between items-start mb-4">
                         <div class="flex-1">
                             <h3 class="text-xl font-bold text-gray-900 mb-1">${escapeHtml(asset.name)}</h3>
                             <p class="text-sm text-gray-500">${asset.id}</p>
                         </div>
-                        <span class="status-badge status-${asset.status}">
+                        <span class="text-xs px-3 py-1 rounded-full ${statusColors[asset.status] || 'bg-gray-100 text-gray-800'}">
                             ${asset.status}
                         </span>
                     </div>
-
-                    <div class="space-y-3 mb-4">
-                        <div class="flex items-center text-sm">
-                            <i class="fas fa-tag w-5 text-gray-400"></i>
-                            <span class="text-gray-700">${escapeHtml(asset.category || 'N/A')}</span>
-                        </div>
-                        <div class="flex items-center text-sm">
-                            <i class="fas fa-industry w-5 text-gray-400"></i>
-                            <span class="text-gray-700">${escapeHtml(asset.manufacturer || 'N/A')}</span>
-                        </div>
-                        <div class="flex items-center text-sm">
-                            <i class="fas fa-building w-5 text-gray-400"></i>
-                            <span class="text-gray-700">${escapeHtml(asset.customers?.name || 'Unassigned')}</span>
-                        </div>
-                        <div class="flex items-center text-sm">
-                            <i class="fas fa-map-marker-alt w-5 text-gray-400"></i>
-                            <span class="text-gray-700">${escapeHtml(asset.locations?.name || 'No Location')}</span>
-                        </div>
+                    <div class="space-y-2 mb-4 text-sm">
+                        <div class="flex items-center"><i class="fas fa-tag w-5 text-gray-400"></i><span class="text-gray-700">${escapeHtml(asset.category || 'N/A')}</span></div>
+                        <div class="flex items-center"><i class="fas fa-industry w-5 text-gray-400"></i><span class="text-gray-700">${escapeHtml(asset.manufacturer || 'N/A')}</span></div>
+                        <div class="flex items-center"><i class="fas fa-building w-5 text-gray-400"></i><span class="text-gray-700">${escapeHtml(asset.customers?.name || 'Unassigned')}</span></div>
+                        <div class="flex items-center"><i class="fas fa-map-marker-alt w-5 text-gray-400"></i><span class="text-gray-700">${escapeHtml(asset.locations?.name || 'No Location')}</span></div>
                     </div>
-
                     <div class="border-t pt-4 mb-4">
                         <div class="grid grid-cols-2 gap-3 text-sm">
-                            <div>
-                                <span class="text-gray-500 block">Last PM:</span>
-                                <span class="font-medium text-gray-900">${formatDate(asset.last_maintenance)}</span>
-                            </div>
-                            <div>
-                                <span class="text-gray-500 block">Next PM:</span>
-                                <span class="font-medium ${days !== null && days < 0 ? 'text-red-600' : 'text-gray-900'}">${formatDate(asset.next_maintenance)}</span>
-                            </div>
+                            <div><span class="text-gray-500 block">Last PM:</span><span class="font-medium text-gray-900">${formatDate(asset.last_maintenance)}</span></div>
+                            <div><span class="text-gray-500 block">Next PM:</span><span class="font-medium ${days !== null && days < 0 ? 'text-red-600' : 'text-gray-900'}">${formatDate(asset.next_maintenance)}</span></div>
                         </div>
-                        ${days !== null ? `
-                            <div class="mt-3 text-sm">
-                                <span class="text-gray-500">PM Status:</span>
-                                <span class="font-bold ${days < 0 ? 'text-red-600' : days <= 7 ? 'text-orange-600' : 'text-green-600'}">
-                                    ${days < 0 ? `${Math.abs(days)} days OVERDUE` : `${days} days remaining`}
-                                </span>
-                            </div>
-                        ` : ''}
+                        ${days !== null ? `<div class="mt-2 text-sm"><span class="text-gray-500">PM Status:</span><span class="font-bold ${days < 0 ? 'text-red-600' : days <= 7 ? 'text-orange-600' : 'text-green-600'}">${days < 0 ? `${Math.abs(days)} days OVERDUE` : `${days} days remaining`}</span></div>` : ''}
                     </div>
-
                     <div class="flex gap-2">
-                        <button onclick='viewAsset(${JSON.stringify(asset).replace(/'/g, "&#39;")})' class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
-                            <i class="fas fa-eye mr-2"></i>View
-                        </button>
-                        <button onclick='editAsset(${JSON.stringify(asset).replace(/'/g, "&#39;")})' class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button onclick="deleteAsset('${asset.id}')" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                        <button onclick='viewAsset(${JSON.stringify(asset).replace(/'/g, "&#39;")})' class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors"><i class="fas fa-eye mr-1"></i>View</button>
+                        <button onclick="deleteAsset('${asset.id}')" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors"><i class="fas fa-trash"></i></button>
                     </div>
                 </div>
             `;
         }
 
-        // Get Compliance Status
-        function getComplianceStatus(nextMaintenance) {
-            if (!nextMaintenance) {
-                return { 
-                    cardClass: 'compliance-good', 
-                    text: 'No PM Scheduled',
-                    color: 'blue'
-                };
-            }
-
-            const days = getDaysUntil(nextMaintenance);
-            
-            if (days < 0) {
-                return { 
-                    cardClass: 'compliance-critical', 
-                    text: 'Overdue',
-                    color: 'red'
-                };
-            } else if (days <= 7) {
-                return { 
-                    cardClass: 'compliance-warning', 
-                    text: 'Due Soon',
-                    color: 'orange'
-                };
-            } else if (days <= 30) {
-                return { 
-                    cardClass: 'compliance-good', 
-                    text: 'Due This Month',
-                    color: 'blue'
-                };
-            } else {
-                return { 
-                    cardClass: 'compliance-excellent', 
-                    text: 'Compliant',
-                    color: 'green'
-                };
-            }
-        }
-
-        // Calculate Days Until Date
         function getDaysUntil(date) {
             if (!date) return null;
             const today = new Date();
@@ -1496,17 +688,11 @@ visibility: hidden;
             return Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24));
         }
 
-        // Format Date
         function formatDate(date) {
             if (!date) return 'N/A';
-            return new Date(date).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-            });
+            return new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
         }
 
-        // Escape HTML
         function escapeHtml(text) {
             if (!text) return '';
             const div = document.createElement('div');
@@ -1514,195 +700,27 @@ visibility: hidden;
             return div.innerHTML;
         }
 
-        // View Asset
-        function viewAsset(asset) {
-            currentEditingAsset = asset;
-            
-            document.getElementById('view-modal-title').textContent = asset.name;
-            document.getElementById('view-modal-id').textContent = asset.id;
-            
-            const compliance = getComplianceStatus(asset.next_maintenance);
-            const days = getDaysUntil(asset.next_maintenance);
-            
-            document.getElementById('view-modal-body').innerHTML = `
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Basic Information</h3>
-                        <div class="space-y-3">
-                            <div>
-                                <span class="text-sm text-gray-500">Category:</span>
-                                <p class="font-medium">${escapeHtml(asset.category || 'N/A')}</p>
-                            </div>
-                            <div>
-                                <span class="text-sm text-gray-500">Status:</span>
-                                <p><span class="status-badge status-${asset.status}">${asset.status}</span></p>
-                            </div>
-                            <div>
-                                <span class="text-sm text-gray-500">Manufacturer:</span>
-                                <p class="font-medium">${escapeHtml(asset.manufacturer || 'N/A')}</p>
-                            </div>
-                            <div>
-                                <span class="text-sm text-gray-500">Model:</span>
-                                <p class="font-medium">${escapeHtml(asset.model || 'N/A')}</p>
-                            </div>
-                            <div>
-                                <span class="text-sm text-gray-500">Serial Number:</span>
-                                <p class="font-medium">${escapeHtml(asset.serial_number || 'N/A')}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Purchase Information</h3>
-                        <div class="space-y-3">
-                            <div>
-                                <span class="text-sm text-gray-500">Purchase Date:</span>
-                                <p class="font-medium">${formatDate(asset.purchase_date)}</p>
-                            </div>
-                            <div>
-                                <span class="text-sm text-gray-500">Purchase Cost:</span>
-                                <p class="font-medium">${asset.purchase_cost ? '$' + parseFloat(asset.purchase_cost).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : 'N/A'}</p>
-                            </div>
-                            <div>
-                                <span class="text-sm text-gray-500">Warranty Expiry:</span>
-                                <p class="font-medium">${formatDate(asset.warranty_expiry)}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Assignment</h3>
-                        <div class="space-y-3">
-                            <div>
-                                <span class="text-sm text-gray-500">Customer:</span>
-                                <p class="font-medium">${escapeHtml(asset.customers?.name || 'Unassigned')}</p>
-                            </div>
-                            <div>
-                                <span class="text-sm text-gray-500">Location:</span>
-                                <p class="font-medium">${escapeHtml(asset.locations?.name || 'No Location')}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Maintenance Schedule</h3>
-                        <div class="space-y-3">
-                            <div>
-                                <span class="text-sm text-gray-500">PM Schedule:</span>
-                                <p class="font-medium">${asset.pm_schedule_type || 'Not Scheduled'}</p>
-                            </div>
-                            <div>
-                                <span class="text-sm text-gray-500">Last PM:</span>
-                                <p class="font-medium">${formatDate(asset.last_maintenance)}</p>
-                            </div>
-                            <div>
-                                <span class="text-sm text-gray-500">Next PM:</span>
-                                <p class="font-medium ${days !== null && days < 0 ? 'text-red-600' : ''}">${formatDate(asset.next_maintenance)}</p>
-                            </div>
-                            ${days !== null ? `
-                                <div>
-                                    <span class="text-sm text-gray-500">PM Status:</span>
-                                    <p class="font-bold ${days < 0 ? 'text-red-600' : days <= 7 ? 'text-orange-600' : 'text-green-600'}">
-                                        ${days < 0 ? `${Math.abs(days)} days OVERDUE` : `${days} days remaining`}
-                                    </p>
-                                </div>
-                            ` : ''}
-                            <div>
-                                <span class="text-sm text-gray-500">Auto-Generate WO:</span>
-                                <p class="font-medium">${asset.auto_generate_wo !== false ? 'Yes' : 'No'}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    ${asset.description ? `
-                        <div class="md:col-span-2">
-                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Description</h3>
-                            <p class="text-gray-700">${escapeHtml(asset.description)}</p>
-                        </div>
-                    ` : ''}
-                </div>
-            `;
-
-            document.getElementById('view-modal').classList.add('active');
-        }
-
-        // Close View Modal
-        function closeViewModal() {
-            document.getElementById('view-modal').classList.remove('active');
-            currentEditingAsset = null;
-        }
-
-        // Edit Asset From View
-        function editAssetFromView() {
-            closeViewModal();
-            editAsset(currentEditingAsset);
-        }
-
-        // Show Add Asset Modal
         function showAddAssetModal() {
-            currentEditingAsset = null;
+            currentAsset = null;
             document.getElementById('modal-title').textContent = 'Add New Asset';
+            document.getElementById('modal-subtitle').textContent = '';
             document.getElementById('submit-btn-text').textContent = 'Save Asset';
             document.getElementById('asset-form').reset();
             document.getElementById('edit-asset-id').value = '';
-            
-            // Reset the cascading dropdowns
-            updateCategoryDropdowns();
-            deviceMakes = [];
-            deviceModels = [];
-            updateMakeDropdown();
-            updateModelDropdown();
-            
+            document.getElementById('wo-tab-button').style.display = 'none';
+            switchTab('details');
             document.getElementById('asset-modal').classList.add('active');
         }
 
-        // Edit Asset
-        function editAsset(asset) {
-            currentEditingAsset = asset;
-            document.getElementById('modal-title').textContent = 'Edit Asset';
-            document.getElementById('submit-btn-text').textContent = 'Update Asset';
-            
+        async function viewAsset(asset) {
+            currentAsset = asset;
+            document.getElementById('modal-title').textContent = asset.name;
+            document.getElementById('modal-subtitle').textContent = asset.id;
             const form = document.getElementById('asset-form');
             form.name.value = asset.name || '';
-            
-            // For cascading dropdowns, we need to find/add the values
-            const categorySelect = document.getElementById('category-select');
-            const makeSelect = document.getElementById('make-select');
-            const modelSelect = document.getElementById('model-select');
-            
-            // Try to find matching category by name
-            const categoryOption = Array.from(categorySelect.options).find(opt => 
-                opt.text.toLowerCase() === (asset.category || '').toLowerCase()
-            );
-            if (categoryOption) {
-                categorySelect.value = categoryOption.value;
-            } else if (asset.category) {
-                // Add the category if it doesn't exist
-                const newOption = document.createElement('option');
-                newOption.value = asset.category.toLowerCase().replace(/\s+/g, '_');
-                newOption.text = asset.category;
-                categorySelect.insertBefore(newOption, categorySelect.lastChild);
-                categorySelect.value = newOption.value;
-            }
-            
-            // For make and model, since they're text-based in the existing data,
-            // we'll add them as options
-            if (asset.manufacturer) {
-                const makeOption = document.createElement('option');
-                makeOption.value = `existing_${asset.manufacturer.toLowerCase().replace(/\s+/g, '_')}`;
-                makeOption.text = asset.manufacturer;
-                makeSelect.insertBefore(makeOption, makeSelect.lastChild);
-                makeSelect.value = makeOption.value;
-            }
-            
-            if (asset.model) {
-                const modelOption = document.createElement('option');
-                modelOption.value = `existing_${asset.model.toLowerCase().replace(/\s+/g, '_')}`;
-                modelOption.text = asset.model;
-                modelSelect.insertBefore(modelOption, modelSelect.lastChild);
-                modelSelect.value = modelOption.value;
-            }
-            
+            form.category.value = asset.category || '';
+            form.manufacturer.value = asset.manufacturer || '';
+            form.model.value = asset.model || '';
             form.serial_number.value = asset.serial_number || '';
             form.status.value = asset.status || 'active';
             form.purchase_date.value = asset.purchase_date || '';
@@ -1710,69 +728,130 @@ visibility: hidden;
             form.warranty_expiry.value = asset.warranty_expiry || '';
             form.customer_id.value = asset.customer_id || '';
             form.location_id.value = asset.location_id || '';
-            form.pm_schedule_type.value = asset.pm_schedule_type || '';
-            form.pm_interval_days.value = asset.pm_interval_days || '';
-            form.last_maintenance.value = asset.last_maintenance || '';
-            form.auto_generate_wo.value = asset.auto_generate_wo !== false ? 'true' : 'false';
             form.description.value = asset.description || '';
-            
             document.getElementById('edit-asset-id').value = asset.id;
-            
             if (asset.customer_id) {
                 updateLocationDropdown(asset.customer_id);
             }
-            
+            document.getElementById('wo-tab-button').style.display = 'block';
+            await loadAssetWorkOrders(asset.id);
+            loadPMSchedule(asset);
+            switchTab('details');
             document.getElementById('asset-modal').classList.add('active');
         }
 
-        // Close Asset Modal
-        function closeAssetModal() {
-            document.getElementById('asset-modal').classList.remove('active');
-            currentEditingAsset = null;
+        async function loadAssetWorkOrders(assetId) {
+            const listEl = document.getElementById('asset-work-orders-list');
+            listEl.innerHTML = '<p class="text-center text-gray-500 py-4">Loading...</p>';
+            try {
+                const { data, error } = await supabaseClient
+                    .from('work_orders')
+                    .select('*')
+                    .eq('asset_id', assetId)
+                    .order('created_date', { ascending: false });
+                if (error) throw error;
+                const workOrders = data || [];
+                document.getElementById('wo-count').textContent = workOrders.length;
+                if (workOrders.length === 0) {
+                    listEl.innerHTML = '<p class="text-center text-gray-500 py-8">No work orders found for this asset.</p>';
+                } else {
+                    listEl.innerHTML = workOrders.map(wo => `
+                        <div class="wo-card priority-${wo.priority}">
+                            <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <h4 class="font-semibold text-gray-900">${wo.id}</h4>
+                                    <p class="text-sm text-gray-600">${wo.type?.replace(/_/g, ' ') || 'N/A'}</p>
+                                </div>
+                                <span class="text-xs px-2 py-1 rounded-full ${wo.status === 'completed' ? 'bg-green-100 text-green-800' : wo.status === 'in-progress' ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'}">
+                                    ${wo.status}
+                                </span>
+                            </div>
+                            <p class="text-sm text-gray-700 mb-2">${escapeHtml(wo.description || '')}</p>
+                            <div class="flex justify-between items-center text-xs text-gray-500">
+                                <span>Priority: ${wo.priority}</span>
+                                <span>Due: ${formatDate(wo.due_date)}</span>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Error loading work orders:', error);
+                listEl.innerHTML = '<p class="text-center text-red-600 py-4">Failed to load work orders.</p>';
+            }
         }
 
-        // Delete Asset
-        async function deleteAsset(assetId) {
-            if (!confirm('Are you sure you want to delete this asset? This action cannot be undone.')) {
+        function loadPMSchedule(asset) {
+            document.getElementById('pm-schedule-type').value = asset.pm_schedule_type || '';
+            document.getElementById('pm-interval-days').value = asset.pm_interval_days || '';
+            document.getElementById('last-maintenance').value = asset.last_maintenance || '';
+            document.getElementById('next-maintenance').value = asset.next_maintenance || '';
+            document.getElementById('auto-generate-wo').checked = asset.auto_generate_wo !== false;
+            updatePMPreview();
+        }
+
+        function createWorkOrderForAsset() {
+            showToast('Work order creation modal coming soon!', 'info');
+        }
+
+        function clearPMSchedule() {
+            document.getElementById('pm-schedule-form').reset();
+            document.getElementById('pm-preview').innerHTML = '<p>PM schedule cleared.</p>';
+        }
+
+        function updatePMPreview() {
+            const scheduleType = document.getElementById('pm-schedule-type').value;
+            const lastMaint = document.getElementById('last-maintenance').value;
+            const customInterval = document.getElementById('pm-interval-days').value;
+            const preview = document.getElementById('pm-preview');
+            const customWrapper = document.getElementById('custom-interval-wrapper');
+            customWrapper.style.display = scheduleType === 'custom' ? 'block' : 'none';
+            if (!scheduleType || !lastMaint) {
+                preview.innerHTML = '<p>Select a PM schedule type and last maintenance date to see upcoming dates.</p>';
                 return;
             }
+            const intervals = { daily: 1, weekly: 7, biweekly: 14, monthly: 30, quarterly: 90, semiannually: 180, annually: 365, custom: parseInt(customInterval) || 30 };
+            const days = intervals[scheduleType];
+            const lastDate = new Date(lastMaint);
+            const nextDates = [];
+            for (let i = 1; i <= 5; i++) {
+                const nextDate = new Date(lastDate);
+                nextDate.setDate(nextDate.getDate() + (days * i));
+                nextDates.push(formatDate(nextDate.toISOString()));
+            }
+            document.getElementById('next-maintenance').value = new Date(new Date(lastMaint).getTime() + (days * 24 * 60 * 60 * 1000)).toISOString().split('T')[0];
+            preview.innerHTML = `
+                <p class="font-semibold mb-2">Next 5 PM Dates:</p>
+                <ul class="list-disc list-inside space-y-1">
+                    ${nextDates.map(date => `<li>${date}</li>`).join('')}
+                </ul>
+            `;
+        }
 
+        function closeAssetModal() {
+            document.getElementById('asset-modal').classList.remove('active');
+            currentAsset = null;
+        }
+
+        async function deleteAsset(assetId) {
+            if (!confirm('Delete this asset? This cannot be undone.')) return;
             try {
-                const { error } = await supabaseClient
-                    .from('assets')
-                    .delete()
-                    .eq('id', assetId);
-
+                const { error } = await supabaseClient.from('assets').delete().eq('id', assetId);
                 if (error) throw error;
-
                 showToast('Asset deleted successfully', 'success');
                 await loadAssets();
             } catch (error) {
-                console.error('❌ Error deleting asset:', error);
                 showToast(`Failed to delete asset: ${error.message}`, 'error');
             }
         }
 
-        // Handle Form Submit
         document.getElementById('asset-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
             const formData = new FormData(e.target);
-            
-            // Get the text values from the cascading dropdowns
-            const categorySelect = document.getElementById('category-select');
-            const makeSelect = document.getElementById('make-select');
-            const modelSelect = document.getElementById('model-select');
-            
-            const categoryText = categorySelect.options[categorySelect.selectedIndex]?.text || '';
-            const makeText = makeSelect.options[makeSelect.selectedIndex]?.text || '';
-            const modelText = modelSelect.options[modelSelect.selectedIndex]?.text || '';
-            
             const assetData = {
                 name: formData.get('name'),
-                category: categoryText.replace('+ Add New Category...', '').replace('+ Add New Make...', '').replace('+ Add New Model...', ''),
-                manufacturer: makeText.replace('+ Add New Make...', ''),
-                model: modelText.replace('+ Add New Model...', ''),
+                category: formData.get('category'),
+                manufacturer: formData.get('manufacturer'),
+                model: formData.get('model'),
                 serial_number: formData.get('serial_number'),
                 status: formData.get('status'),
                 purchase_date: formData.get('purchase_date') || null,
@@ -1780,175 +859,202 @@ visibility: hidden;
                 warranty_expiry: formData.get('warranty_expiry') || null,
                 customer_id: formData.get('customer_id') || null,
                 location_id: formData.get('location_id') || null,
-                pm_schedule_type: formData.get('pm_schedule_type') || null,
-                pm_interval_days: formData.get('pm_interval_days') || null,
-                last_maintenance: formData.get('last_maintenance') || null,
-                auto_generate_wo: formData.get('auto_generate_wo') === 'true',
                 description: formData.get('description') || null
             };
-
             const assetId = document.getElementById('edit-asset-id').value;
-
             try {
                 if (assetId) {
-                    // Update existing asset
-                    const { error } = await supabaseClient
-                        .from('assets')
-                        .update(assetData)
-                        .eq('id', assetId);
-
+                    const { error } = await supabaseClient.from('assets').update(assetData).eq('id', assetId);
                     if (error) throw error;
                     showToast('Asset updated successfully', 'success');
                 } else {
-                    // Create new asset
-                    const { error } = await supabaseClient
-                        .from('assets')
-                        .insert([assetData]);
-
+                    const { error } = await supabaseClient.from('assets').insert([assetData]);
                     if (error) throw error;
                     showToast('Asset created successfully', 'success');
                 }
-
                 closeAssetModal();
                 await loadAssets();
             } catch (error) {
-                console.error('❌ Error saving asset:', error);
                 showToast(`Failed to save asset: ${error.message}`, 'error');
             }
         });
 
-        // Setup Event Listeners
+        document.getElementById('pm-schedule-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!currentAsset) return;
+            const formData = new FormData(e.target);
+            const pmData = {
+                pm_schedule_type: formData.get('pm_schedule_type') || null,
+                pm_interval_days: formData.get('pm_interval_days') || null,
+                last_maintenance: formData.get('last_maintenance') || null,
+                next_maintenance: formData.get('next_maintenance') || null,
+                auto_generate_wo: formData.get('auto_generate_wo') === 'on'
+            };
+            try {
+                const { error } = await supabaseClient.from('assets').update(pmData).eq('id', currentAsset.id);
+                if (error) throw error;
+                showToast('PM Schedule updated successfully', 'success');
+                await loadAssets();
+                closeAssetModal();
+            } catch (error) {
+                showToast(`Failed to save PM schedule: ${error.message}`, 'error');
+            }
+        });
+
         function setupEventListeners() {
-            // Search
             document.getElementById('search-input').addEventListener('input', debounce((e) => {
-                const searchTerm = e.target.value.toLowerCase();
-                filteredAssets = allAssets.filter(asset => 
-                    asset.name?.toLowerCase().includes(searchTerm) ||
-                    asset.id?.toLowerCase().includes(searchTerm) ||
-                    asset.serial_number?.toLowerCase().includes(searchTerm) ||
-                    asset.manufacturer?.toLowerCase().includes(searchTerm) ||
-                    asset.model?.toLowerCase().includes(searchTerm)
-                );
+                const term = e.target.value.toLowerCase();
+                filteredAssets = allAssets.filter(a => a.name?.toLowerCase().includes(term) || a.id?.toLowerCase().includes(term) || a.serial_number?.toLowerCase().includes(term));
                 renderAssets();
             }, 300));
-
-            // Category Filter
-            document.getElementById('category-filter').addEventListener('change', (e) => {
-                applyFilters();
-            });
-
-            // Status Filter
-            document.getElementById('status-filter').addEventListener('change', (e) => {
-                applyFilters();
-            });
-
-            // Customer change updates locations
-            document.getElementById('customer-select').addEventListener('change', (e) => {
-                const customerId = e.target.value;
-                updateLocationDropdown(customerId);
-            });
+            document.getElementById('category-filter').addEventListener('change', applyFilters);
+            document.getElementById('status-filter').addEventListener('change', applyFilters);
+            document.getElementById('customer-select').addEventListener('change', (e) => updateLocationDropdown(e.target.value));
+            document.getElementById('pm-schedule-type').addEventListener('change', updatePMPreview);
+            document.getElementById('pm-interval-days').addEventListener('input', updatePMPreview);
+            document.getElementById('last-maintenance').addEventListener('change', updatePMPreview);
         }
 
-        // Apply Filters
         function applyFilters() {
-            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+            const term = document.getElementById('search-input').value.toLowerCase();
             const category = document.getElementById('category-filter').value;
             const status = document.getElementById('status-filter').value;
-
-            filteredAssets = allAssets.filter(asset => {
-                const matchesSearch = !searchTerm || 
-                    asset.name?.toLowerCase().includes(searchTerm) ||
-                    asset.id?.toLowerCase().includes(searchTerm) ||
-                    asset.serial_number?.toLowerCase().includes(searchTerm);
-                
-                const matchesCategory = !category || asset.category === category;
-                const matchesStatus = !status || asset.status === status;
-
-                return matchesSearch && matchesCategory && matchesStatus;
+            filteredAssets = allAssets.filter(a => {
+                const matchesTerm = !term || a.name?.toLowerCase().includes(term) || a.id?.toLowerCase().includes(term);
+                const matchesCat = !category || a.category === category;
+                const matchesStat = !status || a.status === status;
+                return matchesTerm && matchesCat && matchesStat;
             });
-
             renderAssets();
         }
 
-        // Export to CSV
         function exportToCSV() {
+            const headers = ['Asset ID', 'Name', 'Category', 'Status', 'Serial Number', 'Manufacturer', 'Model', 'Customer', 'Location', 'Purchase Date', 'Purchase Cost', 'Last PM', 'Next PM'];
+            const rows = filteredAssets.map(a => [a.id, a.name, a.category, a.status, a.serial_number, a.manufacturer, a.model, a.customers?.name || '', a.locations?.name || '', a.purchase_date || '', a.purchase_cost || '', a.last_maintenance || '', a.next_maintenance || '']);
+            const csvContent = [headers.join(','), ...rows.map(row => row.map(cell => `"${cell}"`).join(','))].join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `assets_export_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            showToast(`Exported ${filteredAssets.length} assets`, 'success');
+        }
+
+        function showBulkImportModal() {
+            document.getElementById('bulk-import-modal').classList.add('active');
+        }
+
+        function closeBulkImportModal() {
+            document.getElementById('bulk-import-modal').classList.remove('active');
+            csvData = null;
+            document.getElementById('import-preview').style.display = 'none';
+        }
+
+        function downloadTemplate() {
+            const template = 'name,category,manufacturer,model,serial_number,status,purchase_date,purchase_cost,warranty_expiry,customer_id,location_id,description\n"MRI Scanner","diagnostic","GE Healthcare","Signa HDxt","SN123456","active","2024-01-15","2500000","2029-01-15","","","Example asset"';
+            const blob = new Blob([template], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'asset_import_template.csv';
+            a.click();
+        }
+
+        function setupDragDrop() {
+            const dropZone = document.getElementById('drop-zone');
+            dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+            dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('drag-over');
+                const file = e.dataTransfer.files[0];
+                if (file && file.type === 'text/csv') {
+                    handleFile(file);
+                } else {
+                    showToast('Please drop a CSV file', 'error');
+                }
+            });
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) handleFile(file);
+        }
+
+        function handleFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const text = e.target.result;
+                parseCSV(text);
+            };
+            reader.readAsText(file);
+        }
+
+        function parseCSV(text) {
+            const lines = text.split('\n');
+            const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+            const rows = lines.slice(1).filter(line => line.trim()).map(line => {
+                const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
+                const obj = {};
+                headers.forEach((header, i) => { obj[header] = values[i] || ''; });
+                return obj;
+            });
+            csvData = rows;
+            document.getElementById('preview-content').innerHTML = `
+                <p class="font-semibold mb-2">Found ${rows.length} assets to import</p>
+                <div class="text-sm"><strong>First record:</strong> ${rows[0]?.name || 'N/A'}</div>
+            `;
+            document.getElementById('import-preview').style.display = 'block';
+        }
+
+        function cancelImport() {
+            csvData = null;
+            document.getElementById('import-preview').style.display = 'none';
+        }
+
+        async function confirmImport() {
+            if (!csvData || csvData.length === 0) {
+                showToast('No data to import', 'error');
+                return;
+            }
             try {
-                const headers = [
-                    'Asset ID', 'Name', 'Category', 'Status', 'Serial Number',
-                    'Manufacturer', 'Model', 'Customer', 'Location',
-                    'Purchase Date', 'Purchase Cost', 'Last PM', 'Next PM'
-                ];
-
-                const rows = filteredAssets.map(asset => [
-                    asset.id,
-                    asset.name,
-                    asset.category,
-                    asset.status,
-                    asset.serial_number,
-                    asset.manufacturer,
-                    asset.model,
-                    asset.customers?.name || '',
-                    asset.locations?.name || '',
-                    asset.purchase_date || '',
-                    asset.purchase_cost || '',
-                    asset.last_maintenance || '',
-                    asset.next_maintenance || ''
-                ]);
-
-                const csvContent = [
-                    headers.join(','),
-                    ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
-                ].join('\n');
-
-                const blob = new Blob([csvContent], { type: 'text/csv' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `assets_export_${new Date().toISOString().split('T')[0]}.csv`;
-                a.click();
-
-                showToast(`Exported ${filteredAssets.length} assets`, 'success');
+                const { error } = await supabaseClient.from('assets').insert(csvData);
+                if (error) throw error;
+                showToast(`Successfully imported ${csvData.length} assets`, 'success');
+                closeBulkImportModal();
+                await loadAssets();
             } catch (error) {
-                console.error('Export error:', error);
-                showToast('Export failed', 'error');
+                showToast(`Import failed: ${error.message}`, 'error');
             }
         }
 
-        // Show Loading
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.querySelector(`.tab-button[onclick*="${tab}"]`).classList.add('active');
+            document.getElementById(`${tab}-tab`).classList.add('active');
+        }
+
         function showLoading(show) {
             document.getElementById('loading').style.display = show ? 'block' : 'none';
             document.getElementById('assets-grid').style.display = show ? 'none' : 'grid';
         }
 
-        // Show Toast
         function showToast(message, type = 'info') {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
             toast.className = `toast toast-${type}`;
-            toast.innerHTML = `
-                <div class="flex items-center gap-3">
-                    <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
-                    <span>${message}</span>
-                </div>
-            `;
-            
+            toast.innerHTML = `<div class="flex items-center gap-3"><i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i><span>${message}</span></div>`;
             container.appendChild(toast);
-            
-            setTimeout(() => {
-                toast.remove();
-            }, 4000);
+            setTimeout(() => toast.remove(), 4000);
         }
 
-        // Debounce Helper
         function debounce(func, wait) {
             let timeout;
-            return function executedFunction(...args) {
-                const later = () => {
-                    clearTimeout(timeout);
-                    func(...args);
-                };
+            return function(...args) {
                 clearTimeout(timeout);
-                timeout = setTimeout(later, wait);
+                timeout = setTimeout(() => func(...args), wait);
             };
         }
     </script>
