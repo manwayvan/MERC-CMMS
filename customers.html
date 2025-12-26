@@ -1362,7 +1362,10 @@
             try {
                 console.log('➕ Adding customer:', customerData.name);
                 
-                const generatedId = customerData.id || generateCustomerPrimaryId();
+                // Remove the id field - let database handle it
+                delete customerData.id;
+
+                const generatedId = generateCustomerPrimaryId();
                 
                 // Don't auto-generate customer_id - user enters it or leaves blank
                 // All fields are optional except name
