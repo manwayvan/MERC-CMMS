@@ -1656,9 +1656,45 @@ visibility: hidden;
             
             const form = document.getElementById('asset-form');
             form.name.value = asset.name || '';
-            form.category.value = asset.category || '';
-            form.manufacturer.value = asset.manufacturer || '';
-            form.model.value = asset.model || '';
+            
+            // For cascading dropdowns, we need to find/add the values
+            const categorySelect = document.getElementById('category-select');
+            const makeSelect = document.getElementById('make-select');
+            const modelSelect = document.getElementById('model-select');
+            
+            // Try to find matching category by name
+            const categoryOption = Array.from(categorySelect.options).find(opt => 
+                opt.text.toLowerCase() === (asset.category || '').toLowerCase()
+            );
+            if (categoryOption) {
+                categorySelect.value = categoryOption.value;
+            } else if (asset.category) {
+                // Add the category if it doesn't exist
+                const newOption = document.createElement('option');
+                newOption.value = asset.category.toLowerCase().replace(/\s+/g, '_');
+                newOption.text = asset.category;
+                categorySelect.insertBefore(newOption, categorySelect.lastChild);
+                categorySelect.value = newOption.value;
+            }
+            
+            // For make and model, since they're text-based in the existing data,
+            // we'll add them as options
+            if (asset.manufacturer) {
+                const makeOption = document.createElement('option');
+                makeOption.value = `existing_${asset.manufacturer.toLowerCase().replace(/\s+/g, '_')}`;
+                makeOption.text = asset.manufacturer;
+                makeSelect.insertBefore(makeOption, makeSelect.lastChild);
+                makeSelect.value = makeOption.value;
+            }
+            
+            if (asset.model) {
+                const modelOption = document.createElement('option');
+                modelOption.value = `existing_${asset.model.toLowerCase().replace(/\s+/g, '_')}`;
+                modelOption.text = asset.model;
+                modelSelect.insertBefore(modelOption, modelSelect.lastChild);
+                modelSelect.value = modelOption.value;
+            }
+            
             form.serial_number.value = asset.serial_number || '';
             form.status.value = asset.status || 'active';
             form.purchase_date.value = asset.purchase_date || '';
