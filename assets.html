@@ -1,213 +1,170 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Asset Management - MERC-CMMS Enterprise</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-        
-        * {
-            font-family: 'Inter', sans-serif;
-        }
-
-        .fade-in {
-            animation: fadeIn 0.3s ease-in;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .asset-card {
-            transition: all 0.3s ease;
-            border: 2px solid transparent;
-        }
-
-        .asset-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-        }
-
-        .compliance-ring {
-            position: relative;
-            width: 80px;
-            height: 80px;
-        }
-
-        .compliance-ring svg {
-            transform: rotate(-90deg);
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 9999;
-            backdrop-filter: blur(4px);
-        }
-
-        .modal.active {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal-content {
-            background: white;
-            border-radius: 16px;
-            max-width: 900px;
-            width: 90%;
-            max-height: 90vh;
-            overflow-y: auto;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-        }
-
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 12px;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-
-        .status-active {
-            background: #d1fae5;
-            color: #065f46;
-        }
-
-        .status-maintenance {
-            background: #fef3c7;
-            color: #92400e;
-        }
-
-        .status-inactive {
-            background: #f3f4f6;
-            color: #374151;
-        }
-
-        .status-retired {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-
-        .compliance-excellent {
-            border-color: #10b981 !important;
-            background: linear-gradient(to bottom right, #ecfdf5, #ffffff);
-        }
-
-        .compliance-good {
-            border-color: #3b82f6 !important;
-            background: linear-gradient(to bottom right, #eff6ff, #ffffff);
-        }
-
-        .compliance-warning {
-            border-color: #f59e0b !important;
-            background: linear-gradient(to bottom right, #fffbeb, #ffffff);
-        }
-
-        .compliance-critical {
-            border-color: #ef4444 !important;
-            background: linear-gradient(to bottom right, #fef2f2, #ffffff);
-        }
-
-        .btn {
-            padding: 0.5rem 1rem;
-            border-radius: 0.5rem;
-            font-weight: 600;
-            transition: all 0.2s;
-            cursor: pointer;
-            border: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-            color: white;
-        }
-
-        .btn-success {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: white;
-        }
-
-        .btn-danger {
-            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-            color: white;
-        }
-
-        .btn-secondary {
-            background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
-            color: white;
-        }
-
-        .form-input {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            border: 2px solid #e5e7eb;
-            border-radius: 0.5rem;
-            transition: all 0.2s;
-            font-size: 0.875rem;
-        }
-
-        .form-input:focus {
-            outline: none;
-            border-color: #2563eb;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-        }
-
-        .loading-spinner {
-            border: 3px solid #f3f4f6;
-            border-top: 3px solid #2563eb;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .toast {
-            position: fixed;
-            top: 100px;
-            right: 20px;
-            padding: 1rem 1.5rem;
-            border-radius: 0.75rem;
-            color: white;
-            font-weight: 600;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-            z-index: 10000;
-            animation: slideIn 0.3s ease-out;
-        }
-
-        @keyframes slideIn {
-            from { transform: translateX(400px); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-
-        .toast-success { background: #10b981; }
-        .toast-error { background: #ef4444; }
-        .toast-warning { background: #f59e0b; }
-        .toast-info { background: #3b82f6; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Asset Management - MERC-CMMS</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+* {
+font-family: 'Inter', sans-serif;
+}
+.medical-gradient {
+background: linear-gradient(135deg, #1e293b 0%, #2563eb 50%, #0891b2 100%);
+}
+.card-hover {
+transition: all 0.3s ease;
+}
+.card-hover:hover {
+transform: translateY(-2px);
+box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+.medical-cross {
+position: relative;
+}
+.medical-cross::before,
+.medical-cross::after {
+content: '';
+position: absolute;
+background: #0891b2;
+border-radius: 2px;
+}
+.medical-cross::before {
+width: 20px;
+height: 4px;
+top: 50%;
+left: 50%;
+transform: translate(-50%, -50%);
+}
+.medical-cross::after {
+width: 4px;
+height: 20px;
+top: 50%;
+left: 50%;
+transform: translate(-50%, -50%);
+}
+.asset-header-bg {
+background-image: url('/resources/asset-header.jpg');
+background-size: cover;
+background-position: center;
+}
+.glass-effect {
+backdrop-filter: blur(10px);
+background: rgba(255, 255, 255, 0.1);
+border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.notification-badge {
+position: absolute;
+top: -8px;
+right: -8px;
+background: #dc2626;
+color: white;
+border-radius: 50%;
+width: 20px;
+height: 20px;
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 12px;
+font-weight: bold;
+}
+.status-indicator {
+width: 12px;
+height: 12px;
+border-radius: 50%;
+display: inline-block;
+margin-right: 8px;
+}
+.status-active { background-color: #059669; }
+.status-inactive { background-color: #6b7280; }
+.status-maintenance { background-color: #d97706; }
+.status-retired { background-color: #dc2626; }
+.asset-header-bg {
+background-image: url('/resources/asset-header.jpg');
+background-size: cover;
+background-position: center;
+}
+.glass-effect {
+backdrop-filter: blur(10px);
+background: rgba(255, 255, 255, 0.1);
+border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.notification-badge {
+position: absolute;
+top: -8px;
+right: -8px;
+background: #dc2626;
+color: white;
+border-radius: 50%;
+width: 20px;
+height: 20px;
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 12px;
+font-weight: bold;
+}
+.table-row:hover {
+background-color: #f8fafc;
+}
+.filter-chip {
+background: #e2e8f0;
+color: #475569;
+padding: 4px 12px;
+border-radius: 20px;
+font-size: 14px;
+display: inline-flex;
+align-items: center;
+margin: 2px;
+cursor: pointer;
+transition: all 0.2s;
+}
+.filter-chip:hover {
+background: #cbd5e1;
+}
+.filter-chip.active {
+background: #2563eb;
+color: white;
+}
+.category-icon {
+width: 40px;
+height: 40px;
+border-radius: 8px;
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 18px;
+color: white;
+margin-right: 12px;
+}
+.category-diagnostic { background: #2563eb; }
+.category-therapeutic { background: #059669; }
+.category-surgical { background: #dc2626; }
+.category-monitoring { background: #d97706; }
+.category-imaging { background: #7c3aed; }
+.category-laboratory { background: #0891b2; }
+#mobile-menu {
+position: fixed;
+top: 64px;
+left: 0;
+right: 0;
+z-index: 40;
+background: linear-gradient(135deg, #1e293b 0%, #2563eb 50%, #0891b2 100%);
+padding: 1rem;
+box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+transform: translateY(0);
+visibility: visible;
+opacity: 1;
+transition: transform 0.3s ease, opacity 0.3s ease;
+}
+#mobile-menu.hidden {
+transform: translateY(-100%);
+opacity: 0;
+pointer-events: none;
+visibility: hidden;
+}
+</style>
 </head>
 <body class="bg-gray-50">
     <!-- Navigation -->
@@ -681,25 +638,20 @@
 
         // Initialize Application
         document.addEventListener('DOMContentLoaded', async () => {
-            try {
-                const supabaseLib = await ensureSupabaseLoaded();
-                if (!supabaseLib) {
-                    throw new Error('Supabase library not available');
-                }
-                supabaseClient = supabaseLib.createClient(SUPABASE_URL, SUPABASE_KEY);
+            if (!window.supabase) {
+                showToast('Supabase library not loaded. Please check your connection.', 'error');
+                console.error('❌ Supabase library not available');
+                return;
+            }
 
+            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+            try {
                 await Promise.all([
                     loadAssets(),
                     loadCustomers(),
                     loadLocations()
                 ]);
-            } catch (error) {
-                console.error('❌ Supabase initialization failed:', error);
-                showToast('Supabase library not loaded. Please check your connection.', 'error');
-                allAssets = [];
-                filteredAssets = [];
-                renderAssets();
-                showLoading(false);
             } finally {
                 setupEventListeners();
             }
