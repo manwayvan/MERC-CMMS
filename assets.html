@@ -314,6 +314,18 @@
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
+                <!-- Tabs -->
+                <div class="flex gap-2 mt-4 border-b">
+                    <button class="tab-button active" onclick="switchTab('details')">
+                        <i class="fas fa-info-circle mr-2"></i>Details
+                    </button>
+                    <button class="tab-button" onclick="switchTab('workorders')" id="wo-tab-button">
+                        <i class="fas fa-clipboard-list mr-2"></i>Work Orders <span id="wo-count" class="ml-1 bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-xs"></span>
+                    </button>
+                    <button class="tab-button" onclick="switchTab('pmschedule')" id="pm-tab-button">
+                        <i class="fas fa-calendar-alt mr-2"></i>PM Schedule
+                    </button>
+                </div>
             </div>
 
             <!-- Details Tab -->
@@ -457,6 +469,28 @@
         </div>
     </div>
 
+    <!-- Lookup Add New Modal -->
+    <div id="lookup-modal" class="modal">
+        <div class="modal-content" style="max-width: 480px;">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xl font-bold text-gray-900" id="lookup-modal-title">Add New</h2>
+                    <button onclick="closeLookupModal()" class="text-gray-400 hover:text-gray-600 text-2xl">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-6">
+                <label class="block text-sm font-semibold text-gray-700 mb-2" id="lookup-modal-label">Name</label>
+                <input type="text" id="lookup-modal-input" class="form-input" placeholder="Enter value">
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" class="btn btn-secondary" onclick="closeLookupModal()">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveLookupModal()">Add</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Container -->
     <div id="toast-container"></div>
 
@@ -472,6 +506,7 @@
         let csvData = null;
         let assetLookups = { categories: [], manufacturers: [], models: [] };
         let assetSchema = { hasCustomerId: true };
+        let lookupContext = { type: null, label: null };
 
         document.addEventListener('DOMContentLoaded', async () => {
             const mobileMenuButton = document.getElementById('mobile-menu-button');
@@ -666,6 +701,19 @@
             });
         }
 
+        function addNewLookup(type, label) {
+            lookupContext = { type, label: label || type.slice(0, -1) };
+            const modal = document.getElementById('lookup-modal');
+            const title = document.getElementById('lookup-modal-title');
+            const inputLabel = document.getElementById('lookup-modal-label');
+            const input = document.getElementById('lookup-modal-input');
+            title.textContent = `Add New ${lookupContext.label}`;
+            inputLabel.textContent = `${lookupContext.label} Name`;
+            input.value = '';
+            modal.classList.add('active');
+            setTimeout(() => input.focus(), 0);
+        }
+
         function applyLookupValue(type, trimmed) {
             const list = assetLookups[type] || [];
             const exists = list.some(item => item.toLowerCase() === trimmed.toLowerCase());
@@ -690,6 +738,22 @@
             const trimmed = value.trim();
             if (!trimmed) return;
             applyLookupValue(type, trimmed);
+        }
+
+        function closeLookupModal() {
+            document.getElementById('lookup-modal').classList.remove('active');
+            lookupContext = { type: null, label: null };
+        }
+
+        function saveLookupModal() {
+            const input = document.getElementById('lookup-modal-input');
+            const value = input.value.trim();
+            if (!value || !lookupContext.type) {
+                showToast('Please enter a value to add.', 'warning');
+                return;
+            }
+            applyLookupValue(lookupContext.type, value);
+            closeLookupModal();
         }
 
         function updateStatistics() {
@@ -789,10 +853,9 @@
             document.getElementById('submit-btn-text').textContent = 'Save Asset';
             document.getElementById('asset-form').reset();
             document.getElementById('edit-asset-id').value = '';
-            const workOrdersSection = document.getElementById('workorders-section');
-            if (workOrdersSection) {
-                workOrdersSection.style.display = 'none';
-            }
+            document.getElementById('wo-tab-button').style.display = 'none';
+            document.getElementById('pm-tab-button').classList.add('opacity-50', 'pointer-events-none');
+            switchTab('details');
             document.getElementById('asset-modal').classList.add('active');
         }
 
@@ -819,10 +882,8 @@
             if (assetSchema.hasCustomerId && asset.customer_id) {
                 updateLocationDropdown(asset.customer_id);
             }
-            const workOrdersSection = document.getElementById('workorders-section');
-            if (workOrdersSection) {
-                workOrdersSection.style.display = 'block';
-            }
+            document.getElementById('wo-tab-button').style.display = 'block';
+            document.getElementById('pm-tab-button').classList.remove('opacity-50', 'pointer-events-none');
             await loadAssetWorkOrders(asset.id);
             loadPMSchedule(asset);
             document.getElementById('asset-modal').classList.add('active');
@@ -926,6 +987,7 @@
         function closeAssetModal() {
             document.getElementById('asset-modal').classList.remove('active');
             currentAsset = null;
+            document.getElementById('pm-tab-button').classList.remove('opacity-50', 'pointer-events-none');
         }
 
         async function deleteAsset(assetId) {
@@ -982,6 +1044,38 @@
             }
         });
 
+        document.getElementById('pm-schedule-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!currentAsset) {
+                showToast('Please save the asset before adding a PM schedule.', 'warning');
+                return;
+            }
+            const formData = new FormData(e.target);
+            const pmData = {
+                pm_schedule_type: formData.get('pm_schedule_type') || null,
+                pm_interval_days: formData.get('pm_interval_days') || null,
+                last_maintenance: formData.get('last_maintenance') || null,
+                next_maintenance: formData.get('next_maintenance') || null,
+                auto_generate_wo: formData.get('auto_generate_wo') === 'on'
+            };
+            try {
+                const { error } = await supabaseClient.from('assets').update(pmData).eq('id', currentAsset.id);
+                if (error) throw error;
+                showToast('PM Schedule updated successfully', 'success');
+                await loadAssets();
+                closeAssetModal();
+            } catch (error) {
+                showToast(`Failed to save PM schedule: ${error.message}`, 'error');
+            }
+        });
+
+        function generateAssetId() {
+            const today = new Date();
+            const dateStamp = today.toISOString().split('T')[0].replace(/-/g, '');
+            const randomPart = Math.random().toString(36).slice(2, 6).toUpperCase();
+            return `AST-${dateStamp}-${randomPart}`;
+        }
+
         function setupEventListeners() {
             const searchInput = document.getElementById('search-input');
             if (searchInput) {
@@ -989,47 +1083,16 @@
                 const term = e.target.value.toLowerCase();
                 filteredAssets = allAssets.filter(a => a.name?.toLowerCase().includes(term) || a.id?.toLowerCase().includes(term) || a.serial_number?.toLowerCase().includes(term));
                 renderAssets();
-                }, 300));
-            }
-
-            const categoryFilter = document.getElementById('category-filter');
-            if (categoryFilter) {
-                categoryFilter.addEventListener('change', applyFilters);
-            }
-            const statusFilter = document.getElementById('status-filter');
-            if (statusFilter) {
-                statusFilter.addEventListener('change', applyFilters);
-            }
-            const customerSelect = document.getElementById('customer-select');
-            if (customerSelect) {
-                customerSelect.addEventListener('change', (e) => updateLocationDropdown(e.target.value));
-            }
-
-            const categoryInput = document.getElementById('category-input');
-            if (categoryInput) {
-                categoryInput.addEventListener('blur', (e) => ensureLookupValue('categories', e.target.value));
-            }
-            const manufacturerInput = document.querySelector('input[name="manufacturer"]');
-            if (manufacturerInput) {
-                manufacturerInput.addEventListener('blur', (e) => ensureLookupValue('manufacturers', e.target.value));
-            }
-            const modelInput = document.querySelector('input[name="model"]');
-            if (modelInput) {
-                modelInput.addEventListener('blur', (e) => ensureLookupValue('models', e.target.value));
-            }
-
-            const pmScheduleType = document.getElementById('pm-schedule-type');
-            if (pmScheduleType) {
-                pmScheduleType.addEventListener('change', updatePMPreview);
-            }
-            const pmIntervalDays = document.getElementById('pm-interval-days');
-            if (pmIntervalDays) {
-                pmIntervalDays.addEventListener('input', updatePMPreview);
-            }
-            const lastMaintenance = document.getElementById('last-maintenance');
-            if (lastMaintenance) {
-                lastMaintenance.addEventListener('change', updatePMPreview);
-            }
+            }, 300));
+            document.getElementById('category-filter').addEventListener('change', applyFilters);
+            document.getElementById('status-filter').addEventListener('change', applyFilters);
+            document.getElementById('customer-select').addEventListener('change', (e) => updateLocationDropdown(e.target.value));
+            document.getElementById('category-input').addEventListener('blur', (e) => ensureLookupValue('categories', e.target.value));
+            document.querySelector('input[name="manufacturer"]').addEventListener('blur', (e) => ensureLookupValue('manufacturers', e.target.value));
+            document.querySelector('input[name="model"]').addEventListener('blur', (e) => ensureLookupValue('models', e.target.value));
+            document.getElementById('pm-schedule-type').addEventListener('change', updatePMPreview);
+            document.getElementById('pm-interval-days').addEventListener('input', updatePMPreview);
+            document.getElementById('last-maintenance').addEventListener('change', updatePMPreview);
         }
 
         function applyFilters() {
@@ -1144,6 +1207,18 @@
             } catch (error) {
                 showToast(`Import failed: ${error.message}`, 'error');
             }
+        }
+
+        function switchTab(tab) {
+            const button = document.querySelector(`.tab-button[onclick*="${tab}"]`);
+            if (button?.classList.contains('pointer-events-none')) {
+                showToast('Please save the asset before editing the PM schedule.', 'warning');
+                return;
+            }
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            button.classList.add('active');
+            document.getElementById(`${tab}-tab`).classList.add('active');
         }
 
         function showLoading(show) {
