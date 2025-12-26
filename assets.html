@@ -1204,7 +1204,8 @@ visibility: hidden;
                 await Promise.all([
                     loadAssets(),
                     loadCustomers(),
-                    loadLocations()
+                    loadLocations(),
+                    initDeviceCatalog()
                 ]);
             } finally {
                 setupEventListeners();
