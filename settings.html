@@ -127,55 +127,6 @@
         .toggle.active::after {
             transform: translateX(20px);
         }
-        #toast-container {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 10000;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .toast {
-            padding: 12px 20px;
-            border-radius: 8px;
-            color: white;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            animation: slideIn 0.3s ease-out;
-            max-width: 400px;
-        }
-        .toast-success { background: #059669; }
-        .toast-info { background: #2563eb; }
-        .toast-warning { background: #d97706; }
-        .toast-error { background: #dc2626; }
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 1000;
-        }
-        .modal.active {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .modal-content {
-            background: white;
-            border-radius: 16px;
-            max-width: 720px;
-            width: 95%;
-            max-height: 90vh;
-            overflow-y: auto;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-        }
         #mobile-menu {
             position: fixed;
             top: 64px;
@@ -215,21 +166,17 @@
                     <a href="assets.html" class="text-blue-200 hover:text-white transition-colors">Assets</a>
                     <a href="work-orders.html" class="text-blue-200 hover:text-white transition-colors">Work Orders</a>
                     <a href="compliance.html" class="text-blue-200 hover:text-white transition-colors">Compliance</a>
+                    <a href="settings.html" class="text-white font-semibold border-b-2 border-blue-300 pb-1">Settings</a>
                 </div>
                 <div class="flex items-center gap-3 flex-shrink-0">
                     <button id="mobile-menu-button" class="md:hidden text-white hover:text-blue-200 transition-colors" aria-label="Open menu" aria-expanded="false">
                         <i class="fas fa-bars text-xl"></i>
                     </button>
-                    <div class="flex items-center gap-3">
-                        <div class="relative">
-                            <button class="text-white hover:text-blue-200 transition-colors">
-                                <i class="fas fa-bell text-xl"></i>
-                            </button>
-                            <div class="notification-badge">2</div>
-                        </div>
-                        <a href="settings.html" class="text-white hover:text-blue-200 transition-colors" aria-label="Open settings">
-                            <i class="fas fa-gear text-xl"></i>
-                        </a>
+                    <div class="relative">
+                        <button class="text-white hover:text-blue-200 transition-colors">
+                            <i class="fas fa-bell text-xl"></i>
+                        </button>
+                        <div class="notification-badge">2</div>
                     </div>
                     <div class="flex items-center space-x-2 min-w-0">
                         <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
@@ -251,6 +198,7 @@
             <a href="assets.html" class="block text-blue-200 hover:text-white transition-colors">Assets</a>
             <a href="work-orders.html" class="block text-blue-200 hover:text-white transition-colors">Work Orders</a>
             <a href="compliance.html" class="block text-blue-200 hover:text-white transition-colors">Compliance</a>
+            <a href="settings.html" class="block text-white font-semibold">Settings</a>
         </div>
     </div>
 
@@ -544,33 +492,6 @@
             </div>
         </section>
     </main>
-
-    <div id="settings-modal" class="modal">
-        <div class="modal-content p-6">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="text-xl font-semibold text-slate-800">Settings Preview</h2>
-                <button class="text-slate-500 hover:text-slate-700" aria-label="Close modal">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <p class="text-sm text-slate-600">Preview of master model changes and PM schedule output will appear here.</p>
-        </div>
-    </div>
-
-    <!-- Footer -->
-    <footer class="bg-slate-800 text-white py-8">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <p class="text-slate-400">&copy; 2025 MERC-CMMS Enterprise. All rights reserved. | Medical Device Management System</p>
-        </div>
-    </footer>
-
-    <!-- Toast Notification Container -->
-    <div id="toast-container" class="fixed bottom-4 right-4 z-50"></div>
-
-    <!-- Scripts at the end of body -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/js/all.min.js"></script>
-    <script src="main.js"></script>
 
     <script>
         const mobileMenuButton = document.getElementById('mobile-menu-button');
