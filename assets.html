@@ -1645,6 +1645,14 @@ visibility: hidden;
             document.getElementById('submit-btn-text').textContent = 'Save Asset';
             document.getElementById('asset-form').reset();
             document.getElementById('edit-asset-id').value = '';
+            
+            // Reset the cascading dropdowns
+            updateCategoryDropdowns();
+            deviceMakes = [];
+            deviceModels = [];
+            updateMakeDropdown();
+            updateModelDropdown();
+            
             document.getElementById('asset-modal').classList.add('active');
         }
 
