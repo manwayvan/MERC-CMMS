@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - MERC-CMMS</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        .medical-gradient {
+            background: linear-gradient(135deg, #1e293b 0%, #2563eb 50%, #0891b2 100%);
+        }
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .notification-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #dc2626;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .settings-header-bg {
+            background-image: url('/resources/dashboard-bg.jpg');
+            background-size: cover;
+            background-position: center;
+        }
+        .tab-button {
+            padding: 12px 20px;
+            border-bottom: 2px solid transparent;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #64748b;
+        }
+        .tab-button.active {
+            color: #2563eb;
+            border-bottom-color: #2563eb;
+            background: #eff6ff;
+        }
+        .tab-button:hover {
+            background: #f8fafc;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .form-input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+        .btn-primary {
+            background: #2563eb;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #1d4ed8;
+        }
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #475569;
+        }
+        .btn-secondary:hover {
+            background: #cbd5e1;
+        }
+        .toggle {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            background: #cbd5e1;
+            border-radius: 999px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .toggle::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: white;
+            transition: transform 0.2s;
+        }
+        .toggle.active {
+            background: #2563eb;
+        }
+        .toggle.active::after {
+            transform: translateX(20px);
+        }
+        #toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .toast {
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: white;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            animation: slideIn 0.3s ease-out;
+            max-width: 400px;
+        }
+        .toast-success { background: #059669; }
+        .toast-info { background: #2563eb; }
+        .toast-warning { background: #d97706; }
+        .toast-error { background: #dc2626; }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            max-width: 720px;
+            width: 95%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+        #mobile-menu {
+            position: fixed;
+            top: 64px;
+            left: 0;
+            right: 0;
+            z-index: 40;
+            background: linear-gradient(135deg, #1e293b 0%, #2563eb 50%, #0891b2 100%);
+            padding: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transform: translateY(0);
+            visibility: visible;
+            opacity: 1;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+        #mobile-menu.hidden {
+            transform: translateY(-100%);
+            opacity: 0;
+            pointer-events: none;
+            visibility: hidden;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+    <nav class="fixed top-0 left-0 right-0 z-50 medical-gradient shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-wrap justify-between items-center gap-3 py-2 min-h-[4rem]">
+                <a href="index.html" class="flex items-center space-x-4 min-w-0" aria-label="Go to dashboard">
+                    <img src="/resources/Logo_without%20name.png" alt="MERC-CMMS logo" class="w-10 h-10 rounded-full bg-white object-contain p-1 block flex-shrink-0 overflow-hidden">
+                    <div class="min-w-0">
+                        <h1 class="text-white text-xl font-bold truncate">MERC-CMMS</h1>
+                        <p class="text-blue-200 text-xs truncate">Enterprise Medical Device Management</p>
+                    </div>
+                </a>
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="index.html" class="text-blue-200 hover:text-white transition-colors">Dashboard</a>
+                    <a href="customers.html" class="text-blue-200 hover:text-white transition-colors">Customers</a>
+                    <a href="assets.html" class="text-blue-200 hover:text-white transition-colors">Assets</a>
+                    <a href="work-orders.html" class="text-blue-200 hover:text-white transition-colors">Work Orders</a>
+                    <a href="compliance.html" class="text-blue-200 hover:text-white transition-colors">Compliance</a>
+                </div>
+                <div class="flex items-center gap-3 flex-shrink-0">
+                    <button id="mobile-menu-button" class="md:hidden text-white hover:text-blue-200 transition-colors" aria-label="Open menu" aria-expanded="false">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                    <div class="flex items-center gap-3">
+                        <div class="relative">
+                            <button class="text-white hover:text-blue-200 transition-colors">
+                                <i class="fas fa-bell text-xl"></i>
+                            </button>
+                            <div class="notification-badge">2</div>
+                        </div>
+                        <a href="settings.html" class="text-white hover:text-blue-200 transition-colors" aria-label="Open settings">
+                            <i class="fas fa-gear text-xl"></i>
+                        </a>
+                    </div>
+                    <div class="flex items-center space-x-2 min-w-0">
+                        <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                            <i class="fas fa-user text-white text-sm"></i>
+                        </div>
+                        <div class="hidden md:block min-w-0">
+                            <p class="text-white text-sm font-medium truncate">System Admin</p>
+                            <p class="text-blue-200 text-xs truncate">Super Administrator</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <div id="mobile-menu" class="md:hidden hidden medical-gradient shadow-lg">
+        <div class="px-4 py-4 space-y-2">
+            <a href="index.html" class="block text-blue-200 hover:text-white transition-colors">Dashboard</a>
+            <a href="customers.html" class="block text-blue-200 hover:text-white transition-colors">Customers</a>
+            <a href="assets.html" class="block text-blue-200 hover:text-white transition-colors">Assets</a>
+            <a href="work-orders.html" class="block text-blue-200 hover:text-white transition-colors">Work Orders</a>
+            <a href="compliance.html" class="block text-blue-200 hover:text-white transition-colors">Compliance</a>
+        </div>
+    </div>
+
+    <main class="pt-16">
+        <section class="settings-header-bg relative">
+            <div class="absolute inset-0 bg-slate-900 bg-opacity-70"></div>
+            <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+                <div class="text-center">
+                    <h1 class="text-4xl md:text-5xl font-bold text-white mb-4">Settings & Master Controls</h1>
+                    <p class="text-xl text-blue-200 max-w-3xl mx-auto">
+                        Configure master models, automation rules, and scheduling logic that power your PM workflows.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <section class="py-10 bg-white">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="bg-white rounded-2xl shadow-lg border border-slate-100">
+                    <div class="border-b border-slate-200">
+                        <div class="flex flex-wrap gap-2 px-6 pt-6">
+                            <button class="tab-button active" data-tab="master-model">
+                                <i class="fas fa-cubes mr-2"></i>Master Model
+                            </button>
+                            <button class="tab-button" data-tab="pm-automation">
+                                <i class="fas fa-robot mr-2"></i>PM Automation
+                            </button>
+                            <button class="tab-button" data-tab="access-controls">
+                                <i class="fas fa-user-shield mr-2"></i>Access Controls
+                            </button>
+                            <button class="tab-button" data-tab="notifications">
+                                <i class="fas fa-bell mr-2"></i>Notifications
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="p-6">
+                        <div id="master-model" class="tab-content active">
+                            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                <div class="lg:col-span-2 space-y-6">
+                                    <div class="bg-slate-50 rounded-xl p-6 border border-slate-200">
+                                        <div class="flex items-center justify-between mb-4">
+                                            <h2 class="text-xl font-semibold text-slate-800">Master Model Builder</h2>
+                                            <span class="text-xs uppercase tracking-widest text-blue-600 font-semibold">Primary</span>
+                                        </div>
+                                        <p class="text-sm text-slate-600 mb-6">
+                                            Define make/model templates, bulk import/export rules, and the PM schedule
+                                            logic that generates manufacturer-compliant maintenance cycles.
+                                        </p>
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <label class="text-sm font-medium text-slate-700">Master Model Name</label>
+                                                <input class="form-input mt-2" type="text" placeholder="e.g., Ventilator Series X">
+                                            </div>
+                                            <div>
+                                                <label class="text-sm font-medium text-slate-700">Manufacturer</label>
+                                                <input class="form-input mt-2" type="text" placeholder="e.g., MedTech Corp">
+                                            </div>
+                                            <div>
+                                                <label class="text-sm font-medium text-slate-700">Primary Modality</label>
+                                                <select class="form-input mt-2">
+                                                    <option>Imaging</option>
+                                                    <option>Life Support</option>
+                                                    <option>Diagnostics</option>
+                                                    <option>Surgical</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label class="text-sm font-medium text-slate-700">PM Interval (months)</label>
+                                                <input class="form-input mt-2" type="number" min="1" placeholder="12">
+                                            </div>
+                                        </div>
+                                        <div class="mt-6">
+                                            <label class="text-sm font-medium text-slate-700">Model Coverage Notes</label>
+                                            <textarea class="form-input mt-2" rows="3" placeholder="Coverage details, calibration notes, and additional compliance requirements."></textarea>
+                                        </div>
+                                    </div>
+
+                                    <div class="bg-white rounded-xl p-6 border border-slate-200 card-hover">
+                                        <div class="flex items-center justify-between mb-4">
+                                            <h3 class="text-lg font-semibold text-slate-800">Bulk Import & Export</h3>
+                                            <span class="text-xs text-slate-500">CSV / XLSX</span>
+                                        </div>
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <label class="text-sm font-medium text-slate-700">Import Template</label>
+                                                <div class="mt-2 flex gap-3 flex-wrap">
+                                                    <button class="btn btn-secondary"><i class="fas fa-download"></i>Download Template</button>
+                                                    <button class="btn btn-primary"><i class="fas fa-upload"></i>Upload File</button>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label class="text-sm font-medium text-slate-700">Export Rules</label>
+                                                <div class="mt-2 flex gap-3 flex-wrap">
+                                                    <button class="btn btn-secondary"><i class="fas fa-file-export"></i>Export Models</button>
+                                                    <button class="btn btn-secondary"><i class="fas fa-file-csv"></i>Export PM Matrix</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div class="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                                                <h4 class="text-sm font-semibold text-slate-700 mb-2">Import Mapping</h4>
+                                                <p class="text-sm text-slate-600">Make ↔ Model ↔ Modality ↔ PM Interval</p>
+                                            </div>
+                                            <div class="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                                                <h4 class="text-sm font-semibold text-slate-700 mb-2">Validation Checks</h4>
+                                                <p class="text-sm text-slate-600">Duplicate control, schedule compliance, serial format checks.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="space-y-6">
+                                    <div class="bg-white rounded-xl p-6 border border-slate-200 card-hover">
+                                        <h3 class="text-lg font-semibold text-slate-800 mb-3">MFG Schedule Generator</h3>
+                                        <p class="text-sm text-slate-600 mb-4">
+                                            Create manufacturer-specific PM schedules per make/model and auto-apply
+                                            them when assets are added.
+                                        </p>
+                                        <div class="space-y-4">
+                                            <div>
+                                                <label class="text-sm font-medium text-slate-700">Default Schedule Type</label>
+                                                <select class="form-input mt-2">
+                                                    <option>Manufacturer Recommended</option>
+                                                    <option>Risk-Based</option>
+                                                    <option>Regulatory Mandated</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label class="text-sm font-medium text-slate-700">Schedule Frequency</label>
+                                                <select class="form-input mt-2">
+                                                    <option>Monthly</option>
+                                                    <option>Quarterly</option>
+                                                    <option>Semi-Annual</option>
+                                                    <option>Annual</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label class="text-sm font-medium text-slate-700">Auto-Generate PMs</label>
+                                                <div class="mt-2 flex items-center gap-3">
+                                                    <div class="toggle active" role="switch" aria-checked="true"></div>
+                                                    <span class="text-sm text-slate-600">Generate PM schedule on asset intake</span>
+                                                </div>
+                                            </div>
+                                            <div class="flex gap-3 flex-wrap">
+                                                <button class="btn btn-primary"><i class="fas fa-bolt"></i>Generate PM Schedule</button>
+                                                <button class="btn btn-secondary"><i class="fas fa-clipboard-check"></i>Preview Output</button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="bg-slate-50 rounded-xl p-6 border border-slate-200">
+                                        <h4 class="text-sm font-semibold text-slate-700 mb-3">PM Output Summary</h4>
+                                        <ul class="space-y-3 text-sm text-slate-600">
+                                            <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i>PM schedules inherit model-level intervals</li>
+                                            <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i>Work orders auto-populate compliance checklists</li>
+                                            <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i>Schedules adjust for facility holiday calendars</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="pm-automation" class="tab-content">
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <div class="bg-white rounded-xl p-6 border border-slate-200 card-hover">
+                                    <h3 class="text-lg font-semibold text-slate-800 mb-4">Automation Rules</h3>
+                                    <div class="space-y-4">
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <p class="text-sm font-semibold text-slate-700">Auto-create PM work orders</p>
+                                                <p class="text-xs text-slate-500">Generate PMs based on master schedules.</p>
+                                            </div>
+                                            <div class="toggle active" role="switch" aria-checked="true"></div>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <p class="text-sm font-semibold text-slate-700">Escalate overdue PMs</p>
+                                                <p class="text-xs text-slate-500">Trigger alerts after 7 days.</p>
+                                            </div>
+                                            <div class="toggle" role="switch" aria-checked="false"></div>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <p class="text-sm font-semibold text-slate-700">Auto-assign technicians</p>
+                                                <p class="text-xs text-slate-500">Use skill matching and workload.</p>
+                                            </div>
+                                            <div class="toggle active" role="switch" aria-checked="true"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="bg-slate-50 rounded-xl p-6 border border-slate-200">
+                                    <h3 class="text-lg font-semibold text-slate-800 mb-4">PM Calendar Controls</h3>
+                                    <div class="space-y-4 text-sm text-slate-600">
+                                        <p><strong>Lookahead Window:</strong> 90 days</p>
+                                        <p><strong>Default Lead Time:</strong> 14 days before due date</p>
+                                        <p><strong>Blackout Dates:</strong> Facility holidays & service downtime blocks</p>
+                                    </div>
+                                    <div class="mt-4">
+                                        <button class="btn btn-secondary"><i class="fas fa-calendar-alt"></i>Manage Calendar</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="access-controls" class="tab-content">
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <div class="bg-white rounded-xl p-6 border border-slate-200">
+                                    <h3 class="text-lg font-semibold text-slate-800 mb-4">Role Management</h3>
+                                    <div class="space-y-4">
+                                        <div>
+                                            <label class="text-sm font-medium text-slate-700">Default Role</label>
+                                            <select class="form-input mt-2">
+                                                <option>Technician</option>
+                                                <option>Supervisor</option>
+                                                <option>Compliance Officer</option>
+                                                <option>Administrator</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="text-sm font-medium text-slate-700">Approval Routing</label>
+                                            <textarea class="form-input mt-2" rows="3" placeholder="Define escalation path for approvals."></textarea>
+                                        </div>
+                                        <button class="btn btn-primary"><i class="fas fa-user-plus"></i>Invite Team Member</button>
+                                    </div>
+                                </div>
+                                <div class="bg-slate-50 rounded-xl p-6 border border-slate-200">
+                                    <h3 class="text-lg font-semibold text-slate-800 mb-4">Security Preferences</h3>
+                                    <ul class="space-y-3 text-sm text-slate-600">
+                                        <li class="flex items-center justify-between">
+                                            <span>Require MFA for administrators</span>
+                                            <div class="toggle active" role="switch" aria-checked="true"></div>
+                                        </li>
+                                        <li class="flex items-center justify-between">
+                                            <span>Lockout after 5 failed logins</span>
+                                            <div class="toggle active" role="switch" aria-checked="true"></div>
+                                        </li>
+                                        <li class="flex items-center justify-between">
+                                            <span>Restrict exports to admin role</span>
+                                            <div class="toggle" role="switch" aria-checked="false"></div>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="notifications" class="tab-content">
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <div class="bg-white rounded-xl p-6 border border-slate-200 card-hover">
+                                    <h3 class="text-lg font-semibold text-slate-800 mb-4">Alert Channels</h3>
+                                    <div class="space-y-4">
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-sm font-medium text-slate-700">Email Alerts</span>
+                                            <div class="toggle active" role="switch" aria-checked="true"></div>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-sm font-medium text-slate-700">SMS Alerts</span>
+                                            <div class="toggle" role="switch" aria-checked="false"></div>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-sm font-medium text-slate-700">In-App Notifications</span>
+                                            <div class="toggle active" role="switch" aria-checked="true"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="bg-slate-50 rounded-xl p-6 border border-slate-200">
+                                    <h3 class="text-lg font-semibold text-slate-800 mb-4">Escalation Matrix</h3>
+                                    <p class="text-sm text-slate-600 mb-4">Define which alerts are routed to leadership.</p>
+                                    <div class="space-y-3 text-sm text-slate-600">
+                                        <div class="flex items-center justify-between">
+                                            <span>Overdue PM &gt; 15 days</span>
+                                            <span class="text-xs font-semibold text-blue-600">Supervisor + Admin</span>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <span>Critical asset downtime</span>
+                                            <span class="text-xs font-semibold text-blue-600">Admin</span>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <span>Compliance score &lt; 90%</span>
+                                            <span class="text-xs font-semibold text-blue-600">Compliance Officer</span>
+                                        </div>
+                                    </div>
+                                    <div class="mt-4">
+                                        <button class="btn btn-secondary"><i class="fas fa-sitemap"></i>Edit Matrix</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="toast-container"></div>
+
+    <div id="settings-modal" class="modal">
+        <div class="modal-content p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-semibold text-slate-800">Settings Preview</h2>
+                <button class="text-slate-500 hover:text-slate-700" aria-label="Close modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <p class="text-sm text-slate-600">Preview of master model changes and PM schedule output will appear here.</p>
+        </div>
+    </div>
+
+    <script>
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        if (mobileMenuButton && mobileMenu) {
+            mobileMenuButton.addEventListener('click', () => {
+                const isHidden = mobileMenu.classList.toggle('hidden');
+                mobileMenuButton.setAttribute('aria-expanded', String(!isHidden));
+            });
+        }
+
+        document.querySelectorAll('.tab-button').forEach((button) => {
+            button.addEventListener('click', () => {
+                const tabId = button.getAttribute('data-tab');
+                document.querySelectorAll('.tab-button').forEach((btn) => btn.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach((content) => content.classList.remove('active'));
+                button.classList.add('active');
+                const activeTab = document.getElementById(tabId);
+                if (activeTab) {
+                    activeTab.classList.add('active');
+                }
+            });
+        });
+
+        document.querySelectorAll('.toggle').forEach((toggle) => {
+            toggle.addEventListener('click', () => {
+                const isActive = toggle.classList.toggle('active');
+                toggle.setAttribute('aria-checked', String(isActive));
+            });
+        });
+    </script>
+</body>
+</html>
