@@ -342,7 +342,7 @@
                                 <select name="category" id="category-select" required class="form-input flex-1">
                                     <option value="">Select Category</option>
                                 </select>
-                                <button type="button" class="btn btn-secondary px-3 py-2 text-xs" onclick="openLookupModal('categories', 'Category')">
+                                <button type="button" class="btn btn-secondary px-3 py-2 text-xs" onclick="addNewLookup('categories', 'category')">
                                     <i class="fas fa-plus"></i> Add New
                                 </button>
                             </div>
@@ -351,7 +351,7 @@
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Manufacturer *</label>
                             <div class="flex items-center gap-2">
                                 <input type="text" name="manufacturer" list="manufacturer-list" required class="form-input flex-1">
-                                <button type="button" class="btn btn-secondary px-3 py-2 text-xs" onclick="openLookupModal('manufacturers', 'Manufacturer')">
+                                <button type="button" class="btn btn-secondary px-3 py-2 text-xs" onclick="addNewLookup('manufacturers', 'manufacturer')">
                                     <i class="fas fa-plus"></i> Add New
                                 </button>
                             </div>
@@ -361,7 +361,7 @@
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Model *</label>
                             <div class="flex items-center gap-2">
                                 <input type="text" name="model" list="model-list" required class="form-input flex-1">
-                                <button type="button" class="btn btn-secondary px-3 py-2 text-xs" onclick="openLookupModal('models', 'Model')">
+                                <button type="button" class="btn btn-secondary px-3 py-2 text-xs" onclick="addNewLookup('models', 'model')">
                                     <i class="fas fa-plus"></i> Add New
                                 </button>
                             </div>
@@ -527,8 +527,6 @@
         let currentAsset = null;
         let csvData = null;
         let assetLookups = { categories: [], manufacturers: [], models: [] };
-        let lookupModalContext = null;
-        let assetSchema = { hasCustomerId: true };
 
         document.addEventListener('DOMContentLoaded', async () => {
             const mobileMenuButton = document.getElementById('mobile-menu-button');
@@ -544,7 +542,7 @@
                 return;
             }
             supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-            await detectAssetsSchema();
+            await detectAssetSchema();
             await Promise.all([loadAssets(), loadCustomers(), loadLocations()]);
             setupEventListeners();
             setupDragDrop();
@@ -722,81 +720,30 @@
             });
         }
 
-        async function detectAssetSchema() {
-            try {
-                const { error } = await supabaseClient
-                    .from('assets')
-                    .select('customer_id')
-                    .limit(1);
-                if (error) throw error;
-                assetSchema.hasCustomerId = true;
-            } catch (error) {
-                const message = error?.message || '';
-                if (message.includes('customer_id') || message.includes('schema cache')) {
-                    assetSchema.hasCustomerId = false;
-                    showToast('Customer link unavailable: add assets.customer_id column to enable it.', 'warning');
-                } else {
-                    console.error('Schema check failed:', error);
-                }
-            }
-        }
-
-        async function detectAssetsSchema() {
-            return detectAssetSchema();
-        }
-
-        function openLookupModal(type, label) {
-            lookupModalContext = { type, label };
-            document.getElementById('lookup-modal-title').textContent = `Add New ${label}`;
-            document.getElementById('lookup-modal-label').textContent = `${label} Name`;
-            const input = document.getElementById('lookup-modal-input');
-            input.value = '';
-            document.getElementById('lookup-modal').classList.add('active');
-            setTimeout(() => input.focus(), 0);
-        }
-
-        function closeLookupModal() {
-            document.getElementById('lookup-modal').classList.remove('active');
-            lookupModalContext = null;
-        }
-
-        function saveLookupModal() {
-            if (!lookupModalContext) return;
-            const input = document.getElementById('lookup-modal-input');
-            const trimmed = input.value.trim();
-            if (!trimmed) {
-                showToast('Please enter a value', 'warning');
-                return;
-            }
-            addLookupValue(lookupModalContext.type, trimmed);
-            closeLookupModal();
-        }
-
-        function addLookupValue(type, value) {
+        function addNewLookup(type, label) {
+            const inputLabel = label || type.slice(0, -1);
+            const value = prompt(`Enter new ${inputLabel}`);
+            if (!value) return;
+            const trimmed = value.trim();
+            if (!trimmed) return;
             const list = assetLookups[type] || [];
-            const exists = list.some(item => item.toLowerCase() === value.toLowerCase());
+            const exists = list.some(item => item.toLowerCase() === trimmed.toLowerCase());
             if (!exists) {
-                list.push(value);
+                list.push(trimmed);
                 list.sort((a, b) => a.localeCompare(b));
                 assetLookups[type] = list;
             }
             if (type === 'categories') {
                 updateCategorySelectOptions();
                 updateCategoryFilterOptions();
-                document.getElementById('category-select').value = value;
+                document.getElementById('category-select').value = trimmed;
             } else if (type === 'manufacturers') {
                 updateDatalistOptions('manufacturer-list', assetLookups.manufacturers);
-                document.querySelector('input[name="manufacturer"]').value = value;
+                document.querySelector('input[name="manufacturer"]').value = trimmed;
             } else if (type === 'models') {
                 updateDatalistOptions('model-list', assetLookups.models);
-                document.querySelector('input[name="model"]').value = value;
+                document.querySelector('input[name="model"]').value = trimmed;
             }
-        }
-
-        function generateAssetId() {
-            const datePart = new Date().toISOString().split('T')[0].replace(/-/g, '');
-            const randomPart = Math.floor(1000 + Math.random() * 9000);
-            return `AST-${datePart}-${randomPart}`;
         }
 
         function updateStatistics() {
@@ -1107,7 +1054,7 @@
             document.getElementById('category-select').addEventListener('change', (e) => {
                 if (e.target.value === '__add_new__') {
                     e.target.value = '';
-                    openLookupModal('categories', 'Category');
+                    addNewLookup('categories', 'category');
                 }
             });
             document.getElementById('pm-schedule-type').addEventListener('change', updatePMPreview);
