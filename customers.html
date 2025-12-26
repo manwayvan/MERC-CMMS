@@ -648,6 +648,7 @@
         // Global variables
         let customers = [];
         let supabaseClient;
+        const customerIdPrefix = 'CUST-';
 
         // DOM Elements
         const mobileMenuButton = document.getElementById('mobile-menu-button');
@@ -774,6 +775,15 @@
                     filterAndRenderCustomers();
                 });
             });
+        }
+
+        function generateCustomerPrimaryId() {
+            if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+                return `${customerIdPrefix}${window.crypto.randomUUID()}`;
+            }
+
+            const randomPart = Math.random().toString(36).slice(2, 10);
+            return `${customerIdPrefix}${Date.now()}-${randomPart}`;
         }
 
         // Load customers from Supabase
@@ -1340,10 +1350,13 @@
                 
                 // Remove the id field - let database handle it
                 delete customerData.id;
+
+                const generatedId = generateCustomerPrimaryId();
                 
                 // Don't auto-generate customer_id - user enters it or leaves blank
                 // All fields are optional except name
                 const insertData = {
+                    id: generatedId,
                     customer_id: customerData.customer_id || null,
                     name: customerData.name,
                     contact_person: customerData.contact_person || null,
@@ -1918,6 +1931,7 @@
                     try {
                         // Create customer
                         const customerData = {
+                            id: generateCustomerPrimaryId(),
                             customer_id: row['Customer ID'] || null,
                             name: row['Customer Name'],
                             contact_person: row['Contact Person'] || null,
