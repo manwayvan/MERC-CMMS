@@ -329,7 +329,7 @@
             </div>
 
             <!-- Details Tab -->
-            <div id="details-tab" class="tab-content active p-6">
+            <div class="p-6">
                 <form id="asset-form">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
@@ -704,6 +704,29 @@
                 option.textContent = location.name;
                 select.appendChild(option);
             });
+            if (!assetSchema.hasLocationId && !assetSchema.hasLocation) {
+                select.disabled = true;
+                select.innerHTML = '<option value="">Location field unavailable</option>';
+            } else {
+                select.disabled = false;
+            }
+        }
+
+        function updatePMScheduleAvailability() {
+            const pmSection = document.getElementById('pm-schedule-section');
+            const pmWarning = document.getElementById('pm-schedule-warning');
+            if (!pmSection) return;
+            if (assetSchema.hasPMFields) {
+                pmSection.classList.remove('opacity-50', 'pointer-events-none');
+                if (pmWarning) {
+                    pmWarning.classList.add('hidden');
+                }
+            } else {
+                pmSection.classList.add('opacity-50', 'pointer-events-none');
+                if (pmWarning) {
+                    pmWarning.classList.remove('hidden');
+                }
+            }
         }
 
         function refreshAssetLookups() {
@@ -824,6 +847,12 @@
             document.getElementById('stat-maintenance').textContent = maintenance;
             document.getElementById('stat-overdue').textContent = overdue;
             document.getElementById('stat-compliant').textContent = compliant + '%';
+        }
+
+        function getLocationNameById(locationId) {
+            if (!locationId) return null;
+            const match = locations.find(loc => loc.id === locationId);
+            return match?.name || null;
         }
 
         function renderAssets() {
@@ -984,6 +1013,9 @@
         }
 
         function loadPMSchedule(asset) {
+            if (!assetSchema.hasPMFields) {
+                return;
+            }
             document.getElementById('pm-schedule-type').value = asset.pm_schedule_type || '';
             document.getElementById('pm-interval-days').value = asset.pm_interval_days || '';
             document.getElementById('last-maintenance').value = asset.last_maintenance || '';
@@ -997,11 +1029,26 @@
         }
 
         function clearPMSchedule() {
-            document.getElementById('pm-schedule-form').reset();
+            if (!assetSchema.hasPMFields) {
+                showToast('PM scheduling is not enabled in the database yet.', 'warning');
+                return;
+            }
+            const form = document.getElementById('asset-form');
+            if (form) {
+                form.pm_schedule_type.value = '';
+                form.pm_interval_days.value = '';
+                form.last_maintenance.value = '';
+                form.next_maintenance.value = '';
+                form.auto_generate_wo.checked = false;
+            }
             document.getElementById('pm-preview').innerHTML = '<p>PM schedule cleared.</p>';
+            document.getElementById('custom-interval-wrapper').style.display = 'none';
         }
 
         function updatePMPreview() {
+            if (!assetSchema.hasPMFields) {
+                return;
+            }
             const scheduleType = document.getElementById('pm-schedule-type').value;
             const lastMaint = document.getElementById('last-maintenance').value;
             const customInterval = document.getElementById('pm-interval-days').value;
@@ -1051,6 +1098,11 @@
         document.getElementById('asset-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new FormData(e.target);
+            const locationId = formData.get('location_id') || null;
+            if ((assetSchema.hasLocationId || assetSchema.hasLocation) && !locationId) {
+                showToast('Please select a location before saving the asset.', 'warning');
+                return;
+            }
             const assetData = {
                 name: formData.get('name'),
                 category: formData.get('category'),
@@ -1084,7 +1136,6 @@
                     if (error) throw error;
                     showToast('Asset updated successfully', 'success');
                 } else {
-                    assetData.id = generateAssetId();
                     const { error } = await supabaseClient.from('assets').insert([assetData]);
                     if (error) throw error;
                     showToast('Asset created successfully', 'success');
