@@ -527,6 +527,8 @@
         let currentAsset = null;
         let csvData = null;
         let assetLookups = { categories: [], manufacturers: [], models: [] };
+        let assetSchema = { hasCustomerId: true };
+        let lookupContext = { type: null, label: null };
 
         document.addEventListener('DOMContentLoaded', async () => {
             const mobileMenuButton = document.getElementById('mobile-menu-button');
@@ -547,6 +549,22 @@
             setupEventListeners();
             setupDragDrop();
         });
+
+        async function detectAssetSchema() {
+            assetSchema = { hasCustomerId: true };
+            try {
+                const { error } = await supabaseClient
+                    .from('assets')
+                    .select('customer_id')
+                    .limit(1);
+                if (error && /customer_id|column/i.test(error.message)) {
+                    assetSchema.hasCustomerId = false;
+                }
+            } catch (error) {
+                console.warn('Unable to detect asset schema, disabling customer field.', error);
+                assetSchema.hasCustomerId = false;
+            }
+        }
 
         async function loadAssets() {
             try {
@@ -721,11 +739,19 @@
         }
 
         function addNewLookup(type, label) {
-            const inputLabel = label || type.slice(0, -1);
-            const value = prompt(`Enter new ${inputLabel}`);
-            if (!value) return;
-            const trimmed = value.trim();
-            if (!trimmed) return;
+            lookupContext = { type, label: label || type.slice(0, -1) };
+            const modal = document.getElementById('lookup-modal');
+            const title = document.getElementById('lookup-modal-title');
+            const inputLabel = document.getElementById('lookup-modal-label');
+            const input = document.getElementById('lookup-modal-input');
+            title.textContent = `Add New ${lookupContext.label}`;
+            inputLabel.textContent = `${lookupContext.label} Name`;
+            input.value = '';
+            modal.classList.add('active');
+            setTimeout(() => input.focus(), 0);
+        }
+
+        function applyLookupValue(type, trimmed) {
             const list = assetLookups[type] || [];
             const exists = list.some(item => item.toLowerCase() === trimmed.toLowerCase());
             if (!exists) {
@@ -744,6 +770,22 @@
                 updateDatalistOptions('model-list', assetLookups.models);
                 document.querySelector('input[name="model"]').value = trimmed;
             }
+        }
+
+        function closeLookupModal() {
+            document.getElementById('lookup-modal').classList.remove('active');
+            lookupContext = { type: null, label: null };
+        }
+
+        function saveLookupModal() {
+            const input = document.getElementById('lookup-modal-input');
+            const value = input.value.trim();
+            if (!value || !lookupContext.type) {
+                showToast('Please enter a value to add.', 'warning');
+                return;
+            }
+            applyLookupValue(lookupContext.type, value);
+            closeLookupModal();
         }
 
         function updateStatistics() {
@@ -1008,7 +1050,6 @@
                     if (error) throw error;
                     showToast('Asset updated successfully', 'success');
                 } else {
-                    assetData.id = generateAssetId();
                     const { error } = await supabaseClient.from('assets').insert([assetData]);
                     if (error) throw error;
                     showToast('Asset created successfully', 'success');
