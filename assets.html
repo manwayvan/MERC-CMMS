@@ -338,17 +338,34 @@
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Category *</label>
-                            <select name="category" required class="form-input">
-                                <option value="">Select Category</option>
-                            </select>
+                            <div class="flex items-center gap-2">
+                                <select name="category" id="category-select" required class="form-input flex-1">
+                                    <option value="">Select Category</option>
+                                </select>
+                                <button type="button" class="btn btn-secondary px-3 py-2 text-xs" onclick="addNewLookup('categories', 'category')">
+                                    <i class="fas fa-plus"></i> Add New
+                                </button>
+                            </div>
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Manufacturer *</label>
-                            <input type="text" name="manufacturer" required class="form-input">
+                            <div class="flex items-center gap-2">
+                                <input type="text" name="manufacturer" list="manufacturer-list" required class="form-input flex-1">
+                                <button type="button" class="btn btn-secondary px-3 py-2 text-xs" onclick="addNewLookup('manufacturers', 'manufacturer')">
+                                    <i class="fas fa-plus"></i> Add New
+                                </button>
+                            </div>
+                            <datalist id="manufacturer-list"></datalist>
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Model *</label>
-                            <input type="text" name="model" required class="form-input">
+                            <div class="flex items-center gap-2">
+                                <input type="text" name="model" list="model-list" required class="form-input flex-1">
+                                <button type="button" class="btn btn-secondary px-3 py-2 text-xs" onclick="addNewLookup('models', 'model')">
+                                    <i class="fas fa-plus"></i> Add New
+                                </button>
+                            </div>
+                            <datalist id="model-list"></datalist>
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Serial Number *</label>
@@ -487,6 +504,7 @@
         let locations = [];
         let currentAsset = null;
         let csvData = null;
+        let assetLookups = { categories: [], manufacturers: [], models: [] };
 
         document.addEventListener('DOMContentLoaded', async () => {
             const mobileMenuButton = document.getElementById('mobile-menu-button');
@@ -543,6 +561,7 @@
 
                 allAssets = enrichedAssets;
                 filteredAssets = [...allAssets];
+                refreshAssetLookups();
                 updateStatistics();
                 renderAssets();
                 showToast(`Loaded ${allAssets.length} assets successfully`, 'success');
@@ -608,6 +627,96 @@
                 option.textContent = location.name;
                 select.appendChild(option);
             });
+        }
+
+        function refreshAssetLookups() {
+            const categories = new Set();
+            const manufacturers = new Set();
+            const models = new Set();
+            allAssets.forEach(asset => {
+                if (asset.category) categories.add(asset.category);
+                if (asset.manufacturer) manufacturers.add(asset.manufacturer);
+                if (asset.model) models.add(asset.model);
+            });
+            assetLookups = {
+                categories: Array.from(categories).sort((a, b) => a.localeCompare(b)),
+                manufacturers: Array.from(manufacturers).sort((a, b) => a.localeCompare(b)),
+                models: Array.from(models).sort((a, b) => a.localeCompare(b))
+            };
+            updateCategoryFilterOptions();
+            updateCategorySelectOptions();
+            updateDatalistOptions('manufacturer-list', assetLookups.manufacturers);
+            updateDatalistOptions('model-list', assetLookups.models);
+        }
+
+        function updateCategoryFilterOptions() {
+            const select = document.getElementById('category-filter');
+            const current = select.value;
+            select.innerHTML = '<option value="">All Categories</option>';
+            assetLookups.categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category;
+                option.textContent = category;
+                select.appendChild(option);
+            });
+            if (assetLookups.categories.includes(current)) {
+                select.value = current;
+            }
+        }
+
+        function updateCategorySelectOptions() {
+            const select = document.getElementById('category-select');
+            const current = select.value;
+            select.innerHTML = '<option value="">Select Category</option>';
+            assetLookups.categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category;
+                option.textContent = category;
+                select.appendChild(option);
+            });
+            const addNewOption = document.createElement('option');
+            addNewOption.value = '__add_new__';
+            addNewOption.textContent = '+ Add New Category';
+            select.appendChild(addNewOption);
+            if (assetLookups.categories.includes(current)) {
+                select.value = current;
+            }
+        }
+
+        function updateDatalistOptions(listId, values) {
+            const list = document.getElementById(listId);
+            list.innerHTML = '';
+            values.forEach(value => {
+                const option = document.createElement('option');
+                option.value = value;
+                list.appendChild(option);
+            });
+        }
+
+        function addNewLookup(type, label) {
+            const inputLabel = label || type.slice(0, -1);
+            const value = prompt(`Enter new ${inputLabel}`);
+            if (!value) return;
+            const trimmed = value.trim();
+            if (!trimmed) return;
+            const list = assetLookups[type] || [];
+            const exists = list.some(item => item.toLowerCase() === trimmed.toLowerCase());
+            if (!exists) {
+                list.push(trimmed);
+                list.sort((a, b) => a.localeCompare(b));
+                assetLookups[type] = list;
+            }
+            if (type === 'categories') {
+                updateCategorySelectOptions();
+                updateCategoryFilterOptions();
+                document.getElementById('category-select').value = trimmed;
+            } else if (type === 'manufacturers') {
+                updateDatalistOptions('manufacturer-list', assetLookups.manufacturers);
+                document.querySelector('input[name="manufacturer"]').value = trimmed;
+            } else if (type === 'models') {
+                updateDatalistOptions('model-list', assetLookups.models);
+                document.querySelector('input[name="model"]').value = trimmed;
+            }
         }
 
         function updateStatistics() {
@@ -910,6 +1019,12 @@
             document.getElementById('category-filter').addEventListener('change', applyFilters);
             document.getElementById('status-filter').addEventListener('change', applyFilters);
             document.getElementById('customer-select').addEventListener('change', (e) => updateLocationDropdown(e.target.value));
+            document.getElementById('category-select').addEventListener('change', (e) => {
+                if (e.target.value === '__add_new__') {
+                    e.target.value = '';
+                    addNewLookup('categories', 'category');
+                }
+            });
             document.getElementById('pm-schedule-type').addEventListener('change', updatePMPreview);
             document.getElementById('pm-interval-days').addEventListener('input', updatePMPreview);
             document.getElementById('last-maintenance').addEventListener('change', updatePMPreview);
