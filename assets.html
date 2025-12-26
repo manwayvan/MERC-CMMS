@@ -314,22 +314,10 @@
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
-                <!-- Tabs -->
-                <div class="flex gap-2 mt-4 border-b">
-                    <button class="tab-button active" onclick="switchTab('details')">
-                        <i class="fas fa-info-circle mr-2"></i>Details
-                    </button>
-                    <button class="tab-button" onclick="switchTab('workorders')" id="wo-tab-button">
-                        <i class="fas fa-clipboard-list mr-2"></i>Work Orders <span id="wo-count" class="ml-1 bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-xs"></span>
-                    </button>
-                    <button class="tab-button" onclick="switchTab('pmschedule')">
-                        <i class="fas fa-calendar-alt mr-2"></i>PM Schedule
-                    </button>
-                </div>
             </div>
 
             <!-- Details Tab -->
-            <div id="details-tab" class="tab-content active p-6">
+            <div class="p-6">
                 <form id="asset-form">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
@@ -338,33 +326,17 @@
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Category *</label>
-                            <div class="flex items-center gap-2">
-                                <select name="category" id="category-select" required class="form-input flex-1">
-                                    <option value="">Select Category</option>
-                                </select>
-                                <button type="button" class="btn btn-secondary px-3 py-2 text-xs" onclick="addNewLookup('categories', 'category')">
-                                    <i class="fas fa-plus"></i> Add New
-                                </button>
-                            </div>
+                            <input type="text" name="category" id="category-input" list="category-list" required class="form-input" placeholder="Start typing to select or add">
+                            <datalist id="category-list"></datalist>
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Manufacturer *</label>
-                            <div class="flex items-center gap-2">
-                                <input type="text" name="manufacturer" list="manufacturer-list" required class="form-input flex-1">
-                                <button type="button" class="btn btn-secondary px-3 py-2 text-xs" onclick="addNewLookup('manufacturers', 'manufacturer')">
-                                    <i class="fas fa-plus"></i> Add New
-                                </button>
-                            </div>
+                            <input type="text" name="manufacturer" list="manufacturer-list" required class="form-input" placeholder="Start typing to select or add">
                             <datalist id="manufacturer-list"></datalist>
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Model *</label>
-                            <div class="flex items-center gap-2">
-                                <input type="text" name="model" list="model-list" required class="form-input flex-1">
-                                <button type="button" class="btn btn-secondary px-3 py-2 text-xs" onclick="addNewLookup('models', 'model')">
-                                    <i class="fas fa-plus"></i> Add New
-                                </button>
-                            </div>
+                            <input type="text" name="model" list="model-list" required class="form-input" placeholder="Start typing to select or add">
                             <datalist id="model-list"></datalist>
                         </div>
                         <div>
@@ -408,6 +380,54 @@
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Description</label>
                             <textarea name="description" rows="3" class="form-input"></textarea>
                         </div>
+                        <div class="md:col-span-2 border-t border-slate-200 pt-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Preventive Maintenance Schedule</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">PM Schedule Type</label>
+                                    <select name="pm_schedule_type" id="pm-schedule-type" class="form-input">
+                                        <option value="">No PM Schedule</option>
+                                        <option value="daily">Daily (Every 24 hours)</option>
+                                        <option value="weekly">Weekly (Every 7 days)</option>
+                                        <option value="biweekly">Bi-Weekly (Every 14 days)</option>
+                                        <option value="monthly">Monthly (Every 30 days)</option>
+                                        <option value="quarterly">Quarterly (Every 90 days)</option>
+                                        <option value="semiannually">Semi-Annually (Every 180 days)</option>
+                                        <option value="annually">Annually (Every 365 days)</option>
+                                        <option value="custom">Custom Interval</option>
+                                    </select>
+                                </div>
+                                <div id="custom-interval-wrapper" style="display: none;">
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Custom Interval (days)</label>
+                                    <input type="number" name="pm_interval_days" id="pm-interval-days" class="form-input" min="1" placeholder="e.g., 45">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Last Maintenance Date</label>
+                                    <input type="date" name="last_maintenance" id="last-maintenance" class="form-input">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Next Maintenance Due</label>
+                                    <input type="date" name="next_maintenance" id="next-maintenance" class="form-input" readonly style="background: #f8fafc;">
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label class="flex items-center gap-2">
+                                        <input type="checkbox" name="auto_generate_wo" id="auto-generate-wo" class="rounded border-gray-300">
+                                        <span class="text-sm font-semibold text-gray-700">Auto-Generate Work Orders (7 days before PM due)</span>
+                                    </label>
+                                </div>
+                                <div class="md:col-span-2 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                    <h4 class="font-semibold text-blue-900 mb-2">PM Schedule Preview</h4>
+                                    <div id="pm-preview" class="text-sm text-blue-800">
+                                        <p>Select a PM schedule type to see upcoming maintenance dates.</p>
+                                    </div>
+                                </div>
+                                <div class="md:col-span-2 flex justify-end">
+                                    <button type="button" onclick="clearPMSchedule()" class="btn btn-secondary">
+                                        <i class="fas fa-times"></i> Clear Schedule
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <input type="hidden" name="id" id="edit-asset-id">
                     <div class="flex justify-end gap-3 mt-8">
@@ -421,8 +441,8 @@
                 </form>
             </div>
 
-            <!-- Work Orders Tab -->
-            <div id="workorders-tab" class="tab-content p-6">
+            <!-- Work Orders -->
+            <div id="workorders-section" class="p-6 border-t border-slate-200">
                 <div class="flex justify-between items-center mb-6">
                     <h3 class="text-lg font-semibold text-gray-900">Work Orders for this Asset</h3>
                     <button onclick="createWorkOrderForAsset()" class="btn btn-primary btn-sm">
@@ -434,82 +454,6 @@
                 </div>
             </div>
 
-            <!-- PM Schedule Tab -->
-            <div id="pmschedule-tab" class="tab-content p-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-6">Preventive Maintenance Schedule</h3>
-                <form id="pm-schedule-form">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">PM Schedule Type</label>
-                            <select name="pm_schedule_type" id="pm-schedule-type" class="form-input">
-                                <option value="">No PM Schedule</option>
-                                <option value="daily">Daily (Every 24 hours)</option>
-                                <option value="weekly">Weekly (Every 7 days)</option>
-                                <option value="biweekly">Bi-Weekly (Every 14 days)</option>
-                                <option value="monthly">Monthly (Every 30 days)</option>
-                                <option value="quarterly">Quarterly (Every 90 days)</option>
-                                <option value="semiannually">Semi-Annually (Every 180 days)</option>
-                                <option value="annually">Annually (Every 365 days)</option>
-                                <option value="custom">Custom Interval</option>
-                            </select>
-                        </div>
-                        <div id="custom-interval-wrapper" style="display: none;">
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Custom Interval (days)</label>
-                            <input type="number" name="pm_interval_days" id="pm-interval-days" class="form-input" min="1" placeholder="e.g., 45">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Last Maintenance Date</label>
-                            <input type="date" name="last_maintenance" id="last-maintenance" class="form-input">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Next Maintenance Due</label>
-                            <input type="date" name="next_maintenance" id="next-maintenance" class="form-input" readonly style="background: #f8fafc;">
-                        </div>
-                        <div class="md:col-span-2">
-                            <label class="flex items-center gap-2">
-                                <input type="checkbox" name="auto_generate_wo" id="auto-generate-wo" class="rounded border-gray-300">
-                                <span class="text-sm font-semibold text-gray-700">Auto-Generate Work Orders (7 days before PM due)</span>
-                            </label>
-                        </div>
-                        <div class="md:col-span-2 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                            <h4 class="font-semibold text-blue-900 mb-2">PM Schedule Preview</h4>
-                            <div id="pm-preview" class="text-sm text-blue-800">
-                                <p>Select a PM schedule type to see upcoming maintenance dates.</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="flex justify-end gap-3 mt-8">
-                        <button type="button" onclick="clearPMSchedule()" class="btn btn-secondary">
-                            <i class="fas fa-times"></i> Clear Schedule
-                        </button>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save"></i> Save PM Schedule
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Lookup Add New Modal -->
-    <div id="lookup-modal" class="modal">
-        <div class="modal-content" style="max-width: 480px;">
-            <div class="p-6 border-b border-gray-200">
-                <div class="flex justify-between items-center">
-                    <h2 class="text-xl font-bold text-gray-900" id="lookup-modal-title">Add New</h2>
-                    <button onclick="closeLookupModal()" class="text-gray-400 hover:text-gray-600 text-2xl">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-            </div>
-            <div class="p-6">
-                <label class="block text-sm font-semibold text-gray-700 mb-2" id="lookup-modal-label">Name</label>
-                <input type="text" id="lookup-modal-input" class="form-input" placeholder="Enter value">
-                <div class="flex justify-end gap-3 mt-6">
-                    <button type="button" class="btn btn-secondary" onclick="closeLookupModal()">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="saveLookupModal()">Add</button>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -527,6 +471,7 @@
         let currentAsset = null;
         let csvData = null;
         let assetLookups = { categories: [], manufacturers: [], models: [] };
+        let assetSchema = { hasCustomerId: true };
 
         document.addEventListener('DOMContentLoaded', async () => {
             const mobileMenuButton = document.getElementById('mobile-menu-button');
@@ -547,6 +492,22 @@
             setupEventListeners();
             setupDragDrop();
         });
+
+        async function detectAssetSchema() {
+            assetSchema = { hasCustomerId: true };
+            try {
+                const { error } = await supabaseClient
+                    .from('assets')
+                    .select('customer_id')
+                    .limit(1);
+                if (error && /customer_id|column/i.test(error.message)) {
+                    assetSchema.hasCustomerId = false;
+                }
+            } catch (error) {
+                console.warn('Unable to detect asset schema, disabling customer field.', error);
+                assetSchema.hasCustomerId = false;
+            }
+        }
 
         async function loadAssets() {
             try {
@@ -692,22 +653,7 @@
         }
 
         function updateCategorySelectOptions() {
-            const select = document.getElementById('category-select');
-            const current = select.value;
-            select.innerHTML = '<option value="">Select Category</option>';
-            assetLookups.categories.forEach(category => {
-                const option = document.createElement('option');
-                option.value = category;
-                option.textContent = category;
-                select.appendChild(option);
-            });
-            const addNewOption = document.createElement('option');
-            addNewOption.value = '__add_new__';
-            addNewOption.textContent = '+ Add New Category';
-            select.appendChild(addNewOption);
-            if (assetLookups.categories.includes(current)) {
-                select.value = current;
-            }
+            updateDatalistOptions('category-list', assetLookups.categories);
         }
 
         function updateDatalistOptions(listId, values) {
@@ -720,12 +666,7 @@
             });
         }
 
-        function addNewLookup(type, label) {
-            const inputLabel = label || type.slice(0, -1);
-            const value = prompt(`Enter new ${inputLabel}`);
-            if (!value) return;
-            const trimmed = value.trim();
-            if (!trimmed) return;
+        function applyLookupValue(type, trimmed) {
             const list = assetLookups[type] || [];
             const exists = list.some(item => item.toLowerCase() === trimmed.toLowerCase());
             if (!exists) {
@@ -736,7 +677,7 @@
             if (type === 'categories') {
                 updateCategorySelectOptions();
                 updateCategoryFilterOptions();
-                document.getElementById('category-select').value = trimmed;
+                document.getElementById('category-input').value = trimmed;
             } else if (type === 'manufacturers') {
                 updateDatalistOptions('manufacturer-list', assetLookups.manufacturers);
                 document.querySelector('input[name="manufacturer"]').value = trimmed;
@@ -744,6 +685,11 @@
                 updateDatalistOptions('model-list', assetLookups.models);
                 document.querySelector('input[name="model"]').value = trimmed;
             }
+        }
+        function ensureLookupValue(type, value) {
+            const trimmed = value.trim();
+            if (!trimmed) return;
+            applyLookupValue(type, trimmed);
         }
 
         function updateStatistics() {
@@ -843,8 +789,10 @@
             document.getElementById('submit-btn-text').textContent = 'Save Asset';
             document.getElementById('asset-form').reset();
             document.getElementById('edit-asset-id').value = '';
-            document.getElementById('wo-tab-button').style.display = 'none';
-            switchTab('details');
+            const workOrdersSection = document.getElementById('workorders-section');
+            if (workOrdersSection) {
+                workOrdersSection.style.display = 'none';
+            }
             document.getElementById('asset-modal').classList.add('active');
         }
 
@@ -871,10 +819,12 @@
             if (assetSchema.hasCustomerId && asset.customer_id) {
                 updateLocationDropdown(asset.customer_id);
             }
-            document.getElementById('wo-tab-button').style.display = 'block';
+            const workOrdersSection = document.getElementById('workorders-section');
+            if (workOrdersSection) {
+                workOrdersSection.style.display = 'block';
+            }
             await loadAssetWorkOrders(asset.id);
             loadPMSchedule(asset);
-            switchTab('details');
             document.getElementById('asset-modal').classList.add('active');
         }
 
@@ -932,8 +882,16 @@
         }
 
         function clearPMSchedule() {
-            document.getElementById('pm-schedule-form').reset();
+            const form = document.getElementById('asset-form');
+            if (form) {
+                form.pm_schedule_type.value = '';
+                form.pm_interval_days.value = '';
+                form.last_maintenance.value = '';
+                form.next_maintenance.value = '';
+                form.auto_generate_wo.checked = false;
+            }
             document.getElementById('pm-preview').innerHTML = '<p>PM schedule cleared.</p>';
+            document.getElementById('custom-interval-wrapper').style.display = 'none';
         }
 
         function updatePMPreview() {
@@ -996,7 +954,12 @@
                 purchase_cost: formData.get('purchase_cost') || null,
                 warranty_expiry: formData.get('warranty_expiry') || null,
                 location_id: formData.get('location_id') || null,
-                description: formData.get('description') || null
+                description: formData.get('description') || null,
+                pm_schedule_type: formData.get('pm_schedule_type') || null,
+                pm_interval_days: formData.get('pm_interval_days') || null,
+                last_maintenance: formData.get('last_maintenance') || null,
+                next_maintenance: formData.get('next_maintenance') || null,
+                auto_generate_wo: formData.get('auto_generate_wo') === 'on'
             };
             if (assetSchema.hasCustomerId) {
                 assetData.customer_id = formData.get('customer_id') || null;
@@ -1008,7 +971,6 @@
                     if (error) throw error;
                     showToast('Asset updated successfully', 'success');
                 } else {
-                    assetData.id = generateAssetId();
                     const { error } = await supabaseClient.from('assets').insert([assetData]);
                     if (error) throw error;
                     showToast('Asset created successfully', 'success');
@@ -1020,52 +982,54 @@
             }
         });
 
-        document.getElementById('pm-schedule-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            if (!currentAsset) return;
-            const formData = new FormData(e.target);
-            const pmData = {
-                pm_schedule_type: formData.get('pm_schedule_type') || null,
-                pm_interval_days: formData.get('pm_interval_days') || null,
-                last_maintenance: formData.get('last_maintenance') || null,
-                next_maintenance: formData.get('next_maintenance') || null,
-                auto_generate_wo: formData.get('auto_generate_wo') === 'on'
-            };
-            try {
-                const { error } = await supabaseClient.from('assets').update(pmData).eq('id', currentAsset.id);
-                if (error) throw error;
-                showToast('PM Schedule updated successfully', 'success');
-                await loadAssets();
-                closeAssetModal();
-            } catch (error) {
-                showToast(`Failed to save PM schedule: ${error.message}`, 'error');
-            }
-        });
-
         function setupEventListeners() {
-            document.getElementById('search-input').addEventListener('input', debounce((e) => {
+            const searchInput = document.getElementById('search-input');
+            if (searchInput) {
+                searchInput.addEventListener('input', debounce((e) => {
                 const term = e.target.value.toLowerCase();
                 filteredAssets = allAssets.filter(a => a.name?.toLowerCase().includes(term) || a.id?.toLowerCase().includes(term) || a.serial_number?.toLowerCase().includes(term));
                 renderAssets();
-            }, 300));
-            document.getElementById('category-filter').addEventListener('change', applyFilters);
-            document.getElementById('status-filter').addEventListener('change', applyFilters);
-            document.getElementById('customer-select').addEventListener('change', (e) => updateLocationDropdown(e.target.value));
-            document.getElementById('category-select').addEventListener('change', (e) => {
-                if (e.target.value === '__add_new__') {
-                    e.target.value = '';
-                    addNewLookup('categories', 'category');
-                }
-            });
-            document.getElementById('pm-schedule-type').addEventListener('change', updatePMPreview);
-            document.getElementById('pm-interval-days').addEventListener('input', updatePMPreview);
-            document.getElementById('last-maintenance').addEventListener('change', updatePMPreview);
-            document.getElementById('lookup-modal-input').addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    saveLookupModal();
-                }
-            });
+                }, 300));
+            }
+
+            const categoryFilter = document.getElementById('category-filter');
+            if (categoryFilter) {
+                categoryFilter.addEventListener('change', applyFilters);
+            }
+            const statusFilter = document.getElementById('status-filter');
+            if (statusFilter) {
+                statusFilter.addEventListener('change', applyFilters);
+            }
+            const customerSelect = document.getElementById('customer-select');
+            if (customerSelect) {
+                customerSelect.addEventListener('change', (e) => updateLocationDropdown(e.target.value));
+            }
+
+            const categoryInput = document.getElementById('category-input');
+            if (categoryInput) {
+                categoryInput.addEventListener('blur', (e) => ensureLookupValue('categories', e.target.value));
+            }
+            const manufacturerInput = document.querySelector('input[name="manufacturer"]');
+            if (manufacturerInput) {
+                manufacturerInput.addEventListener('blur', (e) => ensureLookupValue('manufacturers', e.target.value));
+            }
+            const modelInput = document.querySelector('input[name="model"]');
+            if (modelInput) {
+                modelInput.addEventListener('blur', (e) => ensureLookupValue('models', e.target.value));
+            }
+
+            const pmScheduleType = document.getElementById('pm-schedule-type');
+            if (pmScheduleType) {
+                pmScheduleType.addEventListener('change', updatePMPreview);
+            }
+            const pmIntervalDays = document.getElementById('pm-interval-days');
+            if (pmIntervalDays) {
+                pmIntervalDays.addEventListener('input', updatePMPreview);
+            }
+            const lastMaintenance = document.getElementById('last-maintenance');
+            if (lastMaintenance) {
+                lastMaintenance.addEventListener('change', updatePMPreview);
+            }
         }
 
         function applyFilters() {
@@ -1180,13 +1144,6 @@
             } catch (error) {
                 showToast(`Import failed: ${error.message}`, 'error');
             }
-        }
-
-        function switchTab(tab) {
-            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            document.querySelector(`.tab-button[onclick*="${tab}"]`).classList.add('active');
-            document.getElementById(`${tab}-tab`).classList.add('active');
         }
 
         function showLoading(show) {
