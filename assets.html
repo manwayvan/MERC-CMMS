@@ -439,35 +439,39 @@ visibility: hidden;
                 </div>
             </div>
         </div>
+            </div>
+        </section>
 
         <!-- Controls Bar -->
-        <div class="bg-white rounded-xl shadow-md p-6 mb-8">
-            <div class="flex flex-wrap gap-4 items-center">
-                <!-- Search -->
-                <div class="flex-1 min-w-[300px]">
-                    <div class="relative">
-                        <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-                        <input 
-                            type="text" 
-                            id="search-input" 
-                            placeholder="Search by name, ID, serial number..." 
-                            class="form-input pl-12"
-                        >
-                    </div>
-                </div>
+        <section class="py-6 bg-slate-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <div class="flex flex-wrap gap-4 items-center">
+                        <!-- Search -->
+                        <div class="flex-1 min-w-[300px]">
+                            <div class="relative">
+                                <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                                <input 
+                                    type="text" 
+                                    id="search-input" 
+                                    placeholder="Search by name, ID, serial number..." 
+                                    class="form-input pl-12"
+                                >
+                            </div>
+                        </div>
 
-                <!-- Filters -->
-                <select id="category-filter" class="form-input max-w-[200px]">
-                    <option value="">All Categories</option>
-                    <option value="diagnostic">Diagnostic</option>
-                    <option value="therapeutic">Therapeutic</option>
-                    <option value="surgical">Surgical</option>
-                    <option value="monitoring">Monitoring</option>
-                    <option value="imaging">Imaging</option>
-                    <option value="laboratory">Laboratory</option>
-                </select>
+                        <!-- Filters -->
+                        <select id="category-filter" class="form-input max-w-[200px]">
+                            <option value="">All Categories</option>
+                            <option value="diagnostic">Diagnostic</option>
+                            <option value="therapeutic">Therapeutic</option>
+                            <option value="surgical">Surgical</option>
+                            <option value="monitoring">Monitoring</option>
+                            <option value="imaging">Imaging</option>
+                            <option value="laboratory">Laboratory</option>
+                        </select>
 
-                <select id="status-filter" class="form-input max-w-[180px]">
+                        <select id="status-filter" class="form-input max-w-[180px]">
                     <option value="">All Status</option>
                     <option value="active">Active</option>
                     <option value="maintenance">Maintenance</option>
