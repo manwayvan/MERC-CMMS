@@ -943,8 +943,16 @@
         }
 
         function clearPMSchedule() {
-            document.getElementById('pm-schedule-form').reset();
+            const form = document.getElementById('asset-form');
+            if (form) {
+                form.pm_schedule_type.value = '';
+                form.pm_interval_days.value = '';
+                form.last_maintenance.value = '';
+                form.next_maintenance.value = '';
+                form.auto_generate_wo.checked = false;
+            }
             document.getElementById('pm-preview').innerHTML = '<p>PM schedule cleared.</p>';
+            document.getElementById('custom-interval-wrapper').style.display = 'none';
         }
 
         function updatePMPreview() {
