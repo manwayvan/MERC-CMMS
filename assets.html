@@ -329,7 +329,7 @@
             </div>
 
             <!-- Details Tab -->
-            <div class="p-6">
+            <div id="details-tab" class="tab-content active p-6">
                 <form id="asset-form">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
@@ -453,8 +453,8 @@
                 </form>
             </div>
 
-            <!-- Work Orders -->
-            <div id="workorders-section" class="p-6 border-t border-slate-200">
+            <!-- Work Orders Tab -->
+            <div id="workorders-tab" class="tab-content p-6 border-t border-slate-200">
                 <div class="flex justify-between items-center mb-6">
                     <h3 class="text-lg font-semibold text-gray-900">Work Orders for this Asset</h3>
                     <button onclick="createWorkOrderForAsset()" class="btn btn-primary btn-sm">
@@ -464,6 +464,60 @@
                 <div id="asset-work-orders-list">
                     <p class="text-center text-gray-500 py-8">Loading work orders...</p>
                 </div>
+            </div>
+
+            <!-- PM Schedule Tab -->
+            <div id="pmschedule-tab" class="tab-content p-6 border-t border-slate-200">
+                <form id="pm-schedule-form">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">PM Schedule Type</label>
+                            <select name="pm_schedule_type" id="pm-schedule-type-edit" class="form-input">
+                                <option value="">No PM Schedule</option>
+                                <option value="daily">Daily (Every 24 hours)</option>
+                                <option value="weekly">Weekly (Every 7 days)</option>
+                                <option value="biweekly">Bi-Weekly (Every 14 days)</option>
+                                <option value="monthly">Monthly (Every 30 days)</option>
+                                <option value="quarterly">Quarterly (Every 90 days)</option>
+                                <option value="semiannually">Semi-Annually (Every 180 days)</option>
+                                <option value="annually">Annually (Every 365 days)</option>
+                                <option value="custom">Custom Interval</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Custom Interval (days)</label>
+                            <input type="number" name="pm_interval_days" id="pm-interval-days-edit" class="form-input" min="1" placeholder="e.g., 45">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Last Maintenance Date</label>
+                            <input type="date" name="last_maintenance" id="last-maintenance-edit" class="form-input">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Next Maintenance Due</label>
+                            <input type="date" name="next_maintenance" id="next-maintenance-edit" class="form-input" readonly style="background: #f8fafc;">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="flex items-center gap-2">
+                                <input type="checkbox" name="auto_generate_wo" id="auto-generate-wo-edit" class="rounded border-gray-300">
+                                <span class="text-sm font-semibold text-gray-700">Auto-Generate Work Orders (7 days before PM due)</span>
+                            </label>
+                        </div>
+                        <div class="md:col-span-2 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <h4 class="font-semibold text-blue-900 mb-2">PM Schedule Preview</h4>
+                            <div id="pm-preview-edit" class="text-sm text-blue-800">
+                                <p>Select a PM schedule type to see upcoming maintenance dates.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex justify-end gap-3 mt-8">
+                        <button type="button" onclick="closeAssetModal()" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Save Schedule
+                        </button>
+                    </div>
+                </form>
             </div>
 
         </div>
@@ -943,16 +997,8 @@
         }
 
         function clearPMSchedule() {
-            const form = document.getElementById('asset-form');
-            if (form) {
-                form.pm_schedule_type.value = '';
-                form.pm_interval_days.value = '';
-                form.last_maintenance.value = '';
-                form.next_maintenance.value = '';
-                form.auto_generate_wo.checked = false;
-            }
+            document.getElementById('pm-schedule-form').reset();
             document.getElementById('pm-preview').innerHTML = '<p>PM schedule cleared.</p>';
-            document.getElementById('custom-interval-wrapper').style.display = 'none';
         }
 
         function updatePMPreview() {
@@ -1015,17 +1061,22 @@
                 purchase_date: formData.get('purchase_date') || null,
                 purchase_cost: formData.get('purchase_cost') || null,
                 warranty_expiry: formData.get('warranty_expiry') || null,
-                location_id: formData.get('location_id') || null,
-                description: formData.get('description') || null,
-                pm_schedule_type: formData.get('pm_schedule_type') || null,
-                pm_interval_days: formData.get('pm_interval_days') || null,
-                last_maintenance: formData.get('last_maintenance') || null,
-                next_maintenance: formData.get('next_maintenance') || null,
-                auto_generate_wo: formData.get('auto_generate_wo') === 'on'
+                description: formData.get('description') || null
             };
-            if (assetSchema.hasCustomerId) {
-                assetData.customer_id = formData.get('customer_id') || null;
+            
+            // Only include location_id if it has a value
+            const locationId = formData.get('location_id');
+            if (locationId) {
+                assetData.location_id = locationId;
             }
+            
+            if (assetSchema.hasCustomerId) {
+                const customerId = formData.get('customer_id');
+                if (customerId) {
+                    assetData.customer_id = customerId;
+                }
+            }
+            
             const assetId = document.getElementById('edit-asset-id').value;
             try {
                 if (assetId) {
@@ -1033,6 +1084,7 @@
                     if (error) throw error;
                     showToast('Asset updated successfully', 'success');
                 } else {
+                    assetData.id = generateAssetId();
                     const { error } = await supabaseClient.from('assets').insert([assetData]);
                     if (error) throw error;
                     showToast('Asset created successfully', 'success');
@@ -1050,23 +1102,8 @@
                 showToast('Please save the asset before adding a PM schedule.', 'warning');
                 return;
             }
-            const formData = new FormData(e.target);
-            const pmData = {
-                pm_schedule_type: formData.get('pm_schedule_type') || null,
-                pm_interval_days: formData.get('pm_interval_days') || null,
-                last_maintenance: formData.get('last_maintenance') || null,
-                next_maintenance: formData.get('next_maintenance') || null,
-                auto_generate_wo: formData.get('auto_generate_wo') === 'on'
-            };
-            try {
-                const { error } = await supabaseClient.from('assets').update(pmData).eq('id', currentAsset.id);
-                if (error) throw error;
-                showToast('PM Schedule updated successfully', 'success');
-                await loadAssets();
-                closeAssetModal();
-            } catch (error) {
-                showToast(`Failed to save PM schedule: ${error.message}`, 'error');
-            }
+            showToast('PM Schedule feature requires database schema updates. Feature coming soon!', 'info');
+            closeAssetModal();
         });
 
         function generateAssetId() {
@@ -1080,10 +1117,11 @@
             const searchInput = document.getElementById('search-input');
             if (searchInput) {
                 searchInput.addEventListener('input', debounce((e) => {
-                const term = e.target.value.toLowerCase();
-                filteredAssets = allAssets.filter(a => a.name?.toLowerCase().includes(term) || a.id?.toLowerCase().includes(term) || a.serial_number?.toLowerCase().includes(term));
-                renderAssets();
-            }, 300));
+                    const term = e.target.value.toLowerCase();
+                    filteredAssets = allAssets.filter(a => a.name?.toLowerCase().includes(term) || a.id?.toLowerCase().includes(term) || a.serial_number?.toLowerCase().includes(term));
+                    renderAssets();
+                }, 300));
+            }
             document.getElementById('category-filter').addEventListener('change', applyFilters);
             document.getElementById('status-filter').addEventListener('change', applyFilters);
             document.getElementById('customer-select').addEventListener('change', (e) => updateLocationDropdown(e.target.value));
