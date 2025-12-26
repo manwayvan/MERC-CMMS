@@ -4,9 +4,47 @@
 // Initialize Supabase Client
 const supabaseUrl = 'https://hmdemsbqiqlqcggwblvl.supabase.co';
 const supabaseKey = 'sb_publishable_Z9oNxTGDCCz3EZnh6NqySg_QzF6amCN';
-const supabaseClient = window.supabase
-    ? window.supabase.createClient(supabaseUrl, supabaseKey)
-    : null;
+let supabaseClient = null;
+let supabaseInitPromise = null;
+
+function loadSupabaseClient() {
+    if (supabaseClient) {
+        return Promise.resolve(supabaseClient);
+    }
+
+    if (supabaseInitPromise) {
+        return supabaseInitPromise;
+    }
+
+    supabaseInitPromise = new Promise((resolve) => {
+        const initialize = () => {
+            if (window.supabase) {
+                supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+                resolve(supabaseClient);
+            } else {
+                console.warn('Supabase library failed to load.');
+                resolve(null);
+            }
+        };
+
+        if (window.supabase) {
+            initialize();
+            return;
+        }
+
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+        script.async = true;
+        script.onload = initialize;
+        script.onerror = () => {
+            console.warn('Unable to load Supabase library.');
+            resolve(null);
+        };
+        document.head.appendChild(script);
+    });
+
+    return supabaseInitPromise;
+}
 
 // Global Application State
 const AppState = {
@@ -1007,12 +1045,13 @@ function normalizePageName(pageName) {
 }
 
 // Initialize the application
-function initApp() {
+async function initApp() {
     const pageName = window.location.pathname.split('/').pop().replace('.html', '');
     AppState.currentPage = normalizePageName(pageName);
     ChartManager.initializeCharts();
 
     if (AppState.currentPage === 'assets') {
+        await loadSupabaseClient();
         assetManager.loadAssets();
         assetManager.setupEventListeners();
     } else if (AppState.currentPage === 'workorders') {

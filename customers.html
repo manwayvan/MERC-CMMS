@@ -648,6 +648,7 @@
         // Global variables
         let customers = [];
         let supabaseClient;
+        const customerIdPrefix = 'CUST-';
 
         // DOM Elements
         const mobileMenuButton = document.getElementById('mobile-menu-button');
@@ -776,6 +777,15 @@
             });
         }
 
+        function generateCustomerPrimaryId() {
+            if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+                return `${customerIdPrefix}${window.crypto.randomUUID()}`;
+            }
+
+            const randomPart = Math.random().toString(36).slice(2, 10);
+            return `${customerIdPrefix}${Date.now()}-${randomPart}`;
+        }
+
         // Load customers from Supabase
         async function loadCustomers() {
             try {
@@ -844,15 +854,26 @@
 
             // Apply search filter
             if (searchTerm) {
-                filteredCustomers = filteredCustomers.filter(customer =>
-                    customer.name.toLowerCase().includes(searchTerm) ||
-                    customer.contact_person.toLowerCase().includes(searchTerm) ||
-                    customer.phone.includes(searchTerm) ||
-                    customer.locations.some(location =>
-                        location.name.toLowerCase().includes(searchTerm) ||
-                        location.address.toLowerCase().includes(searchTerm)
-                    )
-                );
+                filteredCustomers = filteredCustomers.filter(customer => {
+                    const customerName = customer.name?.toLowerCase() || '';
+                    const customerContact = customer.contact_person?.toLowerCase() || '';
+                    const customerPhone = customer.phone || '';
+                    const locations = customer.locations || [];
+
+                    return (
+                        customerName.includes(searchTerm) ||
+                        customerContact.includes(searchTerm) ||
+                        customerPhone.includes(searchTerm) ||
+                        locations.some(location => {
+                            const locationName = location.name?.toLowerCase() || '';
+                            const locationAddress = location.address?.toLowerCase() || '';
+                            return (
+                                locationName.includes(searchTerm) ||
+                                locationAddress.includes(searchTerm)
+                            );
+                        })
+                    );
+                });
             }
 
             // Apply status filter
@@ -1248,7 +1269,10 @@
             const totalCustomers = customers.length;
             const activeCustomers = customers.filter(c => c.status === 'active').length;
             const inactiveCustomers = customers.filter(c => c.status === 'inactive').length;
-            const totalLocations = customers.reduce((sum, customer) => sum + customer.locations.length, 0);
+            const totalLocations = customers.reduce(
+                (sum, customer) => sum + (customer.locations || []).length,
+                0
+            );
 
             document.getElementById('total-customers').textContent = totalCustomers;
             document.getElementById('active-customers').textContent = activeCustomers;
@@ -1338,12 +1362,12 @@
             try {
                 console.log('➕ Adding customer:', customerData.name);
                 
-                // Remove the id field - let database handle it
-                delete customerData.id;
+                const generatedId = customerData.id || generateCustomerPrimaryId();
                 
                 // Don't auto-generate customer_id - user enters it or leaves blank
                 // All fields are optional except name
                 const insertData = {
+                    id: generatedId,
                     customer_id: customerData.customer_id || null,
                     name: customerData.name,
                     contact_person: customerData.contact_person || null,
@@ -1918,6 +1942,7 @@
                     try {
                         // Create customer
                         const customerData = {
+                            id: generateCustomerPrimaryId(),
                             customer_id: row['Customer ID'] || null,
                             name: row['Customer Name'],
                             contact_person: row['Contact Person'] || null,
