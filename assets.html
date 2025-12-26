@@ -491,6 +491,28 @@
         </div>
     </div>
 
+    <!-- Lookup Add New Modal -->
+    <div id="lookup-modal" class="modal">
+        <div class="modal-content" style="max-width: 480px;">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xl font-bold text-gray-900" id="lookup-modal-title">Add New</h2>
+                    <button onclick="closeLookupModal()" class="text-gray-400 hover:text-gray-600 text-2xl">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-6">
+                <label class="block text-sm font-semibold text-gray-700 mb-2" id="lookup-modal-label">Name</label>
+                <input type="text" id="lookup-modal-input" class="form-input" placeholder="Enter value">
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" class="btn btn-secondary" onclick="closeLookupModal()">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveLookupModal()">Add</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Container -->
     <div id="toast-container"></div>
 
@@ -520,6 +542,7 @@
                 return;
             }
             supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            await detectAssetSchema();
             await Promise.all([loadAssets(), loadCustomers(), loadLocations()]);
             setupEventListeners();
             setupDragDrop();
@@ -536,7 +559,7 @@
 
                 const enrichedAssets = await Promise.all((data || []).map(async (asset) => {
                     let customerName = null, locationName = null;
-                    if (asset.customer_id) {
+                    if (assetSchema.hasCustomerId && asset.customer_id) {
                         const { data: customer } = await supabaseClient
                             .from('customers')
                             .select('name')
@@ -615,6 +638,10 @@
                 option.textContent = customer.name;
                 select.appendChild(option);
             });
+            select.disabled = !assetSchema.hasCustomerId;
+            if (!assetSchema.hasCustomerId) {
+                select.innerHTML = '<option value="">Customer field unavailable</option>';
+            }
         }
 
         function updateLocationDropdown(customerId = null) {
@@ -835,11 +862,13 @@
             form.purchase_date.value = asset.purchase_date || '';
             form.purchase_cost.value = asset.purchase_cost || '';
             form.warranty_expiry.value = asset.warranty_expiry || '';
-            form.customer_id.value = asset.customer_id || '';
+            if (assetSchema.hasCustomerId) {
+                form.customer_id.value = asset.customer_id || '';
+            }
             form.location_id.value = asset.location_id || '';
             form.description.value = asset.description || '';
             document.getElementById('edit-asset-id').value = asset.id;
-            if (asset.customer_id) {
+            if (assetSchema.hasCustomerId && asset.customer_id) {
                 updateLocationDropdown(asset.customer_id);
             }
             document.getElementById('wo-tab-button').style.display = 'block';
@@ -966,10 +995,12 @@
                 purchase_date: formData.get('purchase_date') || null,
                 purchase_cost: formData.get('purchase_cost') || null,
                 warranty_expiry: formData.get('warranty_expiry') || null,
-                customer_id: formData.get('customer_id') || null,
                 location_id: formData.get('location_id') || null,
                 description: formData.get('description') || null
             };
+            if (assetSchema.hasCustomerId) {
+                assetData.customer_id = formData.get('customer_id') || null;
+            }
             const assetId = document.getElementById('edit-asset-id').value;
             try {
                 if (assetId) {
@@ -1028,6 +1059,12 @@
             document.getElementById('pm-schedule-type').addEventListener('change', updatePMPreview);
             document.getElementById('pm-interval-days').addEventListener('input', updatePMPreview);
             document.getElementById('last-maintenance').addEventListener('change', updatePMPreview);
+            document.getElementById('lookup-modal-input').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    saveLookupModal();
+                }
+            });
         }
 
         function applyFilters() {
