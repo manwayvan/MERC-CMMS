@@ -1008,6 +1008,7 @@
                     if (error) throw error;
                     showToast('Asset updated successfully', 'success');
                 } else {
+                    assetData.id = generateAssetId();
                     const { error } = await supabaseClient.from('assets').insert([assetData]);
                     if (error) throw error;
                     showToast('Asset created successfully', 'success');
