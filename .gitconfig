@@ -1,3 +1,18 @@
-[user]
-	email = github@emergent.sh
-	name = emergent-agent-e1
+# Default: favor Codex branch during conflicts
+* merge=theirs
+
+# Lock files – never block merges
+package-lock.json merge=ours
+yarn.lock merge=ours
+pnpm-lock.yaml merge=ours
+
+# Generated / build artifacts
+dist/** merge=ours
+build/** merge=ours
+coverage/** merge=ours
+
+# Snapshots / tests
+*.snap merge=ours
+
+# Markdown and docs
+*.md merge=theirs
