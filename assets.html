@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Asset Management - MERC-CMMS Enterprise</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
@@ -382,6 +382,90 @@
                 Add Your First Asset
             </button>
         </div>
+
+        <!-- Asset Program Overview -->
+        <section class="mt-12 bg-white rounded-2xl shadow-md p-8">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-sitemap text-blue-600 text-xl"></i>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-900">Asset Program Overview</h2>
+                    <p class="text-gray-600">Clarify preventive maintenance, labor, work orders, vendors, and inventory requirements.</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="border border-gray-200 rounded-xl p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3">Preventive Maintenance (PM)</h3>
+                    <p class="text-gray-600 mb-4">
+                        Performed regularly based on calendar time or runtime (see Equipment Management). Generate work
+                        orders with procedures, task details, parts, tools, and labor.
+                    </p>
+                    <ul class="space-y-2 text-gray-700 text-sm">
+                        <li><i class="fas fa-check text-blue-500 mr-2"></i>Priority and frequency settings.</li>
+                        <li><i class="fas fa-check text-blue-500 mr-2"></i>Calendar (weekly, monthly, seasonal) or runtime (miles, hours).</li>
+                        <li><i class="fas fa-check text-blue-500 mr-2"></i>Parts with required quantities and labor by craft category.</li>
+                        <li><i class="fas fa-check text-blue-500 mr-2"></i>Outside contractor support and equipment-module links.</li>
+                    </ul>
+                    <div class="mt-4 text-xs text-gray-500">
+                        Tables: pm, pm_step, pm_dependency, pm_comment, pm_tool, pm_audit, pm_part, pm_meter,
+                        pm_safety, pm_downtime, pm_season, pm_labor, pm_asset, pm_doc
+                    </div>
+                </div>
+
+                <div class="border border-gray-200 rounded-xl p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3">Labor</h3>
+                    <p class="text-gray-600 mb-4">
+                        Manage hourly wage rates, overtime accommodations, and craft codes for maintenance teams.
+                    </p>
+                    <ul class="space-y-2 text-gray-700 text-sm">
+                        <li><i class="fas fa-check text-blue-500 mr-2"></i>Categories: shift, vacation, sick.</li>
+                        <li><i class="fas fa-check text-blue-500 mr-2"></i>Labor reports by account, employee, period, and equipment.</li>
+                        <li><i class="fas fa-check text-blue-500 mr-2"></i>Productivity reporting (estimated vs. actual hours).</li>
+                    </ul>
+                </div>
+
+                <div class="border border-gray-200 rounded-xl p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3">Work Order System (WO)</h3>
+                    <p class="text-gray-600 mb-4">
+                        Stores preventive and corrective plans, including emergency and scheduled work. Supports
+                        departmental requests, priorities, and user-defined categories and codes.
+                    </p>
+                    <ul class="space-y-2 text-gray-700 text-sm">
+                        <li><i class="fas fa-check text-blue-500 mr-2"></i>Status, failure, action, labor, and material tracking.</li>
+                        <li><i class="fas fa-check text-blue-500 mr-2"></i>Downtime tracking (planned vs. unplanned).</li>
+                        <li><i class="fas fa-check text-blue-500 mr-2"></i>Cost summaries, backlog planning, and RIF-based scheduling.</li>
+                    </ul>
+                    <div class="mt-4 text-xs text-gray-500">
+                        Tables: workorder, wo_step, wo_labor, wo_sched_labor, wo_part, wo_comment, wo_semaphor,
+                        wo_attachment, wo_meter, wo_tool, wo_status_log, wo_safety, wo_doc, wo_generation,
+                        wo_planned_downtime, wo_planned_part, wo_planned_labor, wo_planned_tool
+                    </div>
+                </div>
+
+                <div class="border border-gray-200 rounded-xl p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3">Vendor & Inventory</h3>
+                    <div class="space-y-4 text-sm text-gray-700">
+                        <div>
+                            <p class="font-semibold text-gray-900 mb-1">Vendor</p>
+                            <p>Reports: label printing, contact reports, and cost variance.</p>
+                        </div>
+                        <div>
+                            <p class="font-semibold text-gray-900 mb-1">Inventory</p>
+                            <p>
+                                User-defined reorder points, purchasing, EOQ/ROP modeling, item transactions,
+                                descriptions, and substitutes.
+                            </p>
+                            <div class="mt-2 text-xs text-gray-500">
+                                Tables: inventory, in_tran, in_vendor, in_comment, in_type, in_doc, in_reserved,
+                                in_audit, in_location, in_trans_worksheet, in_stock
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
     </main>
 
     <!-- Add/Edit Asset Modal -->
@@ -571,7 +655,7 @@
         const SUPABASE_URL = 'https://hmdemsbqiqlqcggwblvl.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhtZGVtc2JxaXFscWNnZ3dibHZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY4OTI0NDEsImV4cCI6MjA1MjQ2ODQ0MX0.M4jPVy_rFPJGnq5iU3oXJMnDCvN0yxgvjKZBHa9t8nQ';
 
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        let supabaseClient;
 
         // Global State
         let allAssets = [];
@@ -580,14 +664,57 @@
         let locations = [];
         let currentEditingAsset = null;
 
+        async function ensureSupabaseLoaded() {
+            if (window.supabase) {
+                return window.supabase;
+            }
+
+            return new Promise((resolve, reject) => {
+                const existingScript = document.querySelector('script[src*=\"supabase-js\"]');
+                if (existingScript) {
+                    if (window.supabase) {
+                        resolve(window.supabase);
+                        return;
+                    }
+                    existingScript.addEventListener('load', () => resolve(window.supabase));
+                    existingScript.addEventListener('error', () => reject(new Error('Supabase library failed to load')));
+                    return;
+                }
+
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+                script.async = true;
+                script.dataset.supabaseLoader = 'true';
+                script.onload = () => resolve(window.supabase);
+                script.onerror = () => reject(new Error('Supabase library failed to load'));
+                document.head.appendChild(script);
+            });
+        }
+
         // Initialize Application
         document.addEventListener('DOMContentLoaded', async () => {
-            await Promise.all([
-                loadAssets(),
-                loadCustomers(),
-                loadLocations()
-            ]);
-            setupEventListeners();
+            try {
+                const supabaseLib = await ensureSupabaseLoaded();
+                if (!supabaseLib) {
+                    throw new Error('Supabase library not available');
+                }
+                supabaseClient = supabaseLib.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+                await Promise.all([
+                    loadAssets(),
+                    loadCustomers(),
+                    loadLocations()
+                ]);
+            } catch (error) {
+                console.warn('Supabase initialization failed:', error);
+                showToast('Supabase library not loaded. Please check your connection.', 'warning');
+                allAssets = [];
+                filteredAssets = [];
+                renderAssets();
+                showLoading(false);
+            } finally {
+                setupEventListeners();
+            }
         });
 
         // Load Assets
@@ -596,7 +723,11 @@
                 showLoading(true);
                 console.log('🔄 Loading assets from Supabase...');
 
-                const { data, error } = await supabase
+                if (!supabaseClient) {
+                    throw new Error('Supabase client not initialized');
+                }
+
+                const { data, error } = await supabaseClient
                     .from('assets')
                     .select(`
                         *,
@@ -620,6 +751,7 @@
                 showToast(`Failed to load assets: ${error.message}`, 'error');
                 allAssets = [];
                 filteredAssets = [];
+                renderAssets();
             } finally {
                 showLoading(false);
             }
@@ -628,7 +760,11 @@
         // Load Customers
         async function loadCustomers() {
             try {
-                const { data, error } = await supabase
+                if (!supabaseClient) {
+                    return;
+                }
+
+                const { data, error } = await supabaseClient
                     .from('customers')
                     .select('id, name')
                     .eq('status', 'active')
@@ -646,7 +782,11 @@
         // Load Locations
         async function loadLocations() {
             try {
-                const { data, error } = await supabase
+                if (!supabaseClient) {
+                    return;
+                }
+
+                const { data, error } = await supabaseClient
                     .from('locations')
                     .select('id, name, customer_id')
                     .eq('status', 'active')
@@ -1043,7 +1183,7 @@
             }
 
             try {
-                const { error } = await supabase
+                const { error } = await supabaseClient
                     .from('assets')
                     .delete()
                     .eq('id', assetId);
@@ -1087,7 +1227,7 @@
             try {
                 if (assetId) {
                     // Update existing asset
-                    const { error } = await supabase
+                    const { error } = await supabaseClient
                         .from('assets')
                         .update(assetData)
                         .eq('id', assetId);
@@ -1096,7 +1236,7 @@
                     showToast('Asset updated successfully', 'success');
                 } else {
                     // Create new asset
-                    const { error } = await supabase
+                    const { error } = await supabaseClient
                         .from('assets')
                         .insert([assetData]);
 
