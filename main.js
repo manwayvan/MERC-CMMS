@@ -787,11 +787,12 @@ const assetManager = new AssetManager();
 // Work Order Management Functions
 const WorkOrderManager = {
     // Initialize work order management
-    init: () => {
+    init: async () => {
         AppState.workOrders = MockData.generateWorkOrders();
         WorkOrderManager.renderWorkOrders();
         WorkOrderManager.renderRecentWorkOrders();
         WorkOrderManager.setupEventListeners();
+        await WorkOrderManager.loadWorkOrderTypes();
     },
 
     // Render work orders in kanban board
@@ -1081,7 +1082,8 @@ async function initApp() {
         assetManager.loadAssets();
         assetManager.setupEventListeners();
     } else if (AppState.currentPage === 'workorders') {
-        WorkOrderManager.init();
+        await loadSupabaseClient();
+        await WorkOrderManager.init();
     } else if (AppState.currentPage === 'customers') {
         initCustomerPage();
     }
