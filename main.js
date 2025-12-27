@@ -788,63 +788,11 @@ const assetManager = new AssetManager();
 const WorkOrderManager = {
     // Initialize work order management
     init: async () => {
-        await WorkOrderManager.loadWorkOrders();
+        AppState.workOrders = MockData.generateWorkOrders();
         WorkOrderManager.renderWorkOrders();
         WorkOrderManager.renderRecentWorkOrders();
         WorkOrderManager.setupEventListeners();
         await WorkOrderManager.loadWorkOrderTypes();
-    },
-
-    loadWorkOrders: async () => {
-        if (!supabaseClient) {
-            AppState.workOrders = MockData.generateWorkOrders();
-            showToast('Database unavailable, using demo work orders.', 'warning');
-            return;
-        }
-
-        const { data, error } = await supabaseClient
-            .from('work_orders')
-            .select('id, asset_id, type, priority, status, assigned_to, due_date, created_date, completed_date, estimated_hours, actual_hours, description')
-            .order('created_date', { ascending: false });
-
-        if (error) {
-            console.error('Error loading work orders:', error);
-            AppState.workOrders = MockData.generateWorkOrders();
-            showToast('Database error, using demo work orders.', 'warning');
-            return;
-        }
-
-        AppState.workOrders = (data || []).map((row) => ({
-            id: row.id,
-            asset_id: row.asset_id,
-            type: row.type,
-            priority: row.priority,
-            status: row.status,
-            technician: row.assigned_to ? row.assigned_to.slice(0, 8) : 'Unassigned',
-            due_date: row.due_date,
-            created_date: row.created_date,
-            completed_date: row.completed_date,
-            estimated_hours: row.estimated_hours ?? 0,
-            actual_hours: row.actual_hours ?? 0,
-            description: row.description ?? ''
-        }));
-    },
-
-    formatWorkOrderType: (type) => {
-        if (!type) return '';
-        return type
-            .replace(/_/g, ' ')
-            .split(' ')
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(' ');
-    },
-
-    toDatabaseWorkOrderType: (type) => {
-        if (!type) return '';
-        return type
-            .trim()
-            .toLowerCase()
-            .replace(/\s+/g, '_');
     },
 
     // Render work orders in kanban board
@@ -946,74 +894,10 @@ const WorkOrderManager = {
     setupEventListeners: () => {
         const createForm = document.getElementById('create-workorder-form');
         if (createForm) {
-            createForm.addEventListener('submit', async (event) => {
+            createForm.addEventListener('submit', (event) => {
                 event.preventDefault();
-                const assetSelect = document.getElementById('workorder-asset-select');
-                const typeSelect = document.getElementById('workorder-type-select');
-                const prioritySelect = document.getElementById('workorder-priority-select');
-                const dueDateInput = createForm.querySelector('input[type="date"]');
-                const estimatedHoursInput = createForm.querySelector('input[type="number"]');
-                const descriptionInput = createForm.querySelector('textarea');
-
-                const assetValue = assetSelect?.value || '';
-                const assetId = assetValue.includes(' - ') ? assetValue.split(' - ')[0] : assetValue;
-                const workOrderType = typeSelect?.value || '';
-                const priority = prioritySelect?.value || 'medium';
-                const dueDate = dueDateInput?.value;
-                const estimatedHours = estimatedHoursInput?.value ? Number(estimatedHoursInput.value) : null;
-                const description = descriptionInput?.value?.trim();
-
-                if (!assetId || !workOrderType || !dueDate || !description) {
-                    showToast('Please complete asset, type, due date, and description.', 'warning');
-                    return;
-                }
-
-                if (!supabaseClient) {
-                    hideCreateWorkOrderModal();
-                    showToast('Database unavailable, saved locally in demo mode.', 'warning');
-                    return;
-                }
-
-                const payload = {
-                    asset_id: assetId,
-                    type: workOrderType,
-                    priority,
-                    due_date: dueDate,
-                    estimated_hours: estimatedHours,
-                    description
-                };
-
-                const { data, error } = await supabaseClient
-                    .from('work_orders')
-                    .insert(payload)
-                    .select('id, asset_id, type, priority, status, assigned_to, due_date, created_date, completed_date, estimated_hours, actual_hours, description')
-                    .single();
-
-                if (error) {
-                    console.error('Error creating work order:', error);
-                    showToast('Unable to create work order.', 'error');
-                    return;
-                }
-
-                AppState.workOrders.unshift({
-                    id: data.id,
-                    asset_id: data.asset_id,
-                    type: data.type,
-                    priority: data.priority,
-                    status: data.status,
-                    technician: data.assigned_to ? data.assigned_to.slice(0, 8) : 'Unassigned',
-                    due_date: data.due_date,
-                    created_date: data.created_date,
-                    completed_date: data.completed_date,
-                    estimated_hours: data.estimated_hours ?? 0,
-                    actual_hours: data.actual_hours ?? 0,
-                    description: data.description ?? ''
-                });
-
-                WorkOrderManager.renderWorkOrders();
-                WorkOrderManager.renderRecentWorkOrders();
                 hideCreateWorkOrderModal();
-                showToast('Work order created successfully.', 'success');
+                showToast('Work order created (demo mode).', 'success');
             });
         }
 
@@ -1031,55 +915,6 @@ const WorkOrderManager = {
                 hideCreateWorkOrderModal();
             }
         });
-    },
-
-    loadWorkOrderTypes: async () => {
-        const typeSelect = document.getElementById('workorder-type-select');
-        if (!typeSelect) return;
-
-        const defaultTypes = [
-            'preventive_maintenance',
-            'corrective_maintenance',
-            'inspection',
-            'calibration',
-            'installation',
-            'repair'
-        ];
-
-        const applyTypes = (types) => {
-            const existingValue = typeSelect.value;
-            typeSelect.innerHTML = '<option value=\"\">Select type</option>';
-            types.forEach((type) => {
-                const option = document.createElement('option');
-                option.value = type;
-                option.textContent = WorkOrderManager.formatWorkOrderType(type);
-                typeSelect.appendChild(option);
-            });
-            typeSelect.value = types.includes(existingValue) ? existingValue : '';
-        };
-
-        if (!supabaseClient) {
-            applyTypes(defaultTypes);
-            showToast('Database unavailable, using default work order types.', 'warning');
-            return;
-        }
-
-        const { data, error } = await supabaseClient
-            .from('work_orders')
-            .select('type');
-
-        if (error) {
-            console.error('Error loading work order types:', error);
-            applyTypes(defaultTypes);
-            showToast('Unable to load work order types, using defaults.', 'warning');
-            return;
-        }
-
-        const types = Array.from(
-            new Set((data || []).map((row) => WorkOrderManager.toDatabaseWorkOrderType(row.type)).filter(Boolean))
-        );
-
-        applyTypes(types.length ? types : defaultTypes);
     },
 
     // View work order
