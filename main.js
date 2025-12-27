@@ -917,48 +917,6 @@ const WorkOrderManager = {
         });
     },
 
-    loadWorkOrderTypes: async () => {
-        const typeSelect = document.getElementById('workorder-type-select');
-        if (!typeSelect) return;
-
-        const defaultTypes = ['Preventive Maintenance', 'Corrective Maintenance', 'Inspection', 'Calibration'];
-
-        const applyTypes = (types) => {
-            const existingValue = typeSelect.value;
-            typeSelect.innerHTML = '<option value=\"\">Select type</option>';
-            types.forEach((type) => {
-                const option = document.createElement('option');
-                option.value = type;
-                option.textContent = type;
-                typeSelect.appendChild(option);
-            });
-            typeSelect.value = types.includes(existingValue) ? existingValue : '';
-        };
-
-        if (!supabaseClient) {
-            applyTypes(defaultTypes);
-            showToast('Database unavailable, using default work order types.', 'warning');
-            return;
-        }
-
-        const { data, error } = await supabaseClient
-            .from('work_orders')
-            .select('type');
-
-        if (error) {
-            console.error('Error loading work order types:', error);
-            applyTypes(defaultTypes);
-            showToast('Unable to load work order types, using defaults.', 'warning');
-            return;
-        }
-
-        const types = Array.from(
-            new Set((data || []).map((row) => row.type).filter(Boolean))
-        );
-
-        applyTypes(types.length ? types : defaultTypes);
-    },
-
     // View work order
     viewWorkOrder: (workOrderId) => {
         showToast('Viewing work order details', 'info');
