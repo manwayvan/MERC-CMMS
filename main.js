@@ -891,7 +891,29 @@ const WorkOrderManager = {
 
     // Setup event listeners
     setupEventListeners: () => {
-        // Add event listeners for work order actions
+        const createForm = document.getElementById('create-workorder-form');
+        if (createForm) {
+            createForm.addEventListener('submit', (event) => {
+                event.preventDefault();
+                hideCreateWorkOrderModal();
+                showToast('Work order created (demo mode).', 'success');
+            });
+        }
+
+        const createModal = document.getElementById('create-workorder-modal');
+        if (createModal) {
+            createModal.addEventListener('click', (event) => {
+                if (event.target === createModal) {
+                    hideCreateWorkOrderModal();
+                }
+            });
+        }
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                hideCreateWorkOrderModal();
+            }
+        });
     },
 
     // View work order
@@ -967,7 +989,11 @@ function hideLocationModal() {
 }
 
 function showCreateWorkOrderModal() {
-    showToast('Work order creation is coming soon.', 'info');
+    openModal('create-workorder-modal');
+}
+
+function hideCreateWorkOrderModal() {
+    closeModal('create-workorder-modal');
 }
 
 function showCustomReportModal() {
