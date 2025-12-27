@@ -787,11 +787,12 @@ const assetManager = new AssetManager();
 // Work Order Management Functions
 const WorkOrderManager = {
     // Initialize work order management
-    init: () => {
+    init: async () => {
         AppState.workOrders = MockData.generateWorkOrders();
         WorkOrderManager.renderWorkOrders();
         WorkOrderManager.renderRecentWorkOrders();
         WorkOrderManager.setupEventListeners();
+        await WorkOrderManager.loadWorkOrderTypes();
     },
 
     // Render work orders in kanban board
@@ -891,7 +892,71 @@ const WorkOrderManager = {
 
     // Setup event listeners
     setupEventListeners: () => {
-        // Add event listeners for work order actions
+        const createForm = document.getElementById('create-workorder-form');
+        if (createForm) {
+            createForm.addEventListener('submit', (event) => {
+                event.preventDefault();
+                hideCreateWorkOrderModal();
+                showToast('Work order created (demo mode).', 'success');
+            });
+        }
+
+        const createModal = document.getElementById('create-workorder-modal');
+        if (createModal) {
+            createModal.addEventListener('click', (event) => {
+                if (event.target === createModal) {
+                    hideCreateWorkOrderModal();
+                }
+            });
+        }
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                hideCreateWorkOrderModal();
+            }
+        });
+    },
+
+    loadWorkOrderTypes: async () => {
+        const typeSelect = document.getElementById('workorder-type-select');
+        if (!typeSelect) return;
+
+        const defaultTypes = ['Preventive Maintenance', 'Corrective Maintenance', 'Inspection', 'Calibration'];
+
+        const applyTypes = (types) => {
+            const existingValue = typeSelect.value;
+            typeSelect.innerHTML = '<option value=\"\">Select type</option>';
+            types.forEach((type) => {
+                const option = document.createElement('option');
+                option.value = type;
+                option.textContent = type;
+                typeSelect.appendChild(option);
+            });
+            typeSelect.value = types.includes(existingValue) ? existingValue : '';
+        };
+
+        if (!supabaseClient) {
+            applyTypes(defaultTypes);
+            showToast('Database unavailable, using default work order types.', 'warning');
+            return;
+        }
+
+        const { data, error } = await supabaseClient
+            .from('work_orders')
+            .select('type');
+
+        if (error) {
+            console.error('Error loading work order types:', error);
+            applyTypes(defaultTypes);
+            showToast('Unable to load work order types, using defaults.', 'warning');
+            return;
+        }
+
+        const types = Array.from(
+            new Set((data || []).map((row) => row.type).filter(Boolean))
+        );
+
+        applyTypes(types.length ? types : defaultTypes);
     },
 
     // View work order
@@ -967,7 +1032,11 @@ function hideLocationModal() {
 }
 
 function showCreateWorkOrderModal() {
-    showToast('Work order creation is coming soon.', 'info');
+    openModal('create-workorder-modal');
+}
+
+function hideCreateWorkOrderModal() {
+    closeModal('create-workorder-modal');
 }
 
 function showCustomReportModal() {
@@ -1055,7 +1124,8 @@ async function initApp() {
         assetManager.loadAssets();
         assetManager.setupEventListeners();
     } else if (AppState.currentPage === 'workorders') {
-        WorkOrderManager.init();
+        await loadSupabaseClient();
+        await WorkOrderManager.init();
     } else if (AppState.currentPage === 'customers') {
         initCustomerPage();
     }
