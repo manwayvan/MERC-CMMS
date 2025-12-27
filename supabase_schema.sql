@@ -329,7 +329,6 @@ CREATE POLICY "Allow authenticated read access" ON public.system_settings FOR SE
 -- Optional public read access for unauthenticated front-end views
 CREATE POLICY "Allow public read access" ON public.assets FOR SELECT USING (auth.role() IN ('anon', 'authenticated'));
 CREATE POLICY "Allow public read access" ON public.work_orders FOR SELECT USING (auth.role() IN ('anon', 'authenticated'));
-CREATE POLICY "Allow public read access" ON public.user_profiles FOR SELECT USING (auth.role() IN ('anon', 'authenticated'));
 
 -- Allow authenticated users to insert/update/delete (customize for production)
 CREATE POLICY "Allow authenticated write access" ON public.customers FOR ALL USING (auth.role() = 'authenticated');
