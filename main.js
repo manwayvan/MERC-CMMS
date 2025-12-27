@@ -818,7 +818,7 @@ const WorkOrderManager = {
                             ${wo.priority.toUpperCase()}
                         </span>
                     </div>
-                    <p class="text-sm text-slate-600 mb-2">${wo.type}</p>
+                    <p class="text-sm text-slate-600 mb-2">${WorkOrderManager.formatWorkOrderType(wo.type)}</p>
                     <p class="text-xs text-slate-500 mb-3">Asset: ${wo.asset_id}</p>
                     <div class="flex justify-between items-center">
                         <div class="flex items-center">
@@ -862,7 +862,7 @@ const WorkOrderManager = {
             <tr class="border-b border-slate-100 hover:bg-slate-50">
                 <td class="py-3 px-4 text-sm font-medium text-slate-900">${wo.id}</td>
                 <td class="py-3 px-4 text-sm text-slate-600">${wo.asset_id}</td>
-                <td class="py-3 px-4 text-sm text-slate-600">${wo.type}</td>
+                <td class="py-3 px-4 text-sm text-slate-600">${WorkOrderManager.formatWorkOrderType(wo.type)}</td>
                 <td class="py-3 px-4">
                     <span class="text-xs px-2 py-1 rounded-full ${WorkOrderManager.getPriorityColor(wo.priority)}">
                         ${wo.priority.toUpperCase()}
