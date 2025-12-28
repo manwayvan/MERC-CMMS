@@ -1270,6 +1270,9 @@
         document.getElementById('asset-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new FormData(e.target);
+            const categoryId = formData.get('category_id');
+            const manufacturerId = formData.get('manufacturer_id');
+            const modelId = formData.get('model_id');
             const assetData = {
                 name: formData.get('name'),
                 category_id: formData.get('category_id'),
@@ -1314,6 +1317,14 @@
                 showToast(`Failed to save asset: ${error.message}`, 'error');
             }
         });
+
+        function getSelectOptionText(selectId) {
+            const select = document.getElementById(selectId);
+            if (!select) return '';
+            const option = select.selectedOptions?.[0];
+            if (!option || !select.value) return '';
+            return option.textContent?.trim() || '';
+        }
 
         document.getElementById('pm-schedule-form').addEventListener('submit', async (e) => {
             e.preventDefault();
