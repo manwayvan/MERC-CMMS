@@ -366,7 +366,17 @@ const ChartManager = {
 
     // Initialize work order page charts
     initWorkOrderCharts: () => {
-        const performanceChart = echarts.init(document.getElementById('technician-performance-chart'));
+        if (!window.echarts) {
+            console.warn('ECharts unavailable: skipping work order charts.');
+            return;
+        }
+
+        const chartEl = document.getElementById('technician-performance-chart');
+        if (!chartEl) {
+            return;
+        }
+
+        const performanceChart = echarts.init(chartEl);
         const performanceOption = {
             tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
             legend: { data: ['Completed', 'In Progress', 'Overdue'] },
