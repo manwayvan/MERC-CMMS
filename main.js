@@ -169,6 +169,36 @@ const MockData = {
     }
 };
 
+const DefaultWorkOrderTypes = [
+    { code: 'preventive_maintenance', label: 'Preventive Maintenance', description: 'Scheduled maintenance tasks', sort_order: 1 },
+    { code: 'corrective_maintenance', label: 'Corrective Maintenance', description: 'Unplanned repairs and fixes', sort_order: 2 },
+    { code: 'inspection', label: 'Inspection', description: 'Safety and compliance inspections', sort_order: 3 },
+    { code: 'calibration', label: 'Calibration', description: 'Calibration and verification', sort_order: 4 },
+    { code: 'installation', label: 'Installation', description: 'New equipment install work', sort_order: 5 },
+    { code: 'repair', label: 'Repair', description: 'Component replacement or repair', sort_order: 6 }
+];
+
+async function fetchWorkOrderTypes() {
+    if (!supabaseClient) {
+        return null;
+    }
+
+    const { data, error } = await supabaseClient
+        .from('work_order_types')
+        .select('id, code, label, description, is_active, sort_order')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true })
+        .order('label', { ascending: true });
+
+    if (error) {
+        console.error('Error loading work order types:', error);
+        showToast('Unable to load work order types from database.', 'warning');
+        return null;
+    }
+
+    return data || [];
+}
+
 // Chart Initialization and Management
 const ChartManager = {
     charts: {},
@@ -1332,6 +1362,27 @@ function showToast(message, type = 'info') {
     }, 4000);
 }
 
+function switchTab(tabId) {
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    tabButtons.forEach(button => {
+        button.classList.toggle('active', button.dataset.tab === tabId);
+    });
+
+    tabContents.forEach(content => {
+        const isActive = content.id === tabId;
+        content.classList.toggle('active', isActive);
+        content.style.display = isActive ? 'block' : 'none';
+    });
+}
+
+function toggleSetting(toggleButton) {
+    if (!toggleButton) return;
+    const isActive = toggleButton.classList.toggle('active');
+    toggleButton.setAttribute('aria-checked', String(isActive));
+}
+
 function showComingSoon() {
     showToast('This feature is coming soon.', 'info');
 }
@@ -1461,6 +1512,9 @@ async function initApp() {
     } else if (AppState.currentPage === 'workorders') {
         await loadSupabaseClient();
         await WorkOrderManager.init();
+    } else if (AppState.currentPage === 'settings') {
+        await loadSupabaseClient();
+        await SettingsManager.init();
     } else if (AppState.currentPage === 'customers') {
         initCustomerPage();
     }
