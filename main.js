@@ -786,6 +786,7 @@ const assetManager = new AssetManager();
 
 // Work Order Management Functions
 const WorkOrderManager = {
+    pendingAssetId: null,
     // Initialize work order management
     init: async () => {
         AppState.workOrders = MockData.generateWorkOrders();
