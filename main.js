@@ -1508,7 +1508,7 @@ async function initApp() {
     if (AppState.currentPage === 'assets') {
         await loadSupabaseClient();
         assetManager.loadAssets();
-        assetManager.setupEventListeners();
+        assetManager.setupEventLuisteners();
     } else if (AppState.currentPage === 'workorders') {
         await loadSupabaseClient();
         await WorkOrderManager.init();
