@@ -342,19 +342,37 @@
                             <input type="text" name="name" required class="form-input" placeholder="e.g., MRI Scanner">
                         </div>
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Category *</label>
-                            <input type="text" name="category" id="category-input" list="category-list" required class="form-input" placeholder="Start typing to select or add">
-                            <datalist id="category-list"></datalist>
+                            <div class="flex items-center justify-between mb-2">
+                                <label class="block text-sm font-semibold text-gray-700">Category *</label>
+                                <button type="button" id="add-category-btn" class="text-sm font-semibold text-blue-600 hover:text-blue-700" onclick="addNewLookup('categories', 'Category')">
+                                    <i class="fas fa-plus mr-1"></i>Add
+                                </button>
+                            </div>
+                            <select name="category_id" id="category-select" required class="form-input">
+                                <option value="">Select Category</option>
+                            </select>
                         </div>
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Manufacturer *</label>
-                            <input type="text" name="manufacturer" list="manufacturer-list" required class="form-input" placeholder="Start typing to select or add">
-                            <datalist id="manufacturer-list"></datalist>
+                            <div class="flex items-center justify-between mb-2">
+                                <label class="block text-sm font-semibold text-gray-700">Manufacturer *</label>
+                                <button type="button" id="add-manufacturer-btn" class="text-sm font-semibold text-blue-600 hover:text-blue-700" onclick="addNewLookup('manufacturers', 'Manufacturer')">
+                                    <i class="fas fa-plus mr-1"></i>Add
+                                </button>
+                            </div>
+                            <select name="manufacturer_id" id="manufacturer-select" required class="form-input" disabled>
+                                <option value="">Select Manufacturer</option>
+                            </select>
                         </div>
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Model *</label>
-                            <input type="text" name="model" list="model-list" required class="form-input" placeholder="Start typing to select or add">
-                            <datalist id="model-list"></datalist>
+                            <div class="flex items-center justify-between mb-2">
+                                <label class="block text-sm font-semibold text-gray-700">Model *</label>
+                                <button type="button" id="add-model-btn" class="text-sm font-semibold text-blue-600 hover:text-blue-700" onclick="addNewLookup('models', 'Model')">
+                                    <i class="fas fa-plus mr-1"></i>Add
+                                </button>
+                            </div>
+                            <select name="model_id" id="model-select" required class="form-input" disabled>
+                                <option value="">Select Model</option>
+                            </select>
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Serial Number *</label>
@@ -563,9 +581,15 @@
         let locations = [];
         let currentAsset = null;
         let csvData = null;
-        let assetLookups = { categories: [], manufacturers: [], models: [] };
         let assetSchema = { hasCustomerId: true };
-        let lookupContext = { type: null, label: null };
+        let referenceData = { categories: [], manufacturers: [], models: [] };
+        let referenceMaps = {
+            categoriesById: new Map(),
+            manufacturersById: new Map(),
+            modelsById: new Map()
+        };
+        let lookupContext = { type: null, label: null, parentId: null };
+        let canManageReferenceData = null;
 
         document.addEventListener('DOMContentLoaded', async () => {
             const mobileMenuButton = document.getElementById('mobile-menu-button');
@@ -582,6 +606,7 @@
             }
             supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             await detectAssetSchema();
+            await loadReferenceData();
             await Promise.all([loadAssets(), loadCustomers(), loadLocations()]);
             setupEventListeners();
             setupDragDrop();
@@ -601,6 +626,52 @@
                 console.warn('Unable to detect asset schema, disabling customer field.', error);
                 assetSchema.hasCustomerId = false;
             }
+        }
+
+        async function detectReferenceAccess() {
+            try {
+                if (!supabaseClient.auth?.getUser) {
+                    canManageReferenceData = null;
+                    return;
+                }
+                const { data, error } = await supabaseClient.auth.getUser();
+                if (error) throw error;
+                canManageReferenceData = data?.user ? true : null;
+            } catch (error) {
+                console.warn('Unable to detect reference access.', error);
+                canManageReferenceData = null;
+            }
+        }
+
+        async function loadReferenceData() {
+            try {
+                await detectReferenceAccess();
+                const [{ data: categories, error: categoryError }, { data: manufacturers, error: manufacturerError }, { data: models, error: modelError }] = await Promise.all([
+                    supabaseClient.from('device_categories').select('id, name').order('name'),
+                    supabaseClient.from('device_makes').select('id, name, category_id').order('name'),
+                    supabaseClient.from('device_models').select('id, name, make_id').order('name')
+                ]);
+                if (categoryError) throw categoryError;
+                if (manufacturerError) throw manufacturerError;
+                if (modelError) throw modelError;
+                referenceData = {
+                    categories: categories || [],
+                    manufacturers: manufacturers || [],
+                    models: models || []
+                };
+                buildReferenceMaps();
+                refreshReferenceLookups();
+                updateReferenceActionState();
+            } catch (error) {
+                console.error('Error loading reference data:', error);
+                showToast(`Failed to load reference data: ${error.message}`, 'error');
+            }
+        }
+
+        function buildReferenceMaps() {
+            referenceMaps.categoriesById = new Map(referenceData.categories.map(category => [category.id, category]));
+            referenceMaps.manufacturersById = new Map(referenceData.manufacturers.map(manufacturer => [manufacturer.id, manufacturer]));
+            referenceMaps.modelsById = new Map(referenceData.models.map(model => [model.id, model]));
         }
 
         async function loadAssets() {
@@ -639,7 +710,6 @@
 
                 allAssets = enrichedAssets;
                 filteredAssets = [...allAssets];
-                refreshAssetLookups();
                 updateStatistics();
                 renderAssets();
                 showToast(`Loaded ${allAssets.length} assets successfully`, 'success');
@@ -711,57 +781,120 @@
             });
         }
 
-        function refreshAssetLookups() {
-            const categories = new Set();
-            const manufacturers = new Set();
-            const models = new Set();
-            allAssets.forEach(asset => {
-                if (asset.category) categories.add(asset.category);
-                if (asset.manufacturer) manufacturers.add(asset.manufacturer);
-                if (asset.model) models.add(asset.model);
-            });
-            assetLookups = {
-                categories: Array.from(categories).sort((a, b) => a.localeCompare(b)),
-                manufacturers: Array.from(manufacturers).sort((a, b) => a.localeCompare(b)),
-                models: Array.from(models).sort((a, b) => a.localeCompare(b))
-            };
+        function refreshReferenceLookups() {
             updateCategoryFilterOptions();
             updateCategorySelectOptions();
-            updateDatalistOptions('manufacturer-list', assetLookups.manufacturers);
-            updateDatalistOptions('model-list', assetLookups.models);
         }
 
         function updateCategoryFilterOptions() {
             const select = document.getElementById('category-filter');
             const current = select.value;
             select.innerHTML = '<option value="">All Categories</option>';
-            assetLookups.categories.forEach(category => {
+            referenceData.categories.forEach(category => {
                 const option = document.createElement('option');
-                option.value = category;
-                option.textContent = category;
+                option.value = category.id;
+                option.textContent = category.name;
                 select.appendChild(option);
             });
-            if (assetLookups.categories.includes(current)) {
+            if (referenceMaps.categoriesById.has(current)) {
                 select.value = current;
             }
         }
 
         function updateCategorySelectOptions() {
-            updateDatalistOptions('category-list', assetLookups.categories);
+            const select = document.getElementById('category-select');
+            const current = select.value;
+            select.innerHTML = '<option value="">Select Category</option>';
+            referenceData.categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category.id;
+                option.textContent = category.name;
+                select.appendChild(option);
+            });
+            if (referenceMaps.categoriesById.has(current)) {
+                select.value = current;
+            }
+            updateManufacturerOptions(select.value);
         }
 
-        function updateDatalistOptions(listId, values) {
-            const list = document.getElementById(listId);
-            list.innerHTML = '';
-            values.forEach(value => {
+        function updateManufacturerOptions(categoryId, selectedManufacturerId = '') {
+            const select = document.getElementById('manufacturer-select');
+            select.innerHTML = '<option value="">Select Manufacturer</option>';
+            if (!categoryId) {
+                select.disabled = true;
+                updateModelOptions('', '');
+                return;
+            }
+            const manufacturers = referenceData.manufacturers.filter(manufacturer => manufacturer.category_id === categoryId);
+            manufacturers.forEach(manufacturer => {
                 const option = document.createElement('option');
-                option.value = value;
-                list.appendChild(option);
+                option.value = manufacturer.id;
+                option.textContent = manufacturer.name;
+                select.appendChild(option);
+            });
+            select.disabled = false;
+            if (selectedManufacturerId) {
+                select.value = selectedManufacturerId;
+            }
+            updateModelOptions(selectedManufacturerId || select.value);
+        }
+
+        function updateModelOptions(manufacturerId, selectedModelId = '') {
+            const select = document.getElementById('model-select');
+            select.innerHTML = '<option value="">Select Model</option>';
+            if (!manufacturerId) {
+                select.disabled = true;
+                return;
+            }
+            const models = referenceData.models.filter(model => model.make_id === manufacturerId);
+            models.forEach(model => {
+                const option = document.createElement('option');
+                option.value = model.id;
+                option.textContent = model.name;
+                select.appendChild(option);
+            });
+            select.disabled = false;
+            if (selectedModelId) {
+                select.value = selectedModelId;
+            }
+        }
+
+        function updateReferenceActionState() {
+            const buttons = [
+                document.getElementById('add-category-btn'),
+                document.getElementById('add-manufacturer-btn'),
+                document.getElementById('add-model-btn')
+            ];
+            const hasAccess = canManageReferenceData !== false;
+            buttons.forEach(button => {
+                if (!button) return;
+                button.disabled = !hasAccess;
+                button.classList.toggle('opacity-50', !hasAccess);
+                button.classList.toggle('pointer-events-none', !hasAccess);
             });
         }
 
         function addNewLookup(type, label) {
-            lookupContext = { type, label: label || type.slice(0, -1) };
+            if (canManageReferenceData === false) {
+                showToast('You do not have permission to add reference data.', 'warning');
+                return;
+            }
+            let parentId = null;
+            if (type === 'manufacturers') {
+                parentId = document.getElementById('category-select').value;
+                if (!parentId) {
+                    showToast('Select a category before adding a manufacturer.', 'warning');
+                    return;
+                }
+            }
+            if (type === 'models') {
+                parentId = document.getElementById('manufacturer-select').value;
+                if (!parentId) {
+                    showToast('Select a manufacturer before adding a model.', 'warning');
+                    return;
+                }
+            }
+            lookupContext = { type, label: label || type.slice(0, -1), parentId };
             const modal = document.getElementById('lookup-modal');
             const title = document.getElementById('lookup-modal-title');
             const inputLabel = document.getElementById('lookup-modal-label');
@@ -773,46 +906,67 @@
             setTimeout(() => input.focus(), 0);
         }
 
-        function applyLookupValue(type, trimmed) {
-            const list = assetLookups[type] || [];
-            const exists = list.some(item => item.toLowerCase() === trimmed.toLowerCase());
-            if (!exists) {
-                list.push(trimmed);
-                list.sort((a, b) => a.localeCompare(b));
-                assetLookups[type] = list;
-            }
-            if (type === 'categories') {
-                updateCategorySelectOptions();
-                updateCategoryFilterOptions();
-                document.getElementById('category-input').value = trimmed;
-            } else if (type === 'manufacturers') {
-                updateDatalistOptions('manufacturer-list', assetLookups.manufacturers);
-                document.querySelector('input[name="manufacturer"]').value = trimmed;
-            } else if (type === 'models') {
-                updateDatalistOptions('model-list', assetLookups.models);
-                document.querySelector('input[name="model"]').value = trimmed;
-            }
-        }
-        function ensureLookupValue(type, value) {
-            const trimmed = value.trim();
-            if (!trimmed) return;
-            applyLookupValue(type, trimmed);
-        }
-
         function closeLookupModal() {
             document.getElementById('lookup-modal').classList.remove('active');
-            lookupContext = { type: null, label: null };
+            lookupContext = { type: null, label: null, parentId: null };
         }
 
-        function saveLookupModal() {
+        async function saveLookupModal() {
             const input = document.getElementById('lookup-modal-input');
             const value = input.value.trim();
             if (!value || !lookupContext.type) {
                 showToast('Please enter a value to add.', 'warning');
                 return;
             }
-            applyLookupValue(lookupContext.type, value);
-            closeLookupModal();
+            try {
+                const payload = { name: value };
+                let table = '';
+                if (lookupContext.type === 'categories') {
+                    table = 'device_categories';
+                } else if (lookupContext.type === 'manufacturers') {
+                    table = 'device_makes';
+                    payload.category_id = lookupContext.parentId;
+                } else if (lookupContext.type === 'models') {
+                    table = 'device_models';
+                    payload.make_id = lookupContext.parentId;
+                }
+                if (!table) {
+                    showToast('Unknown reference type.', 'error');
+                    return;
+                }
+                const { data, error } = await supabaseClient
+                    .from(table)
+                    .insert([payload])
+                    .select('id, name, category_id, make_id')
+                    .single();
+                if (error) throw error;
+                if (lookupContext.type === 'categories') {
+                    referenceData.categories.push({ id: data.id, name: data.name });
+                    referenceData.categories.sort((a, b) => a.name.localeCompare(b.name));
+                    buildReferenceMaps();
+                    updateCategorySelectOptions();
+                    updateCategoryFilterOptions();
+                    document.getElementById('category-select').value = data.id;
+                } else if (lookupContext.type === 'manufacturers') {
+                    referenceData.manufacturers.push({ id: data.id, name: data.name, category_id: data.category_id });
+                    referenceData.manufacturers.sort((a, b) => a.name.localeCompare(b.name));
+                    buildReferenceMaps();
+                    const categoryId = lookupContext.parentId;
+                    updateManufacturerOptions(categoryId, data.id);
+                    document.getElementById('manufacturer-select').value = data.id;
+                } else if (lookupContext.type === 'models') {
+                    referenceData.models.push({ id: data.id, name: data.name, make_id: data.make_id });
+                    referenceData.models.sort((a, b) => a.name.localeCompare(b.name));
+                    buildReferenceMaps();
+                    const manufacturerId = lookupContext.parentId;
+                    updateModelOptions(manufacturerId, data.id);
+                    document.getElementById('model-select').value = data.id;
+                }
+                closeLookupModal();
+            } catch (error) {
+                console.error('Error saving lookup value:', error);
+                showToast(`Failed to add ${lookupContext.label}: ${error.message}`, 'error');
+            }
         }
 
         function updateStatistics() {
@@ -912,6 +1066,9 @@
             document.getElementById('submit-btn-text').textContent = 'Save Asset';
             document.getElementById('asset-form').reset();
             document.getElementById('edit-asset-id').value = '';
+            updateCategorySelectOptions();
+            document.getElementById('manufacturer-select').disabled = true;
+            document.getElementById('model-select').disabled = true;
             document.getElementById('wo-tab-button').style.display = 'none';
             document.getElementById('pm-tab-button').classList.add('opacity-50', 'pointer-events-none');
             switchTab('details');
@@ -924,9 +1081,14 @@
             document.getElementById('modal-subtitle').textContent = asset.id;
             const form = document.getElementById('asset-form');
             form.name.value = asset.name || '';
-            form.category.value = asset.category || '';
-            form.manufacturer.value = asset.manufacturer || '';
-            form.model.value = asset.model || '';
+            const categoryId = resolveCategoryIdByName(asset.category);
+            const manufacturerId = resolveManufacturerIdByName(asset.manufacturer, categoryId);
+            const modelId = resolveModelIdByName(asset.model, manufacturerId);
+            form.category_id.value = categoryId || '';
+            updateManufacturerOptions(categoryId, manufacturerId);
+            form.manufacturer_id.value = manufacturerId || '';
+            updateModelOptions(manufacturerId, modelId);
+            form.model_id.value = modelId || '';
             form.serial_number.value = asset.serial_number || '';
             form.status.value = asset.status || 'active';
             form.purchase_date.value = asset.purchase_date || '';
@@ -946,6 +1108,30 @@
             await loadAssetWorkOrders(asset.id);
             loadPMSchedule(asset);
             document.getElementById('asset-modal').classList.add('active');
+        }
+
+        function resolveCategoryIdByName(name) {
+            if (!name) return '';
+            const match = referenceData.categories.find(category => category.name.toLowerCase() === name.toLowerCase());
+            return match?.id || '';
+        }
+
+        function resolveManufacturerIdByName(name, categoryId = '') {
+            if (!name) return '';
+            return referenceData.manufacturers.find(manufacturer => {
+                const matchesName = manufacturer.name.toLowerCase() === name.toLowerCase();
+                const matchesCategory = !categoryId || manufacturer.category_id === categoryId;
+                return matchesName && matchesCategory;
+            })?.id || '';
+        }
+
+        function resolveModelIdByName(name, manufacturerId = '') {
+            if (!name) return '';
+            return referenceData.models.find(model => {
+                const matchesName = model.name.toLowerCase() === name.toLowerCase();
+                const matchesManufacturer = !manufacturerId || model.make_id === manufacturerId;
+                return matchesName && matchesManufacturer;
+            })?.id || '';
         }
 
         async function loadAssetWorkOrders(assetId) {
@@ -1071,11 +1257,14 @@
         document.getElementById('asset-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new FormData(e.target);
+            const categoryId = formData.get('category_id');
+            const manufacturerId = formData.get('manufacturer_id');
+            const modelId = formData.get('model_id');
             const assetData = {
                 name: formData.get('name'),
-                category: formData.get('category'),
-                manufacturer: formData.get('manufacturer'),
-                model: formData.get('model'),
+                category: referenceMaps.categoriesById.get(categoryId)?.name || getSelectOptionText('category-select'),
+                manufacturer: referenceMaps.manufacturersById.get(manufacturerId)?.name || getSelectOptionText('manufacturer-select'),
+                model: referenceMaps.modelsById.get(modelId)?.name || getSelectOptionText('model-select'),
                 serial_number: formData.get('serial_number'),
                 status: formData.get('status'),
                 purchase_date: formData.get('purchase_date') || null,
@@ -1115,6 +1304,14 @@
                 showToast(`Failed to save asset: ${error.message}`, 'error');
             }
         });
+
+        function getSelectOptionText(selectId) {
+            const select = document.getElementById(selectId);
+            if (!select) return '';
+            const option = select.selectedOptions?.[0];
+            if (!option || !select.value) return '';
+            return option.textContent?.trim() || '';
+        }
 
         document.getElementById('pm-schedule-form').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -1208,9 +1405,12 @@
             document.getElementById('category-filter').addEventListener('change', applyFilters);
             document.getElementById('status-filter').addEventListener('change', applyFilters);
             document.getElementById('customer-select').addEventListener('change', (e) => updateLocationDropdown(e.target.value));
-            document.getElementById('category-input').addEventListener('blur', (e) => ensureLookupValue('categories', e.target.value));
-            document.querySelector('input[name="manufacturer"]').addEventListener('blur', (e) => ensureLookupValue('manufacturers', e.target.value));
-            document.querySelector('input[name="model"]').addEventListener('blur', (e) => ensureLookupValue('models', e.target.value));
+            document.getElementById('category-select').addEventListener('change', (e) => {
+                updateManufacturerOptions(e.target.value);
+            });
+            document.getElementById('manufacturer-select').addEventListener('change', (e) => {
+                updateModelOptions(e.target.value);
+            });
             document.getElementById('pm-schedule-type').addEventListener('change', updatePMPreview);
             document.getElementById('pm-interval-days').addEventListener('input', updatePMPreview);
             document.getElementById('last-maintenance').addEventListener('change', updatePMPreview);
@@ -1220,9 +1420,10 @@
             const term = document.getElementById('search-input').value.toLowerCase();
             const category = document.getElementById('category-filter').value;
             const status = document.getElementById('status-filter').value;
+            const selectedCategoryName = category ? referenceMaps.categoriesById.get(category)?.name : '';
             filteredAssets = allAssets.filter(a => {
                 const matchesTerm = !term || a.name?.toLowerCase().includes(term) || a.id?.toLowerCase().includes(term);
-                const matchesCat = !category || a.category === category;
+                const matchesCat = !category || (selectedCategoryName && a.category === selectedCategoryName);
                 const matchesStat = !status || a.status === status;
                 return matchesTerm && matchesCat && matchesStat;
             });
