@@ -844,6 +844,79 @@ const WorkOrderManager = {
         WorkOrderManager.renderRecentWorkOrders();
         WorkOrderManager.updateSummaryCounts();
         WorkOrderManager.setupEventListeners();
+        await WorkOrderManager.loadWorkOrderTypes();
+        await WorkOrderManager.loadWorkOrderAssets();
+        WorkOrderManager.updateSupabaseStatus();
+    },
+
+    loadWorkOrders: async () => {
+        if (!supabaseClient) {
+            AppState.workOrders = [];
+            showToast('Supabase connection required to load work orders.', 'error');
+            WorkOrderManager.updateSupabaseStatus('Supabase not connected.');
+            return;
+        }
+
+        const { data, error } = await supabaseClient
+            .from('work_orders')
+            .select('id, asset_id, type, priority, status, assigned_technician_id, due_date, created_date, completed_date, estimated_hours, actual_hours, description')
+            .order('created_date', { ascending: false });
+
+        if (error) {
+            console.error('Error loading work orders:', error);
+            AppState.workOrders = [];
+            showToast('Unable to load work orders from Supabase.', 'error');
+            WorkOrderManager.updateSupabaseStatus('Failed to load work orders.');
+            return;
+        }
+
+        AppState.workOrders = (data || []).map((row) => ({
+            id: row.id,
+            asset_id: row.asset_id,
+            type: row.type,
+            priority: row.priority,
+            status: row.status,
+            technician: WorkOrderManager.getTechnicianLabel(row.assigned_technician_id),
+            due_date: row.due_date,
+            created_date: row.created_date,
+            completed_date: row.completed_date,
+            estimated_hours: row.estimated_hours ?? 0,
+            actual_hours: row.actual_hours ?? 0,
+            description: row.description ?? ''
+        }));
+    },
+
+    formatWorkOrderType: (type) => {
+        if (!type) return '';
+        return type
+            .replace(/_/g, ' ')
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+    },
+
+    getTechnicianLabel: (technicianId) => {
+        if (!technicianId) return 'Unassigned';
+        const label = WorkOrderManager.technicianMap?.get(technicianId);
+        return label || 'Unassigned';
+    },
+    formatDate: (dateValue) => {
+        if (!dateValue) {
+            return '—';
+        }
+        const date = new Date(dateValue);
+        if (Number.isNaN(date.getTime())) {
+            return '—';
+        }
+        return date.toLocaleDateString();
+    },
+
+    toDatabaseWorkOrderType: (type) => {
+        if (!type) return '';
+        return type
+            .trim()
+            .toLowerCase()
+            .replace(/\s+/g, '_');
     },
 
     updateSupabaseStatus: (isAvailable) => {
@@ -1169,32 +1242,23 @@ const WorkOrderManager = {
     },
 
     loadWorkOrderTypes: async () => {
-        const fetchedTypes = await fetchWorkOrderTypes();
-        if (fetchedTypes && fetchedTypes.length) {
-            AppState.workOrderTypes = fetchedTypes.map(type => ({
-                id: type.id,
-                value: type.code,
-                label: type.label,
-                description: type.description || '',
-                sort_order: type.sort_order || 0
-            }));
-        } else {
-            const typeSet = new Map(DefaultWorkOrderTypes.map(type => [type.code, type]));
-            AppState.workOrders.forEach(order => {
-                if (order.type && !typeSet.has(order.type)) {
-                    typeSet.set(order.type, {
-                        code: order.type,
-                        label: WorkOrderManager.formatWorkOrderType(order.type),
-                        description: ''
-                    });
-                }
-            });
-            AppState.workOrderTypes = Array.from(typeSet.values()).map(type => ({
-                value: type.code,
-                label: type.label,
-                description: type.description || ''
-            }));
-        }
+        const baseTypes = [
+            { value: 'preventive_maintenance', label: 'Preventive Maintenance' },
+            { value: 'corrective_maintenance', label: 'Corrective Maintenance' },
+            { value: 'inspection', label: 'Inspection' },
+            { value: 'calibration', label: 'Calibration' },
+            { value: 'installation', label: 'Installation' },
+            { value: 'repair', label: 'Repair' }
+        ];
+
+        const typeSet = new Map(baseTypes.map(type => [type.value, type]));
+        AppState.workOrders.forEach(order => {
+            if (order.type && !typeSet.has(order.type)) {
+                typeSet.set(order.type, { value: order.type, label: WorkOrderManager.formatWorkOrderType(order.type) });
+            }
+        });
+
+        AppState.workOrderTypes = Array.from(typeSet.values());
         WorkOrderManager.populateAssetOptions();
         WorkOrderManager.populateTechnicianOptions();
         WorkOrderManager.populateWorkOrderTypes();
@@ -1247,15 +1311,15 @@ const WorkOrderManager = {
 
     formatWorkOrderType: (type) => {
         if (!type) return 'General';
-        const match = AppState.workOrderTypes.find(item => item.value === type);
-        if (match) {
-            return match.label;
-        }
-        const fallback = DefaultWorkOrderTypes.find(item => item.code === type);
-        if (fallback) {
-            return fallback.label;
-        }
-        return type.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
+        const labelMap = {
+            preventive_maintenance: 'Preventive Maintenance',
+            corrective_maintenance: 'Corrective Maintenance',
+            inspection: 'Inspection',
+            calibration: 'Calibration',
+            installation: 'Installation',
+            repair: 'Repair'
+        };
+        return labelMap[type] || type.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
     },
 
     formatDate: (dateValue) => {
@@ -1263,239 +1327,6 @@ const WorkOrderManager = {
         const parsed = new Date(dateValue);
         if (Number.isNaN(parsed.getTime())) return '--';
         return parsed.toLocaleDateString();
-    }
-};
-
-const SettingsManager = {
-    workOrderTypes: [],
-    editingTypeId: null,
-
-    init: async () => {
-        await SettingsManager.loadWorkOrderTypes();
-        SettingsManager.setupWorkOrderTypeForm();
-    },
-
-    loadWorkOrderTypes: async () => {
-        const fetchedTypes = await fetchWorkOrderTypes();
-        if (fetchedTypes && fetchedTypes.length) {
-            SettingsManager.workOrderTypes = fetchedTypes;
-        } else {
-            SettingsManager.workOrderTypes = DefaultWorkOrderTypes.map(type => ({
-                id: `demo-${type.code}`,
-                code: type.code,
-                label: type.label,
-                description: type.description,
-                is_active: true,
-                sort_order: type.sort_order
-            }));
-        }
-
-        AppState.workOrderTypes = SettingsManager.workOrderTypes.map(type => ({
-            value: type.code,
-            label: type.label,
-            description: type.description || ''
-        }));
-
-        SettingsManager.renderWorkOrderTypes();
-    },
-
-    setupWorkOrderTypeForm: () => {
-        const form = document.getElementById('work-order-type-form');
-        const cancelButton = document.getElementById('work-order-type-cancel');
-        if (form) {
-            form.addEventListener('submit', async (event) => {
-                event.preventDefault();
-                await SettingsManager.handleWorkOrderTypeSave();
-            });
-        }
-
-        if (cancelButton) {
-            cancelButton.addEventListener('click', () => {
-                SettingsManager.resetWorkOrderTypeForm();
-            });
-        }
-    },
-
-    handleWorkOrderTypeSave: async () => {
-        const codeInput = document.getElementById('work-order-type-code');
-        const labelInput = document.getElementById('work-order-type-label');
-        const descriptionInput = document.getElementById('work-order-type-description');
-        const activeInput = document.getElementById('work-order-type-active');
-        const sortOrderInput = document.getElementById('work-order-type-sort');
-
-        const code = codeInput?.value.trim();
-        const label = labelInput?.value.trim();
-        const description = descriptionInput?.value.trim() || '';
-        const isActive = !!activeInput?.checked;
-        const sortOrder = sortOrderInput?.value ? Number(sortOrderInput.value) : 0;
-
-        if (!code || !label) {
-            showToast('Code and label are required for work order types.', 'warning');
-            return;
-        }
-
-        if (!supabaseClient) {
-            if (SettingsManager.editingTypeId) {
-                SettingsManager.workOrderTypes = SettingsManager.workOrderTypes.map(type =>
-                    type.id === SettingsManager.editingTypeId
-                        ? { ...type, code, label, description, is_active: isActive, sort_order: sortOrder }
-                        : type
-                );
-            } else {
-                SettingsManager.workOrderTypes.unshift({
-                    id: `demo-${Date.now()}`,
-                    code,
-                    label,
-                    description,
-                    is_active: isActive,
-                    sort_order: sortOrder
-                });
-            }
-            SettingsManager.renderWorkOrderTypes();
-            SettingsManager.resetWorkOrderTypeForm();
-            showToast('Work order type saved (demo mode).', 'success');
-            return;
-        }
-
-        if (SettingsManager.editingTypeId) {
-            const { error } = await supabaseClient
-                .from('work_order_types')
-                .update({
-                    code,
-                    label,
-                    description,
-                    is_active: isActive,
-                    sort_order: sortOrder
-                })
-                .eq('id', SettingsManager.editingTypeId);
-
-            if (error) {
-                console.error('Error updating work order type:', error);
-                showToast('Failed to update work order type.', 'error');
-                return;
-            }
-        } else {
-            const { error } = await supabaseClient
-                .from('work_order_types')
-                .insert({
-                    code,
-                    label,
-                    description,
-                    is_active: isActive,
-                    sort_order: sortOrder
-                });
-
-            if (error) {
-                console.error('Error creating work order type:', error);
-                showToast('Failed to create work order type.', 'error');
-                return;
-            }
-        }
-
-        await SettingsManager.loadWorkOrderTypes();
-        SettingsManager.resetWorkOrderTypeForm();
-        showToast('Work order type saved successfully.', 'success');
-    },
-
-    editWorkOrderType: (typeId) => {
-        const selected = SettingsManager.workOrderTypes.find(type => type.id === typeId);
-        if (!selected) return;
-
-        const codeInput = document.getElementById('work-order-type-code');
-        const labelInput = document.getElementById('work-order-type-label');
-        const descriptionInput = document.getElementById('work-order-type-description');
-        const activeInput = document.getElementById('work-order-type-active');
-        const sortOrderInput = document.getElementById('work-order-type-sort');
-        const submitButton = document.getElementById('work-order-type-submit');
-
-        if (codeInput) {
-            codeInput.value = selected.code;
-            codeInput.readOnly = true;
-            codeInput.classList.add('bg-slate-100', 'text-slate-500');
-        }
-        if (labelInput) labelInput.value = selected.label;
-        if (descriptionInput) descriptionInput.value = selected.description || '';
-        if (activeInput) activeInput.checked = !!selected.is_active;
-        if (sortOrderInput) sortOrderInput.value = selected.sort_order || 0;
-        if (submitButton) submitButton.textContent = 'Update Type';
-
-        SettingsManager.editingTypeId = typeId;
-    },
-
-    deleteWorkOrderType: async (typeId) => {
-        if (!confirm('Delete this work order type?')) {
-            return;
-        }
-
-        if (!supabaseClient) {
-            SettingsManager.workOrderTypes = SettingsManager.workOrderTypes.filter(type => type.id !== typeId);
-            SettingsManager.renderWorkOrderTypes();
-            showToast('Work order type deleted (demo mode).', 'success');
-            return;
-        }
-
-        const { error } = await supabaseClient
-            .from('work_order_types')
-            .delete()
-            .eq('id', typeId);
-
-        if (error) {
-            console.error('Error deleting work order type:', error);
-            showToast('Failed to delete work order type.', 'error');
-            return;
-        }
-
-        await SettingsManager.loadWorkOrderTypes();
-        showToast('Work order type deleted successfully.', 'success');
-    },
-
-    renderWorkOrderTypes: () => {
-        const tableBody = document.getElementById('work-order-types-table');
-        if (!tableBody) return;
-
-        const sorted = [...SettingsManager.workOrderTypes].sort((a, b) => {
-            const orderDiff = (a.sort_order || 0) - (b.sort_order || 0);
-            return orderDiff !== 0 ? orderDiff : a.label.localeCompare(b.label);
-        });
-
-        tableBody.innerHTML = sorted.map(type => `
-            <tr class="border-b border-slate-100">
-                <td class="py-3 px-4 text-sm font-medium text-slate-900">${type.label}</td>
-                <td class="py-3 px-4 text-sm text-slate-600">${type.code}</td>
-                <td class="py-3 px-4 text-sm text-slate-600">${type.description || '—'}</td>
-                <td class="py-3 px-4 text-sm">
-                    <span class="text-xs font-semibold px-2 py-1 rounded-full ${type.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}">
-                        ${type.is_active ? 'Active' : 'Inactive'}
-                    </span>
-                </td>
-                <td class="py-3 px-4 text-sm text-slate-600">${type.sort_order ?? 0}</td>
-                <td class="py-3 px-4 text-right space-x-2">
-                    <button class="btn btn-secondary btn-sm" onclick="SettingsManager.editWorkOrderType('${type.id}')">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn btn-secondary btn-sm" onclick="SettingsManager.deleteWorkOrderType('${type.id}')">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </td>
-            </tr>
-        `).join('');
-    },
-
-    resetWorkOrderTypeForm: () => {
-        const form = document.getElementById('work-order-type-form');
-        const submitButton = document.getElementById('work-order-type-submit');
-        const codeInput = document.getElementById('work-order-type-code');
-        if (form) {
-            form.reset();
-        }
-        if (submitButton) {
-            submitButton.textContent = 'Add Type';
-        }
-        if (codeInput) {
-            codeInput.readOnly = false;
-            codeInput.classList.remove('bg-slate-100', 'text-slate-500');
-        }
-        SettingsManager.editingTypeId = null;
     }
 };
 
