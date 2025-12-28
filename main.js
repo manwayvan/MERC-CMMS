@@ -2,8 +2,12 @@
 // Comprehensive functionality for Medical Device Management System
 
 // Initialize Supabase Client
-const supabaseUrl = 'https://hmdemsbqiqlqcggwblvl.supabase.co';
-const supabaseKey = 'sb_publishable_Z9oNxTGDCCz3EZnh6NqySg_QzF6amCN';
+const supabaseUrl = typeof CONFIG !== 'undefined' && CONFIG.SUPABASE_URL
+    ? CONFIG.SUPABASE_URL
+    : 'https://hmdemsbqiqlqcggwblvl.supabase.co';
+const supabaseKey = typeof CONFIG !== 'undefined' && CONFIG.SUPABASE_ANON_KEY
+    ? CONFIG.SUPABASE_ANON_KEY
+    : 'sb_publishable_Z9oNxTGDCCz3EZnh6NqySg_QzF6amCN';
 let supabaseClient = null;
 let supabaseInitPromise = null;
 
@@ -366,7 +370,17 @@ const ChartManager = {
 
     // Initialize work order page charts
     initWorkOrderCharts: () => {
-        const performanceChart = echarts.init(document.getElementById('technician-performance-chart'));
+        if (!window.echarts) {
+            console.warn('ECharts unavailable: skipping work order charts.');
+            return;
+        }
+
+        const chartEl = document.getElementById('technician-performance-chart');
+        if (!chartEl) {
+            return;
+        }
+
+        const performanceChart = echarts.init(chartEl);
         const performanceOption = {
             tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
             legend: { data: ['Completed', 'In Progress', 'Overdue'] },
@@ -786,12 +800,91 @@ const assetManager = new AssetManager();
 
 // Work Order Management Functions
 const WorkOrderManager = {
+    pendingAssetId: null,
+    assetsLoaded: 0,
+    typesLoaded: 0,
+    techniciansLoaded: 0,
     // Initialize work order management
-    init: () => {
-        AppState.workOrders = MockData.generateWorkOrders();
+    init: async () => {
+        await WorkOrderManager.loadWorkOrderTechnicians();
+        await WorkOrderManager.loadWorkOrders();
         WorkOrderManager.renderWorkOrders();
         WorkOrderManager.renderRecentWorkOrders();
+        WorkOrderManager.updateSummaryCounts();
         WorkOrderManager.setupEventListeners();
+        await WorkOrderManager.loadWorkOrderTypes();
+        await WorkOrderManager.loadWorkOrderAssets();
+        WorkOrderManager.updateSupabaseStatus();
+    },
+
+    loadWorkOrders: async () => {
+        if (!supabaseClient) {
+            AppState.workOrders = [];
+            showToast('Supabase connection required to load work orders.', 'error');
+            WorkOrderManager.updateSupabaseStatus('Supabase not connected.');
+            return;
+        }
+
+        const { data, error } = await supabaseClient
+            .from('work_orders')
+            .select('id, asset_id, type, priority, status, assigned_technician_id, due_date, created_date, completed_date, estimated_hours, actual_hours, description')
+            .order('created_date', { ascending: false });
+
+        if (error) {
+            console.error('Error loading work orders:', error);
+            AppState.workOrders = [];
+            showToast('Unable to load work orders from Supabase.', 'error');
+            WorkOrderManager.updateSupabaseStatus('Failed to load work orders.');
+            return;
+        }
+
+        AppState.workOrders = (data || []).map((row) => ({
+            id: row.id,
+            asset_id: row.asset_id,
+            type: row.type,
+            priority: row.priority,
+            status: row.status,
+            technician: WorkOrderManager.getTechnicianLabel(row.assigned_technician_id),
+            due_date: row.due_date,
+            created_date: row.created_date,
+            completed_date: row.completed_date,
+            estimated_hours: row.estimated_hours ?? 0,
+            actual_hours: row.actual_hours ?? 0,
+            description: row.description ?? ''
+        }));
+    },
+
+    formatWorkOrderType: (type) => {
+        if (!type) return '';
+        return type
+            .replace(/_/g, ' ')
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+    },
+
+    getTechnicianLabel: (technicianId) => {
+        if (!technicianId) return 'Unassigned';
+        const label = WorkOrderManager.technicianMap?.get(technicianId);
+        return label || 'Unassigned';
+    },
+    formatDate: (dateValue) => {
+        if (!dateValue) {
+            return '—';
+        }
+        const date = new Date(dateValue);
+        if (Number.isNaN(date.getTime())) {
+            return '—';
+        }
+        return date.toLocaleDateString();
+    },
+
+    toDatabaseWorkOrderType: (type) => {
+        if (!type) return '';
+        return type
+            .trim()
+            .toLowerCase()
+            .replace(/\s+/g, '_');
     },
 
     // Render work orders in kanban board
@@ -817,14 +910,14 @@ const WorkOrderManager = {
                             ${wo.priority.toUpperCase()}
                         </span>
                     </div>
-                    <p class="text-sm text-slate-600 mb-2">${wo.type}</p>
+                    <p class="text-sm text-slate-600 mb-2">${WorkOrderManager.formatWorkOrderType(wo.type)}</p>
                     <p class="text-xs text-slate-500 mb-3">Asset: ${wo.asset_id}</p>
                     <div class="flex justify-between items-center">
                         <div class="flex items-center">
-                            <div class="technician-avatar">${wo.technician.split(' ').map(n => n[0]).join('')}</div>
+                            <div class="technician-avatar">${(wo.technician || 'UN').split(' ').map(n => n[0]).join('')}</div>
                             <span class="text-xs text-slate-500">${wo.technician}</span>
                         </div>
-                        <span class="text-xs text-slate-500">${new Date(wo.due_date).toLocaleDateString()}</span>
+                        <span class="text-xs text-slate-500">${WorkOrderManager.formatDate(wo.due_date)}</span>
                     </div>
                 </div>
             `).join('');
@@ -861,14 +954,14 @@ const WorkOrderManager = {
             <tr class="border-b border-slate-100 hover:bg-slate-50">
                 <td class="py-3 px-4 text-sm font-medium text-slate-900">${wo.id}</td>
                 <td class="py-3 px-4 text-sm text-slate-600">${wo.asset_id}</td>
-                <td class="py-3 px-4 text-sm text-slate-600">${wo.type}</td>
+                <td class="py-3 px-4 text-sm text-slate-600">${WorkOrderManager.formatWorkOrderType(wo.type)}</td>
                 <td class="py-3 px-4">
                     <span class="text-xs px-2 py-1 rounded-full ${WorkOrderManager.getPriorityColor(wo.priority)}">
                         ${wo.priority.toUpperCase()}
                     </span>
                 </td>
                 <td class="py-3 px-4 text-sm text-slate-600">${wo.technician}</td>
-                <td class="py-3 px-4 text-sm text-slate-600">${new Date(wo.due_date).toLocaleDateString()}</td>
+                <td class="py-3 px-4 text-sm text-slate-600">${WorkOrderManager.formatDate(wo.due_date)}</td>
                 <td class="py-3 px-4">
                     <span class="text-xs px-2 py-1 rounded-full ${WorkOrderManager.getStatusColor(wo.status)}">
                         ${wo.status.charAt(0).toUpperCase() + wo.status.slice(1)}
@@ -891,7 +984,304 @@ const WorkOrderManager = {
 
     // Setup event listeners
     setupEventListeners: () => {
-        // Add event listeners for work order actions
+        const createForm = document.getElementById('create-workorder-form');
+        if (createForm) {
+            createForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const assetSelect = document.getElementById('workorder-asset-select');
+                const typeSelect = document.getElementById('workorder-type-select');
+                const prioritySelect = document.getElementById('workorder-priority-select');
+                const technicianSelect = document.getElementById('workorder-technician-select');
+                const dueDateInput = createForm.querySelector('input[type="date"]');
+                const estimatedHoursInput = createForm.querySelector('input[type="number"]');
+                const descriptionInput = createForm.querySelector('textarea');
+
+                const assetValue = assetSelect?.value || '';
+                const assetId = assetValue.includes(' - ') ? assetValue.split(' - ')[0] : assetValue;
+                const workOrderType = typeSelect?.value || '';
+                const priority = prioritySelect?.value || 'medium';
+                const assignedTechnicianId = technicianSelect?.value || null;
+                const dueDate = dueDateInput?.value;
+                const estimatedHours = estimatedHoursInput?.value ? Number(estimatedHoursInput.value) : null;
+                const description = descriptionInput?.value?.trim();
+
+                if (!assetId || !workOrderType || !dueDate || !description) {
+                    showToast('Please complete asset, type, due date, and description.', 'warning');
+                    return;
+                }
+
+                if (!supabaseClient) {
+                    hideCreateWorkOrderModal();
+                    showToast('Database unavailable, saved locally in demo mode.', 'warning');
+                    return;
+                }
+
+                const payload = {
+                    asset_id: assetId,
+                    type: workOrderType,
+                    priority,
+                    due_date: dueDate,
+                    estimated_hours: estimatedHours,
+                    description,
+                    assigned_technician_id: assignedTechnicianId || null
+                };
+
+                const { data, error } = await supabaseClient
+                    .from('work_orders')
+                    .insert(payload)
+                    .select('id, asset_id, type, priority, status, assigned_technician_id, due_date, created_date, completed_date, estimated_hours, actual_hours, description')
+                    .single();
+
+                if (error) {
+                    console.error('Error creating work order:', error);
+                    showToast('Unable to create work order.', 'error');
+                    return;
+                }
+
+                AppState.workOrders.unshift({
+                    id: data.id,
+                    asset_id: data.asset_id,
+                    type: data.type,
+                    priority: data.priority,
+                    status: data.status,
+                    technician: WorkOrderManager.getTechnicianLabel(data.assigned_technician_id),
+                    due_date: data.due_date,
+                    created_date: data.created_date,
+                    completed_date: data.completed_date,
+                    estimated_hours: data.estimated_hours ?? 0,
+                    actual_hours: data.actual_hours ?? 0,
+                    description: data.description ?? ''
+                });
+
+                WorkOrderManager.renderWorkOrders();
+                WorkOrderManager.renderRecentWorkOrders();
+                WorkOrderManager.updateSummaryCounts();
+                WorkOrderManager.updateSupabaseStatus();
+                hideCreateWorkOrderModal();
+                showToast('Work order created successfully.', 'success');
+            });
+        }
+
+        const createModal = document.getElementById('create-workorder-modal');
+        if (createModal) {
+            createModal.addEventListener('click', (event) => {
+                if (event.target === createModal) {
+                    hideCreateWorkOrderModal();
+                }
+            });
+        }
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                hideCreateWorkOrderModal();
+            }
+        });
+    },
+
+    updateSupabaseStatus: (message) => {
+        const statusEl = document.getElementById('supabase-status');
+        const modalStatusEl = document.getElementById('modal-supabase-status');
+        const summary = message
+            || (supabaseClient
+                ? `Connected · ${AppState.workOrders.length} work orders · ${WorkOrderManager.assetsLoaded} assets · ${WorkOrderManager.typesLoaded} types · ${WorkOrderManager.techniciansLoaded} technicians`
+                : 'Supabase not connected.');
+        if (statusEl) {
+            statusEl.innerHTML = `Supabase status: <span class="font-semibold text-slate-800">${summary}</span>`;
+        }
+        if (modalStatusEl) {
+            modalStatusEl.textContent = summary;
+        }
+    },
+
+    loadWorkOrderTypes: async () => {
+        const typeSelect = document.getElementById('workorder-type-select');
+        if (!typeSelect) return;
+
+        const applyTypes = (types) => {
+            const existingValue = typeSelect.value;
+            typeSelect.innerHTML = '<option value=\"\">Select type</option>';
+            types.forEach((type) => {
+                const option = document.createElement('option');
+                option.value = type;
+                option.textContent = WorkOrderManager.formatWorkOrderType(type);
+                typeSelect.appendChild(option);
+            });
+            typeSelect.value = types.includes(existingValue) ? existingValue : '';
+        };
+
+        if (!supabaseClient) {
+            applyTypes([]);
+            showToast('Supabase connection required to load work order types.', 'error');
+            return;
+        }
+
+        const { data, error } = await supabaseClient
+            .from('work_orders')
+            .select('type');
+
+        if (error) {
+            console.error('Error loading work order types:', error);
+            applyTypes([]);
+            showToast('Unable to load work order types from Supabase.', 'error');
+            return;
+        }
+
+        const types = Array.from(
+            new Set((data || []).map((row) => WorkOrderManager.toDatabaseWorkOrderType(row.type)).filter(Boolean))
+        );
+
+        applyTypes(types);
+        WorkOrderManager.typesLoaded = types.length;
+        WorkOrderManager.updateSupabaseStatus();
+    },
+
+    loadWorkOrderAssets: async () => {
+        const assetSelect = document.getElementById('workorder-asset-select');
+        if (!assetSelect) return;
+
+        const applyAssets = (assets) => {
+            const existingValue = assetSelect.value;
+            assetSelect.innerHTML = '<option value=\"\">Select Asset</option>';
+            assets.forEach((asset) => {
+                const option = document.createElement('option');
+                option.value = asset.id;
+                option.textContent = asset.label;
+                assetSelect.appendChild(option);
+            });
+            if (WorkOrderManager.pendingAssetId && assets.some(asset => asset.id === WorkOrderManager.pendingAssetId)) {
+                assetSelect.value = WorkOrderManager.pendingAssetId;
+                if (typeof showCreateWorkOrderModal === 'function') {
+                    showCreateWorkOrderModal();
+                }
+                WorkOrderManager.pendingAssetId = null;
+                return;
+            }
+            assetSelect.value = assets.some(asset => asset.id === existingValue) ? existingValue : '';
+        };
+
+        if (!supabaseClient) {
+            applyAssets([]);
+            showToast('Supabase connection required to load assets.', 'error');
+            return;
+        }
+
+        const { data, error } = await supabaseClient
+            .from('assets')
+            .select('id, name, asset_name, asset_tag')
+            .order('id', { ascending: true });
+
+        if (error) {
+            console.error('Error loading assets for work orders:', error);
+            applyAssets([]);
+            showToast('Unable to load assets from Supabase.', 'error');
+            return;
+        }
+
+        const assets = (data || []).map((asset) => {
+            const assetLabel = asset.name || asset.asset_name || asset.asset_tag || asset.id;
+            return {
+                id: asset.id,
+                label: assetLabel ? `${asset.id} - ${assetLabel}` : asset.id
+            };
+        });
+
+        applyAssets(assets);
+        WorkOrderManager.assetsLoaded = assets.length;
+        WorkOrderManager.updateSupabaseStatus();
+        if (assets.length === 0) {
+            showToast('No assets returned from Supabase. Check RLS or table schema.', 'warning');
+        }
+    },
+
+    loadWorkOrderTechnicians: async () => {
+        const technicianSelect = document.getElementById('workorder-technician-select');
+        if (!technicianSelect) return;
+
+        WorkOrderManager.technicianMap = new Map();
+        const applyTechnicians = (technicians) => {
+            const existingValue = technicianSelect.value;
+            const technicianFilter = document.getElementById('technician-filter');
+            technicianSelect.innerHTML = '<option value=\"\">Select technician</option>';
+            technicians.forEach((tech) => {
+                const option = document.createElement('option');
+                option.value = tech.id;
+                option.textContent = tech.label;
+                technicianSelect.appendChild(option);
+            });
+            technicianSelect.value = technicians.some(tech => tech.id === existingValue) ? existingValue : '';
+            if (technicianFilter) {
+                technicianFilter.innerHTML = '<option value=\"\">All Technicians</option>';
+                technicians.forEach((tech) => {
+                    const option = document.createElement('option');
+                    option.value = tech.id;
+                    option.textContent = tech.label;
+                    technicianFilter.appendChild(option);
+                });
+            }
+        };
+
+        if (!supabaseClient) {
+            applyTechnicians([]);
+            showToast('Supabase connection required to load technicians.', 'error');
+            return;
+        }
+
+        const { data, error } = await supabaseClient
+            .from('technicians')
+            .select('id, full_name, role, is_active')
+            .order('full_name', { ascending: true });
+
+        if (error) {
+            console.error('Error loading technicians:', error);
+            applyTechnicians([]);
+            showToast('Unable to load technicians from Supabase.', 'error');
+            return;
+        }
+
+        const technicians = (data || [])
+            .filter((user) => user.is_active !== false)
+            .map((user) => ({
+                id: user.id,
+                label: user.full_name ? `${user.full_name} (${user.role})` : user.id
+            }));
+
+        technicians.forEach((tech) => WorkOrderManager.technicianMap.set(tech.id, tech.label));
+        applyTechnicians(technicians);
+        WorkOrderManager.techniciansLoaded = technicians.length;
+        WorkOrderManager.updateSupabaseStatus();
+    },
+
+    updateSummaryCounts: () => {
+        const openStat = document.getElementById('open-stat');
+        const progressStat = document.getElementById('progress-stat');
+        const completedStat = document.getElementById('completed-stat');
+        const overdueStat = document.getElementById('overdue-stat');
+        const lastRefresh = document.getElementById('workorders-last-refresh');
+        const now = new Date();
+        const isOverdue = (workOrder) => {
+            if (!workOrder.due_date) return false;
+            const dueDate = new Date(workOrder.due_date);
+            if (Number.isNaN(dueDate.getTime())) return false;
+            return dueDate < now && workOrder.status !== 'completed' && workOrder.status !== 'cancelled';
+        };
+        const counts = AppState.workOrders.reduce((acc, workOrder) => {
+            if (workOrder.status === 'open') acc.open += 1;
+            if (workOrder.status === 'in-progress') acc.progress += 1;
+            if (workOrder.status === 'completed') acc.completed += 1;
+            if (isOverdue(workOrder)) acc.overdue += 1;
+            return acc;
+        }, {
+            open: 0,
+            progress: 0,
+            completed: 0,
+            overdue: 0
+        });
+
+        if (openStat) openStat.textContent = counts.open;
+        if (progressStat) progressStat.textContent = counts.progress;
+        if (completedStat) completedStat.textContent = counts.completed;
+        if (overdueStat) overdueStat.textContent = counts.overdue;
+        if (lastRefresh) lastRefresh.textContent = now.toLocaleString();
     },
 
     // View work order
@@ -967,7 +1357,11 @@ function hideLocationModal() {
 }
 
 function showCreateWorkOrderModal() {
-    showToast('Work order creation is coming soon.', 'info');
+    openModal('create-workorder-modal');
+}
+
+function hideCreateWorkOrderModal() {
+    closeModal('create-workorder-modal');
 }
 
 function showCustomReportModal() {
@@ -1055,7 +1449,10 @@ async function initApp() {
         assetManager.loadAssets();
         assetManager.setupEventListeners();
     } else if (AppState.currentPage === 'workorders') {
-        WorkOrderManager.init();
+        const params = new URLSearchParams(window.location.search);
+        WorkOrderManager.pendingAssetId = params.get('asset');
+        await loadSupabaseClient();
+        await WorkOrderManager.init();
     } else if (AppState.currentPage === 'customers') {
         initCustomerPage();
     }
