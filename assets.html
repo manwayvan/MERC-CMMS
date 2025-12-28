@@ -581,7 +581,7 @@
         let locations = [];
         let currentAsset = null;
         let csvData = null;
-        let assetSchema = { hasCustomerId: true };
+        let assetSchema = { hasCustomerId: true, hasLookupIds: true };
         let referenceData = { categories: [], manufacturers: [], models: [] };
         let referenceMaps = {
             categoriesById: new Map(),
@@ -589,7 +589,7 @@
             modelsById: new Map()
         };
         let lookupContext = { type: null, label: null, parentId: null };
-        let canManageReferenceData = null;
+        let canManageReferenceData = false;
 
         document.addEventListener('DOMContentLoaded', async () => {
             const mobileMenuButton = document.getElementById('mobile-menu-button');
@@ -613,7 +613,7 @@
         });
 
         async function detectAssetSchema() {
-            assetSchema = { hasCustomerId: true };
+            assetSchema = { hasCustomerId: true, hasLookupIds: true };
             try {
                 const { error } = await supabaseClient
                     .from('assets')
@@ -622,24 +622,32 @@
                 if (error && /customer_id|column/i.test(error.message)) {
                     assetSchema.hasCustomerId = false;
                 }
+                const { error: lookupError } = await supabaseClient
+                    .from('assets')
+                    .select('category_id, manufacturer_id, model_id')
+                    .limit(1);
+                if (lookupError && /category_id|manufacturer_id|model_id|column/i.test(lookupError.message)) {
+                    assetSchema.hasLookupIds = false;
+                }
             } catch (error) {
                 console.warn('Unable to detect asset schema, disabling customer field.', error);
                 assetSchema.hasCustomerId = false;
+                assetSchema.hasLookupIds = false;
             }
         }
 
         async function detectReferenceAccess() {
             try {
                 if (!supabaseClient.auth?.getUser) {
-                    canManageReferenceData = null;
+                    canManageReferenceData = false;
                     return;
                 }
                 const { data, error } = await supabaseClient.auth.getUser();
                 if (error) throw error;
-                canManageReferenceData = data?.user ? true : null;
+                canManageReferenceData = Boolean(data?.user);
             } catch (error) {
                 console.warn('Unable to detect reference access.', error);
-                canManageReferenceData = null;
+                canManageReferenceData = false;
             }
         }
 
@@ -647,9 +655,9 @@
             try {
                 await detectReferenceAccess();
                 const [{ data: categories, error: categoryError }, { data: manufacturers, error: manufacturerError }, { data: models, error: modelError }] = await Promise.all([
-                    supabaseClient.from('device_categories').select('id, name').order('name'),
-                    supabaseClient.from('device_makes').select('id, name, category_id').order('name'),
-                    supabaseClient.from('device_models').select('id, name, make_id').order('name')
+                    supabaseClient.from('asset_categories').select('id, name').order('name'),
+                    supabaseClient.from('manufacturers').select('id, name, category_id').order('name'),
+                    supabaseClient.from('models').select('id, name, manufacturer_id').order('name')
                 ]);
                 if (categoryError) throw categoryError;
                 if (manufacturerError) throw manufacturerError;
@@ -701,8 +709,14 @@
                             .single();
                         locationName = location?.name;
                     }
+                    const categoryName = referenceMaps.categoriesById.get(asset.category_id)?.name || asset.category;
+                    const manufacturerName = referenceMaps.manufacturersById.get(asset.manufacturer_id)?.name || asset.manufacturer;
+                    const modelName = referenceMaps.modelsById.get(asset.model_id)?.name || asset.model;
                     return {
                         ...asset,
+                        category: categoryName,
+                        manufacturer: manufacturerName,
+                        model: modelName,
                         customers: customerName ? { name: customerName } : null,
                         locations: locationName ? { name: locationName } : null
                     };
@@ -846,7 +860,7 @@
                 select.disabled = true;
                 return;
             }
-            const models = referenceData.models.filter(model => model.make_id === manufacturerId);
+            const models = referenceData.models.filter(model => model.manufacturer_id === manufacturerId);
             models.forEach(model => {
                 const option = document.createElement('option');
                 option.value = model.id;
@@ -865,17 +879,16 @@
                 document.getElementById('add-manufacturer-btn'),
                 document.getElementById('add-model-btn')
             ];
-            const hasAccess = canManageReferenceData !== false;
             buttons.forEach(button => {
                 if (!button) return;
-                button.disabled = !hasAccess;
-                button.classList.toggle('opacity-50', !hasAccess);
-                button.classList.toggle('pointer-events-none', !hasAccess);
+                button.disabled = !canManageReferenceData;
+                button.classList.toggle('opacity-50', !canManageReferenceData);
+                button.classList.toggle('pointer-events-none', !canManageReferenceData);
             });
         }
 
         function addNewLookup(type, label) {
-            if (canManageReferenceData === false) {
+            if (!canManageReferenceData) {
                 showToast('You do not have permission to add reference data.', 'warning');
                 return;
             }
@@ -922,13 +935,13 @@
                 const payload = { name: value };
                 let table = '';
                 if (lookupContext.type === 'categories') {
-                    table = 'device_categories';
+                    table = 'asset_categories';
                 } else if (lookupContext.type === 'manufacturers') {
-                    table = 'device_makes';
+                    table = 'manufacturers';
                     payload.category_id = lookupContext.parentId;
                 } else if (lookupContext.type === 'models') {
-                    table = 'device_models';
-                    payload.make_id = lookupContext.parentId;
+                    table = 'models';
+                    payload.manufacturer_id = lookupContext.parentId;
                 }
                 if (!table) {
                     showToast('Unknown reference type.', 'error');
@@ -937,7 +950,7 @@
                 const { data, error } = await supabaseClient
                     .from(table)
                     .insert([payload])
-                    .select('id, name, category_id, make_id')
+                    .select('id, name, category_id, manufacturer_id')
                     .single();
                 if (error) throw error;
                 if (lookupContext.type === 'categories') {
@@ -955,7 +968,7 @@
                     updateManufacturerOptions(categoryId, data.id);
                     document.getElementById('manufacturer-select').value = data.id;
                 } else if (lookupContext.type === 'models') {
-                    referenceData.models.push({ id: data.id, name: data.name, make_id: data.make_id });
+                    referenceData.models.push({ id: data.id, name: data.name, manufacturer_id: data.manufacturer_id });
                     referenceData.models.sort((a, b) => a.name.localeCompare(b.name));
                     buildReferenceMaps();
                     const manufacturerId = lookupContext.parentId;
@@ -1081,9 +1094,9 @@
             document.getElementById('modal-subtitle').textContent = asset.id;
             const form = document.getElementById('asset-form');
             form.name.value = asset.name || '';
-            const categoryId = resolveCategoryIdByName(asset.category);
-            const manufacturerId = resolveManufacturerIdByName(asset.manufacturer, categoryId);
-            const modelId = resolveModelIdByName(asset.model, manufacturerId);
+            const categoryId = asset.category_id || resolveCategoryIdByName(asset.category);
+            const manufacturerId = asset.manufacturer_id || resolveManufacturerIdByName(asset.manufacturer, categoryId);
+            const modelId = asset.model_id || resolveModelIdByName(asset.model, manufacturerId);
             form.category_id.value = categoryId || '';
             updateManufacturerOptions(categoryId, manufacturerId);
             form.manufacturer_id.value = manufacturerId || '';
@@ -1129,7 +1142,7 @@
             if (!name) return '';
             return referenceData.models.find(model => {
                 const matchesName = model.name.toLowerCase() === name.toLowerCase();
-                const matchesManufacturer = !manufacturerId || model.make_id === manufacturerId;
+                const matchesManufacturer = !manufacturerId || model.manufacturer_id === manufacturerId;
                 return matchesName && matchesManufacturer;
             })?.id || '';
         }
@@ -1262,9 +1275,9 @@
             const modelId = formData.get('model_id');
             const assetData = {
                 name: formData.get('name'),
-                category: referenceMaps.categoriesById.get(categoryId)?.name || getSelectOptionText('category-select'),
-                manufacturer: referenceMaps.manufacturersById.get(manufacturerId)?.name || getSelectOptionText('manufacturer-select'),
-                model: referenceMaps.modelsById.get(modelId)?.name || getSelectOptionText('model-select'),
+                category_id: formData.get('category_id'),
+                manufacturer_id: formData.get('manufacturer_id'),
+                model_id: formData.get('model_id'),
                 serial_number: formData.get('serial_number'),
                 status: formData.get('status'),
                 purchase_date: formData.get('purchase_date') || null,
@@ -1423,7 +1436,7 @@
             const selectedCategoryName = category ? referenceMaps.categoriesById.get(category)?.name : '';
             filteredAssets = allAssets.filter(a => {
                 const matchesTerm = !term || a.name?.toLowerCase().includes(term) || a.id?.toLowerCase().includes(term);
-                const matchesCat = !category || (selectedCategoryName && a.category === selectedCategoryName);
+                const matchesCat = !category || a.category_id === category || (selectedCategoryName && a.category === selectedCategoryName);
                 const matchesStat = !status || a.status === status;
                 return matchesTerm && matchesCat && matchesStat;
             });
