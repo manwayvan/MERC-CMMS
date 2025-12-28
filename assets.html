@@ -956,6 +956,7 @@
                     .from('work_orders')
                     .select('*')
                     .eq('asset_id', assetId)
+                    .in('status', ['open', 'in-progress'])
                     .order('created_date', { ascending: false });
                 if (error) throw error;
                 const workOrders = data || [];
@@ -998,7 +999,11 @@
         }
 
         function createWorkOrderForAsset() {
-            showToast('Work order creation modal coming soon!', 'info');
+            if (!currentAsset?.id) {
+                showToast('Please select an asset first.', 'warning');
+                return;
+            }
+            window.location.href = `work-orders.html?asset=${encodeURIComponent(currentAsset.id)}`;
         }
 
         function clearPMSchedule() {
@@ -1033,6 +1038,16 @@
                     ${nextDates.map(date => `<li>${date}</li>`).join('')}
                 </ul>
             `;
+        }
+
+        function calculateNextMaintenanceDate(scheduleType, lastMaint, customInterval) {
+            if (!scheduleType || !lastMaint) return null;
+            const intervals = { daily: 1, weekly: 7, biweekly: 14, monthly: 30, quarterly: 90, semiannually: 180, annually: 365, custom: parseInt(customInterval) || 30 };
+            const days = intervals[scheduleType];
+            const lastDate = new Date(lastMaint);
+            const nextDate = new Date(lastDate);
+            nextDate.setDate(nextDate.getDate() + days);
+            return nextDate;
         }
 
         function closeAssetModal() {
@@ -1107,8 +1122,71 @@
                 showToast('Please save the asset before adding a PM schedule.', 'warning');
                 return;
             }
-            showToast('PM Schedule feature requires database schema updates. Feature coming soon!', 'info');
-            closeAssetModal();
+            const scheduleType = document.getElementById('pm-schedule-type').value;
+            const intervalDays = document.getElementById('pm-interval-days').value;
+            const lastMaintenance = document.getElementById('last-maintenance').value;
+            const nextMaintenanceInput = document.getElementById('next-maintenance').value;
+            const autoGenerate = document.getElementById('auto-generate-wo').checked;
+
+            const nextMaintenanceDate = calculateNextMaintenanceDate(scheduleType, lastMaintenance, intervalDays);
+            const nextMaintenance = nextMaintenanceDate
+                ? nextMaintenanceDate.toISOString()
+                : (nextMaintenanceInput ? new Date(nextMaintenanceInput).toISOString() : null);
+
+            try {
+                const { error: updateError } = await supabaseClient
+                    .from('assets')
+                    .update({
+                        pm_schedule_type: scheduleType || null,
+                        pm_interval_days: intervalDays ? Number(intervalDays) : null,
+                        last_maintenance: lastMaintenance || null,
+                        next_maintenance: nextMaintenance,
+                        auto_generate_wo: autoGenerate
+                    })
+                    .eq('id', currentAsset.id);
+
+                if (updateError) throw updateError;
+
+                if (autoGenerate && nextMaintenance) {
+                    const now = new Date();
+                    const threshold = new Date();
+                    threshold.setDate(threshold.getDate() + 7);
+                    if (new Date(nextMaintenance) <= threshold) {
+                        const { data: existingWorkOrders, error: woError } = await supabaseClient
+                            .from('work_orders')
+                            .select('id')
+                            .eq('asset_id', currentAsset.id)
+                            .eq('type', 'preventive_maintenance')
+                            .in('status', ['open', 'in-progress'])
+                            .limit(1);
+                        if (woError) throw woError;
+                        if (!existingWorkOrders?.length) {
+                            const { error: createError } = await supabaseClient
+                                .from('work_orders')
+                                .insert([{
+                                    asset_id: currentAsset.id,
+                                    type: 'preventive_maintenance',
+                                    priority: 'medium',
+                                    status: 'open',
+                                    due_date: nextMaintenance,
+                                    description: `Auto-generated PM for ${currentAsset.name || currentAsset.id}`
+                                }]);
+                            if (createError) throw createError;
+                            await supabaseClient
+                                .from('assets')
+                                .update({ pm_last_generated_at: now.toISOString() })
+                                .eq('id', currentAsset.id);
+                        }
+                    }
+                }
+
+                showToast('PM schedule saved successfully.', 'success');
+                await loadAssets();
+                await loadAssetWorkOrders(currentAsset.id);
+                closeAssetModal();
+            } catch (error) {
+                showToast(`Failed to save PM schedule: ${error.message}`, 'error');
+            }
         });
 
         function generateAssetId() {
