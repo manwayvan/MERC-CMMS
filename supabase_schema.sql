@@ -136,10 +136,21 @@ CREATE TABLE IF NOT EXISTS public.asset_documents (
 -- WORK ORDERS
 -- ==============================================
 
+CREATE TABLE IF NOT EXISTS public.work_order_types (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    code TEXT NOT NULL UNIQUE,
+    label TEXT NOT NULL,
+    description TEXT,
+    is_active BOOLEAN DEFAULT true,
+    sort_order INTEGER DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS public.work_orders (
     id TEXT PRIMARY KEY DEFAULT ('WO-' || to_char(NOW(), 'YYYYMMDD') || '-' || LPAD(nextval('work_orders_seq')::TEXT, 4, '0')),
     asset_id TEXT NOT NULL REFERENCES assets(id),
-    type TEXT NOT NULL CHECK (type IN ('preventive_maintenance', 'corrective_maintenance', 'inspection', 'calibration', 'installation', 'repair')),
+    type TEXT NOT NULL REFERENCES work_order_types(code),
     priority TEXT NOT NULL DEFAULT 'medium' CHECK (priority IN ('critical', 'high', 'medium', 'low')),
     status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'in-progress', 'completed', 'cancelled')),
     assigned_to UUID REFERENCES auth.users(id),
@@ -317,6 +328,7 @@ ALTER TABLE public.locations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.assets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.asset_maintenance_history ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.asset_documents ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.work_order_types ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.work_orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.work_order_comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.work_order_attachments ENABLE ROW LEVEL SECURITY;
@@ -338,6 +350,7 @@ CREATE POLICY "Allow authenticated read access" ON public.locations FOR SELECT U
 CREATE POLICY "Allow authenticated read access" ON public.assets FOR SELECT USING (auth.role() = 'authenticated');
 CREATE POLICY "Allow authenticated read access" ON public.asset_maintenance_history FOR SELECT USING (auth.role() = 'authenticated');
 CREATE POLICY "Allow authenticated read access" ON public.asset_documents FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Allow authenticated read access" ON public.work_order_types FOR SELECT USING (auth.role() = 'authenticated');
 CREATE POLICY "Allow authenticated read access" ON public.work_orders FOR SELECT USING (auth.role() = 'authenticated');
 CREATE POLICY "Allow authenticated read access" ON public.work_order_comments FOR SELECT USING (auth.role() = 'authenticated');
 CREATE POLICY "Allow authenticated read access" ON public.work_order_attachments FOR SELECT USING (auth.role() = 'authenticated');
@@ -350,12 +363,8 @@ CREATE POLICY "Allow authenticated read access" ON public.system_settings FOR SE
 
 -- Optional public read access for unauthenticated front-end views
 CREATE POLICY "Allow public read access" ON public.assets FOR SELECT USING (auth.role() IN ('anon', 'authenticated'));
+CREATE POLICY "Allow public read access" ON public.work_order_types FOR SELECT USING (auth.role() IN ('anon', 'authenticated'));
 CREATE POLICY "Allow public read access" ON public.work_orders FOR SELECT USING (auth.role() IN ('anon', 'authenticated'));
-CREATE POLICY "Allow public read access" ON public.user_profiles FOR SELECT USING (auth.role() IN ('anon', 'authenticated'));
-CREATE POLICY "Allow public read access" ON public.technicians FOR SELECT USING (auth.role() IN ('anon', 'authenticated'));
-
-CREATE POLICY "Allow public insert access" ON public.technicians
-    FOR INSERT WITH CHECK (auth.role() IN ('anon', 'authenticated'));
 
 -- Allow authenticated users to insert/update/delete (customize for production)
 CREATE POLICY "Allow authenticated write access" ON public.customers FOR ALL USING (auth.role() = 'authenticated');
@@ -363,6 +372,7 @@ CREATE POLICY "Allow authenticated write access" ON public.locations FOR ALL USI
 CREATE POLICY "Allow authenticated write access" ON public.assets FOR ALL USING (auth.role() = 'authenticated');
 CREATE POLICY "Allow authenticated write access" ON public.asset_maintenance_history FOR ALL USING (auth.role() = 'authenticated');
 CREATE POLICY "Allow authenticated write access" ON public.asset_documents FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Allow authenticated write access" ON public.work_order_types FOR ALL USING (auth.role() = 'authenticated');
 CREATE POLICY "Allow authenticated write access" ON public.work_orders FOR ALL USING (auth.role() = 'authenticated');
 CREATE POLICY "Allow authenticated write access" ON public.technicians FOR ALL USING (auth.role() = 'authenticated');
 CREATE POLICY "Allow authenticated write access" ON public.work_order_comments FOR ALL USING (auth.role() = 'authenticated');
@@ -390,6 +400,7 @@ CREATE TRIGGER update_user_profiles_updated_at BEFORE UPDATE ON public.user_prof
 CREATE TRIGGER update_customers_updated_at BEFORE UPDATE ON public.customers FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_locations_updated_at BEFORE UPDATE ON public.locations FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_assets_updated_at BEFORE UPDATE ON public.assets FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_work_order_types_updated_at BEFORE UPDATE ON public.work_order_types FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_work_orders_updated_at BEFORE UPDATE ON public.work_orders FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_technicians_updated_at BEFORE UPDATE ON public.technicians FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_compliance_standards_updated_at BEFORE UPDATE ON public.compliance_standards FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
@@ -398,6 +409,15 @@ CREATE TRIGGER update_compliance_records_updated_at BEFORE UPDATE ON public.comp
 -- ==============================================
 -- SEED DATA - Compliance Standards
 -- ==============================================
+
+INSERT INTO public.work_order_types (code, label, description, sort_order) VALUES
+('preventive_maintenance', 'Preventive Maintenance', 'Scheduled maintenance tasks', 1),
+('corrective_maintenance', 'Corrective Maintenance', 'Unplanned repairs and fixes', 2),
+('inspection', 'Inspection', 'Safety and compliance inspections', 3),
+('calibration', 'Calibration', 'Calibration and verification', 4),
+('installation', 'Installation', 'New equipment install work', 5),
+('repair', 'Repair', 'Component replacement or repair', 6)
+ON CONFLICT (code) DO NOTHING;
 
 INSERT INTO public.compliance_standards (name, code, description) VALUES
 ('FDA 21 CFR Part 820', 'FDA-820', 'Quality System Regulation for Medical Devices'),
