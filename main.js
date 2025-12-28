@@ -814,6 +814,79 @@ const WorkOrderManager = {
         WorkOrderManager.renderRecentWorkOrders();
         WorkOrderManager.updateSummaryCounts();
         WorkOrderManager.setupEventListeners();
+        await WorkOrderManager.loadWorkOrderTypes();
+        await WorkOrderManager.loadWorkOrderAssets();
+        WorkOrderManager.updateSupabaseStatus();
+    },
+
+    loadWorkOrders: async () => {
+        if (!supabaseClient) {
+            AppState.workOrders = [];
+            showToast('Supabase connection required to load work orders.', 'error');
+            WorkOrderManager.updateSupabaseStatus('Supabase not connected.');
+            return;
+        }
+
+        const { data, error } = await supabaseClient
+            .from('work_orders')
+            .select('id, asset_id, type, priority, status, assigned_technician_id, due_date, created_date, completed_date, estimated_hours, actual_hours, description')
+            .order('created_date', { ascending: false });
+
+        if (error) {
+            console.error('Error loading work orders:', error);
+            AppState.workOrders = [];
+            showToast('Unable to load work orders from Supabase.', 'error');
+            WorkOrderManager.updateSupabaseStatus('Failed to load work orders.');
+            return;
+        }
+
+        AppState.workOrders = (data || []).map((row) => ({
+            id: row.id,
+            asset_id: row.asset_id,
+            type: row.type,
+            priority: row.priority,
+            status: row.status,
+            technician: WorkOrderManager.getTechnicianLabel(row.assigned_technician_id),
+            due_date: row.due_date,
+            created_date: row.created_date,
+            completed_date: row.completed_date,
+            estimated_hours: row.estimated_hours ?? 0,
+            actual_hours: row.actual_hours ?? 0,
+            description: row.description ?? ''
+        }));
+    },
+
+    formatWorkOrderType: (type) => {
+        if (!type) return '';
+        return type
+            .replace(/_/g, ' ')
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+    },
+
+    getTechnicianLabel: (technicianId) => {
+        if (!technicianId) return 'Unassigned';
+        const label = WorkOrderManager.technicianMap?.get(technicianId);
+        return label || 'Unassigned';
+    },
+    formatDate: (dateValue) => {
+        if (!dateValue) {
+            return '—';
+        }
+        const date = new Date(dateValue);
+        if (Number.isNaN(date.getTime())) {
+            return '—';
+        }
+        return date.toLocaleDateString();
+    },
+
+    toDatabaseWorkOrderType: (type) => {
+        if (!type) return '';
+        return type
+            .trim()
+            .toLowerCase()
+            .replace(/\s+/g, '_');
     },
 
     updateSupabaseStatus: (isAvailable) => {
