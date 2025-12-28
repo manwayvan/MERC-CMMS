@@ -544,6 +544,68 @@
                                         </div>
                                         <button class="toggle active" role="switch" aria-checked="true" onclick="toggleSetting(this)"></button>
                                     </div>
+
+                                    <div class="bg-white rounded-xl p-6 border border-slate-200 card-hover">
+                                        <div class="flex items-center justify-between mb-4">
+                                            <div>
+                                                <h3 class="text-lg font-semibold text-slate-800">Master Model Checklist</h3>
+                                                <p class="text-sm text-slate-500">Attach required steps to every work order generated from this model.</p>
+                                            </div>
+                                            <span class="text-xs uppercase tracking-widest text-blue-600 font-semibold">WO Sync</span>
+                                        </div>
+                                        <div class="space-y-4">
+                                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                <div>
+                                                    <label class="text-sm font-medium text-slate-700">Checklist Item</label>
+                                                    <input class="form-input mt-2" type="text" placeholder="e.g., Meter reading capture">
+                                                </div>
+                                                <div>
+                                                    <label class="text-sm font-medium text-slate-700">Type</label>
+                                                    <select class="form-input mt-2">
+                                                        <option>Meter Reading</option>
+                                                        <option>Output Verification</option>
+                                                        <option>Calibration</option>
+                                                        <option>Safety Check</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label class="text-sm font-medium text-slate-700">Expected Range/Output</label>
+                                                    <input class="form-input mt-2" type="text" placeholder="e.g., 98-102 PSI">
+                                                </div>
+                                            </div>
+                                            <div class="flex flex-wrap gap-3">
+                                                <button class="btn btn-primary"><i class="fas fa-plus"></i>Add Checklist Item</button>
+                                                <button class="btn btn-secondary"><i class="fas fa-clipboard-list"></i>Import Template</button>
+                                            </div>
+                                            <div class="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                                                <div class="flex items-center justify-between mb-3">
+                                                    <h4 class="text-sm font-semibold text-slate-700">Linked Items</h4>
+                                                    <span class="text-xs text-slate-500">Auto-populated into work orders</span>
+                                                </div>
+                                                <ul class="space-y-2 text-sm text-slate-600">
+                                                    <li class="flex items-center justify-between">
+                                                        <span>Capture meter reading at startup</span>
+                                                        <span class="text-xs font-semibold text-slate-500">Meter Reading</span>
+                                                    </li>
+                                                    <li class="flex items-center justify-between">
+                                                        <span>Verify output waveform stability</span>
+                                                        <span class="text-xs font-semibold text-slate-500">Output Verification</span>
+                                                    </li>
+                                                    <li class="flex items-center justify-between">
+                                                        <span>Document final calibration values</span>
+                                                        <span class="text-xs font-semibold text-slate-500">Calibration</span>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                            <div class="flex items-center justify-between bg-slate-50 rounded-lg p-4 border border-slate-200">
+                                                <div>
+                                                    <p class="text-sm font-semibold text-slate-700">Apply checklist to new work orders</p>
+                                                    <p class="text-xs text-slate-500">Ensures meter readings and outputs are captured every time.</p>
+                                                </div>
+                                                <div class="toggle active" role="switch" aria-checked="true"></div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="settings-group">
                                     <div class="flex items-center justify-between mb-3">
