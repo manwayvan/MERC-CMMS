@@ -265,24 +265,31 @@
             </div>
         </section>
 
-        <!-- Work Order Statistics -->
+        <!-- Work Order Summary -->
         <section class="py-8 bg-white">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800">Live Work Order Summary</h2>
+                        <p class="text-sm text-slate-500">Counts update automatically from Supabase.</p>
+                    </div>
+                    <div class="text-sm text-slate-500">Last refreshed: <span id="workorders-last-refresh">--</span></div>
+                </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <div class="bg-slate-50 rounded-lg p-4 text-center">
-                        <div class="text-2xl font-bold text-blue-600">234</div>
+                        <div id="open-stat" class="text-2xl font-bold text-blue-600">0</div>
                         <div class="text-slate-600 text-sm">Open Work Orders</div>
                     </div>
                     <div class="bg-slate-50 rounded-lg p-4 text-center">
-                        <div class="text-2xl font-bold text-amber-600">89</div>
+                        <div id="progress-stat" class="text-2xl font-bold text-amber-600">0</div>
                         <div class="text-slate-600 text-sm">In Progress</div>
                     </div>
                     <div class="bg-slate-50 rounded-lg p-4 text-center">
-                        <div class="text-2xl font-bold text-green-600">1,245</div>
-                        <div class="text-slate-600 text-sm">Completed This Month</div>
+                        <div id="completed-stat" class="text-2xl font-bold text-green-600">0</div>
+                        <div class="text-slate-600 text-sm">Completed</div>
                     </div>
                     <div class="bg-slate-50 rounded-lg p-4 text-center">
-                        <div class="text-2xl font-bold text-red-600">12</div>
+                        <div id="overdue-stat" class="text-2xl font-bold text-red-600">0</div>
                         <div class="text-slate-600 text-sm">Overdue</div>
                     </div>
                 </div>
@@ -310,10 +317,6 @@
                             </select>
                             <select id="technician-filter" class="border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                                 <option value="">All Technicians</option>
-                                <option value="john">John Smith</option>
-                                <option value="sarah">Sarah Johnson</option>
-                                <option value="mike">Mike Davis</option>
-                                <option value="lisa">Lisa Wilson</option>
                             </select>
                         </div>
                         <!-- Create Work Order Button -->
@@ -338,7 +341,7 @@
                     <div class="kanban-column">
                         <div class="flex items-center justify-between mb-4">
                             <h3 class="text-lg font-semibold text-slate-800">Open</h3>
-                            <span class="bg-blue-100 text-blue-800 text-sm px-2 py-1 rounded-full" id="open-count">89</span>
+                            <span class="bg-blue-100 text-blue-800 text-sm px-2 py-1 rounded-full" id="open-count">0</span>
                         </div>
                         <div id="open-workorders">
                             <!-- Work orders will be populated by JavaScript -->
@@ -348,7 +351,7 @@
                     <div class="kanban-column">
                         <div class="flex items-center justify-between mb-4">
                             <h3 class="text-lg font-semibold text-slate-800">In Progress</h3>
-                            <span class="bg-amber-100 text-amber-800 text-sm px-2 py-1 rounded-full" id="progress-count">67</span>
+                            <span class="bg-amber-100 text-amber-800 text-sm px-2 py-1 rounded-full" id="progress-count">0</span>
                         </div>
                         <div id="progress-workorders">
                             <!-- Work orders will be populated by JavaScript -->
@@ -358,7 +361,7 @@
                     <div class="kanban-column">
                         <div class="flex items-center justify-between mb-4">
                             <h3 class="text-lg font-semibold text-slate-800">Completed</h3>
-                            <span class="bg-green-100 text-green-800 text-sm px-2 py-1 rounded-full" id="completed-count">156</span>
+                            <span class="bg-green-100 text-green-800 text-sm px-2 py-1 rounded-full" id="completed-count">0</span>
                         </div>
                         <div id="completed-workorders">
                             <!-- Work orders will be populated by JavaScript -->
@@ -368,67 +371,10 @@
                     <div class="kanban-column">
                         <div class="flex items-center justify-between mb-4">
                             <h3 class="text-lg font-semibold text-slate-800">Cancelled</h3>
-                            <span class="bg-slate-100 text-slate-800 text-sm px-2 py-1 rounded-full" id="cancelled-count">12</span>
+                            <span class="bg-slate-100 text-slate-800 text-sm px-2 py-1 rounded-full" id="cancelled-count">0</span>
                         </div>
                         <div id="cancelled-workorders">
                             <!-- Work orders will be populated by JavaScript -->
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Technician Performance and Scheduling -->
-        <section class="py-8 bg-slate-50">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <!-- Technician Performance -->
-                    <div class="bg-white rounded-lg shadow-lg p-6">
-                        <h3 class="text-xl font-semibold text-slate-800 mb-6">Technician Performance</h3>
-                        <div id="technician-performance-chart" style="height: 300px;"></div>
-                    </div>
-                    <!-- Weekly Schedule -->
-                    <div class="bg-white rounded-lg shadow-lg p-6">
-                        <h3 class="text-xl font-semibold text-slate-800 mb-6">This Week's Schedule</h3>
-                        <div class="calendar-grid">
-                            <div class="calendar-day header">Mon</div>
-                            <div class="calendar-day header">Tue</div>
-                            <div class="calendar-day header">Wed</div>
-                            <div class="calendar-day header">Thu</div>
-                            <div class="calendar-day header">Fri</div>
-                            <div class="calendar-day header">Sat</div>
-                            <div class="calendar-day header">Sun</div>
-                            <div class="calendar-day">
-                                <div class="text-sm font-medium text-slate-600 mb-1">16</div>
-                                <div class="calendar-event">PM-001</div>
-                                <div class="calendar-event">INS-003</div>
-                            </div>
-                            <div class="calendar-day">
-                                <div class="text-sm font-medium text-slate-600 mb-1">17</div>
-                                <div class="calendar-event">PM-002</div>
-                            </div>
-                            <div class="calendar-day">
-                                <div class="text-sm font-medium text-slate-600 mb-1">18</div>
-                                <div class="calendar-event">CAL-001</div>
-                                <div class="calendar-event">PM-003</div>
-                            </div>
-                            <div class="calendar-day">
-                                <div class="text-sm font-medium text-slate-600 mb-1">19</div>
-                                <div class="calendar-event">REP-005</div>
-                            </div>
-                            <div class="calendar-day">
-                                <div class="text-sm font-medium text-slate-600 mb-1">20</div>
-                                <div class="calendar-event">PM-004</div>
-                                <div class="calendar-event">INS-002</div>
-                            </div>
-                            <div class="calendar-day">
-                                <div class="text-sm font-medium text-slate-600 mb-1">21</div>
-                                <div class="calendar-event">PM-005</div>
-                            </div>
-                            <div class="calendar-day">
-                                <div class="text-sm font-medium text-slate-600 mb-1">22</div>
-                                <div class="text-xs text-slate-500">No scheduled work</div>
-                            </div>
                         </div>
                     </div>
                 </div>

@@ -806,6 +806,7 @@ const WorkOrderManager = {
         AppState.workOrders = MockData.generateWorkOrders();
         WorkOrderManager.renderWorkOrders();
         WorkOrderManager.renderRecentWorkOrders();
+        WorkOrderManager.updateSummaryCounts();
         WorkOrderManager.setupEventListeners();
         await WorkOrderManager.loadWorkOrderTypes();
     },
@@ -837,10 +838,10 @@ const WorkOrderManager = {
                     <p class="text-xs text-slate-500 mb-3">Asset: ${wo.asset_id}</p>
                     <div class="flex justify-between items-center">
                         <div class="flex items-center">
-                            <div class="technician-avatar">${wo.technician.split(' ').map(n => n[0]).join('')}</div>
+                            <div class="technician-avatar">${(wo.technician || 'UN').split(' ').map(n => n[0]).join('')}</div>
                             <span class="text-xs text-slate-500">${wo.technician}</span>
                         </div>
-                        <span class="text-xs text-slate-500">${new Date(wo.due_date).toLocaleDateString()}</span>
+                        <span class="text-xs text-slate-500">${WorkOrderManager.formatDate(wo.due_date)}</span>
                     </div>
                 </div>
             `).join('');
@@ -884,7 +885,7 @@ const WorkOrderManager = {
                     </span>
                 </td>
                 <td class="py-3 px-4 text-sm text-slate-600">${wo.technician}</td>
-                <td class="py-3 px-4 text-sm text-slate-600">${new Date(wo.due_date).toLocaleDateString()}</td>
+                <td class="py-3 px-4 text-sm text-slate-600">${WorkOrderManager.formatDate(wo.due_date)}</td>
                 <td class="py-3 px-4">
                     <span class="text-xs px-2 py-1 rounded-full ${WorkOrderManager.getStatusColor(wo.status)}">
                         ${wo.status.charAt(0).toUpperCase() + wo.status.slice(1)}
