@@ -812,3 +812,202 @@
                                 <div class="p-4 bg-slate-50 rounded-lg border border-slate-200">
                                     <div class="flex items-center justify-between mb-2">
                                         <p class="font-medium text-slate-800">Technician</p>
+                                        <span class="text-xs text-slate-600">Field Access</span>
+                                    </div>
+                                    <p class="text-sm text-slate-600">Create and update assigned work orders only</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="settings-section">
+                            <h3 class="text-lg font-semibold text-slate-800 mb-4">Security Controls</h3>
+                            <div class="space-y-4">
+                                <div class="toggle-row">
+                                    <div class="flex-1">
+                                        <div class="settings-label">Require multi-factor authentication</div>
+                                        <div class="settings-description">Enforce MFA for admin and manager roles</div>
+                                    </div>
+                                    <button class="toggle active" role="switch" aria-checked="true" onclick="toggleSetting(this)"></button>
+                                </div>
+                                <div class="toggle-row">
+                                    <div class="flex-1">
+                                        <div class="settings-label">Session timeout</div>
+                                        <div class="settings-description">Automatically sign out inactive users after 30 minutes</div>
+                                    </div>
+                                    <button class="toggle" role="switch" aria-checked="false" onclick="toggleSetting(this)"></button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end gap-3 mt-6">
+                            <button class="btn btn-secondary" onclick="showToast('Changes discarded', 'info')">Discard Changes</button>
+                            <button class="btn btn-primary" onclick="showToast('Access control settings saved', 'success')">Save Settings</button>
+                        </div>
+                    </div>
+
+                    <!-- Notifications Tab -->
+                    <div id="notifications" class="tab-content p-8" style="display: none;">
+                        <h2 class="text-2xl font-bold text-slate-800 mb-6">Notifications & Alerts</h2>
+
+                        <div class="settings-section">
+                            <h3 class="text-lg font-semibold text-slate-800 mb-4">Work Order Alerts</h3>
+                            <div class="space-y-4">
+                                <div class="toggle-row">
+                                    <div class="flex-1">
+                                        <div class="settings-label">Notify on critical priority</div>
+                                        <div class="settings-description">Immediate alert when a critical work order is created</div>
+                                    </div>
+                                    <button class="toggle active" role="switch" aria-checked="true" onclick="toggleSetting(this)"></button>
+                                </div>
+                                <div class="toggle-row">
+                                    <div class="flex-1">
+                                        <div class="settings-label">Daily summary emails</div>
+                                        <div class="settings-description">Send daily digest of open and overdue work orders</div>
+                                    </div>
+                                    <button class="toggle" role="switch" aria-checked="false" onclick="toggleSetting(this)"></button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="settings-section">
+                            <h3 class="text-lg font-semibold text-slate-800 mb-4">Notification Channels</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <label class="flex items-center gap-3 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-blue-50">
+                                    <input type="checkbox" checked class="w-4 h-4 rounded border-slate-300">
+                                    <span class="text-sm font-medium">Email</span>
+                                </label>
+                                <label class="flex items-center gap-3 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-blue-50">
+                                    <input type="checkbox" checked class="w-4 h-4 rounded border-slate-300">
+                                    <span class="text-sm font-medium">In-app</span>
+                                </label>
+                                <label class="flex items-center gap-3 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-blue-50">
+                                    <input type="checkbox" class="w-4 h-4 rounded border-slate-300">
+                                    <span class="text-sm font-medium">SMS</span>
+                                </label>
+                                <label class="flex items-center gap-3 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-blue-50">
+                                    <input type="checkbox" class="w-4 h-4 rounded border-slate-300">
+                                    <span class="text-sm font-medium">Slack</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end gap-3 mt-6">
+                            <button class="btn btn-secondary" onclick="showToast('Changes discarded', 'info')">Discard Changes</button>
+                            <button class="btn btn-primary" onclick="showToast('Notification settings saved', 'success')">Save Settings</button>
+                        </div>
+                    </div>
+
+                    <!-- System Tab -->
+                    <div id="system" class="tab-content p-8" style="display: none;">
+                        <h2 class="text-2xl font-bold text-slate-800 mb-6">System Configuration</h2>
+
+                        <div class="settings-section">
+                            <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+                                <div>
+                                    <h3 class="text-lg font-semibold text-slate-800">Work Order Types</h3>
+                                    <p class="text-sm text-slate-500">Manage the list of work order types used across the system.</p>
+                                </div>
+                                <span class="text-xs uppercase tracking-widest text-emerald-600 font-semibold">Supabase Ready</span>
+                            </div>
+
+                            <form id="work-order-type-form" class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 rounded-lg p-4 border border-slate-200">
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-700 mb-2">Type Code</label>
+                                    <input id="work-order-type-code" class="form-input" type="text" placeholder="e.g., preventive_maintenance" required>
+                                    <p class="settings-description">Used by the system to store the type in the database.</p>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-700 mb-2">Display Label</label>
+                                    <input id="work-order-type-label" class="form-input" type="text" placeholder="Preventive Maintenance" required>
+                                    <p class="settings-description">What users see on the work order form.</p>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-700 mb-2">Description</label>
+                                    <input id="work-order-type-description" class="form-input" type="text" placeholder="Scheduled maintenance tasks">
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-semibold text-slate-700 mb-2">Sort Order</label>
+                                        <input id="work-order-type-sort" class="form-input" type="number" value="0" min="0">
+                                    </div>
+                                    <div class="flex items-center justify-between bg-white rounded-lg border border-slate-200 px-4 py-2 mt-6">
+                                        <span class="text-sm text-slate-600">Active</span>
+                                        <input id="work-order-type-active" type="checkbox" class="rounded border-slate-300" checked>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-3 md:col-span-2">
+                                    <button id="work-order-type-submit" class="btn btn-primary" type="submit">
+                                        <i class="fas fa-plus"></i>Add Type
+                                    </button>
+                                    <button id="work-order-type-cancel" class="btn btn-secondary" type="button">Cancel Edit</button>
+                                </div>
+                            </form>
+
+                            <div class="mt-6 overflow-x-auto">
+                                <table class="w-full text-left">
+                                    <thead>
+                                        <tr class="border-b border-slate-200 text-xs uppercase text-slate-500">
+                                            <th class="py-3 px-4">Label</th>
+                                            <th class="py-3 px-4">Code</th>
+                                            <th class="py-3 px-4">Description</th>
+                                            <th class="py-3 px-4">Status</th>
+                                            <th class="py-3 px-4">Sort</th>
+                                            <th class="py-3 px-4 text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="work-order-types-table">
+                                        <tr>
+                                            <td class="py-3 px-4 text-sm text-slate-500" colspan="6">Loading work order types...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="settings-section">
+                            <h3 class="text-lg font-semibold text-slate-800 mb-4">System Preferences</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-700 mb-2">Default timezone</label>
+                                    <select class="form-input">
+                                        <option>UTC</option>
+                                        <option selected>America/New_York</option>
+                                        <option>America/Chicago</option>
+                                        <option>America/Denver</option>
+                                        <option>America/Los_Angeles</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-700 mb-2">Maintenance fiscal year start</label>
+                                    <select class="form-input">
+                                        <option selected>January</option>
+                                        <option>April</option>
+                                        <option>July</option>
+                                        <option>October</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end gap-3 mt-6">
+                            <button class="btn btn-secondary" onclick="showToast('Changes discarded', 'info')">Discard Changes</button>
+                            <button class="btn btn-primary" onclick="showToast('System settings saved', 'success')">Save Settings</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-slate-800 text-white py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p class="text-slate-400">&copy; 2025 MERC-CMMS Enterprise. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <div id="toast-container" class="fixed bottom-4 right-4 z-50"></div>
+
+    <script src="config.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
