@@ -1620,6 +1620,27 @@ function initCustomerPage() {
     }
 }
 
+function setupMobileMenu() {
+    const button = document.getElementById('mobile-menu-button');
+    const menu = document.getElementById('mobile-menu');
+
+    if (!button || !menu) return;
+
+    const toggleMenu = () => {
+        const isHidden = menu.classList.toggle('hidden');
+        button.setAttribute('aria-expanded', String(!isHidden));
+    };
+
+    button.addEventListener('click', toggleMenu);
+    menu.querySelectorAll('a').forEach(link => {
+        link.addEventListener('click', () => {
+            if (!menu.classList.contains('hidden')) {
+                toggleMenu();
+            }
+        });
+    });
+}
+
 function normalizePageName(pageName) {
     if (!pageName || pageName === 'index') {
         return 'dashboard';
@@ -1637,6 +1658,7 @@ async function initApp() {
     const pageName = window.location.pathname.split('/').pop().replace('.html', '');
     AppState.currentPage = normalizePageName(pageName);
     ChartManager.initializeCharts();
+    setupMobileMenu();
 
     if (AppState.currentPage === 'assets') {
         await loadSupabaseClient();
