@@ -1330,6 +1330,139 @@ const WorkOrderManager = {
     }
 };
 
+const SettingsManager = {
+    elements: {
+        technicianForm: null,
+        technicianList: null
+    },
+
+    init: async () => {
+        SettingsManager.cacheElements();
+        SettingsManager.bindEvents();
+        await SettingsManager.loadTechnicians();
+    },
+
+    cacheElements: () => {
+        SettingsManager.elements.technicianForm = document.getElementById('technician-form');
+        SettingsManager.elements.technicianList = document.getElementById('technician-list');
+    },
+
+    bindEvents: () => {
+        if (SettingsManager.elements.technicianForm) {
+            SettingsManager.elements.technicianForm.addEventListener('submit', SettingsManager.handleTechnicianSubmit);
+        }
+    },
+
+    loadTechnicians: async () => {
+        if (!supabaseClient) {
+            showToast('Supabase is not connected. Unable to load technicians.', 'warning');
+            SettingsManager.renderTechnicians([]);
+            return;
+        }
+
+        try {
+            const { data, error } = await supabaseClient
+                .from('technicians')
+                .select('id, full_name, role, email, phone, is_active')
+                .order('full_name', { ascending: true });
+
+            if (error) throw error;
+
+            SettingsManager.renderTechnicians(data || []);
+        } catch (error) {
+            console.error('Error loading technicians:', error);
+            showToast('Unable to load technicians from database.', 'warning');
+            SettingsManager.renderTechnicians([]);
+        }
+    },
+
+    renderTechnicians: (technicians) => {
+        const list = SettingsManager.elements.technicianList;
+        if (!list) return;
+
+        list.innerHTML = '';
+
+        if (!technicians.length) {
+            const emptyItem = document.createElement('li');
+            emptyItem.className = 'text-slate-500';
+            emptyItem.textContent = 'No technicians found.';
+            list.appendChild(emptyItem);
+            return;
+        }
+
+        technicians.forEach(tech => {
+            const item = document.createElement('li');
+            item.className = 'flex items-start justify-between gap-4 bg-slate-50 border border-slate-200 rounded-lg p-3';
+
+            const details = document.createElement('div');
+            const nameRow = document.createElement('div');
+            nameRow.className = 'flex items-center gap-2';
+            nameRow.innerHTML = `
+                <span class="font-medium text-slate-800">${tech.full_name}</span>
+                <span class="text-xs uppercase tracking-wide text-slate-500">${tech.role}</span>
+            `;
+
+            const meta = document.createElement('div');
+            meta.className = 'text-xs text-slate-500 mt-1';
+            const email = tech.email ? `Email: ${tech.email}` : 'Email: —';
+            const phone = tech.phone ? `Phone: ${tech.phone}` : 'Phone: —';
+            meta.textContent = `${email} · ${phone}`;
+
+            details.appendChild(nameRow);
+            details.appendChild(meta);
+
+            const status = document.createElement('span');
+            status.className = `status-badge ${tech.is_active ? 'status-active' : 'status-inactive'}`;
+            status.innerHTML = `${tech.is_active ? '<span class="badge-pulse"></span>Active' : 'Inactive'}`;
+
+            item.appendChild(details);
+            item.appendChild(status);
+            list.appendChild(item);
+        });
+    },
+
+    handleTechnicianSubmit: async (event) => {
+        event.preventDefault();
+        if (!supabaseClient) {
+            showToast('Supabase is not connected. Unable to save technician.', 'warning');
+            return;
+        }
+
+        const form = event.target;
+        const formData = new FormData(form);
+        const payload = {
+            full_name: formData.get('full_name')?.toString().trim(),
+            role: formData.get('role') || 'technician',
+            phone: formData.get('phone')?.toString().trim() || null,
+            email: formData.get('email')?.toString().trim() || null,
+            is_active: formData.get('is_active') === 'on'
+        };
+
+        if (!payload.full_name) {
+            showToast('Please provide a technician name.', 'warning');
+            return;
+        }
+
+        try {
+            const { error } = await supabaseClient
+                .from('technicians')
+                .insert([payload]);
+
+            if (error) throw error;
+
+            form.reset();
+            const activeToggle = form.querySelector('input[name="is_active"]');
+            if (activeToggle) activeToggle.checked = true;
+
+            showToast('Technician added successfully.', 'success');
+            await SettingsManager.loadTechnicians();
+        } catch (error) {
+            console.error('Error adding technician:', error);
+            showToast('Failed to add technician.', 'error');
+        }
+    }
+};
+
 function showToast(message, type = 'info') {
     const container = document.getElementById('toast-container');
     if (!container) return;
