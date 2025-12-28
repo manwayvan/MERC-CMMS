@@ -24,6 +24,21 @@ CREATE TABLE IF NOT EXISTS public.user_profiles (
 );
 
 -- ==============================================
+-- TECHNICIAN DIRECTORY
+-- ==============================================
+
+CREATE TABLE IF NOT EXISTS public.technicians (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    full_name TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'technician' CHECK (role IN ('technician', 'supervisor', 'manager', 'contractor')),
+    email TEXT,
+    phone TEXT,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ==============================================
 -- CUSTOMERS & LOCATIONS
 -- ==============================================
 
@@ -77,6 +92,10 @@ CREATE TABLE IF NOT EXISTS public.assets (
     warranty_expiry DATE,
     last_maintenance TIMESTAMPTZ,
     next_maintenance TIMESTAMPTZ,
+    pm_schedule_type TEXT,
+    pm_interval_days INTEGER,
+    auto_generate_wo BOOLEAN DEFAULT true,
+    pm_last_generated_at TIMESTAMPTZ,
     compliance_status TEXT DEFAULT 'compliant' CHECK (compliance_status IN ('compliant', 'needs-attention', 'non-compliant')),
     description TEXT,
     specifications JSONB,
@@ -124,6 +143,7 @@ CREATE TABLE IF NOT EXISTS public.work_orders (
     priority TEXT NOT NULL DEFAULT 'medium' CHECK (priority IN ('critical', 'high', 'medium', 'low')),
     status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'in-progress', 'completed', 'cancelled')),
     assigned_to UUID REFERENCES auth.users(id),
+    assigned_technician_id UUID REFERENCES technicians(id),
     due_date TIMESTAMPTZ NOT NULL,
     created_date TIMESTAMPTZ DEFAULT NOW(),
     started_date TIMESTAMPTZ,
@@ -300,6 +320,7 @@ ALTER TABLE public.asset_documents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.work_orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.work_order_comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.work_order_attachments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.technicians ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.compliance_standards ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.compliance_records ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.audit_trail ENABLE ROW LEVEL SECURITY;
@@ -311,6 +332,7 @@ ALTER TABLE public.system_settings ENABLE ROW LEVEL SECURITY;
 -- For production, customize these based on roles
 
 CREATE POLICY "Allow authenticated read access" ON public.user_profiles FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Allow authenticated read access" ON public.technicians FOR SELECT USING (auth.role() = 'authenticated');
 CREATE POLICY "Allow authenticated read access" ON public.customers FOR SELECT USING (auth.role() = 'authenticated');
 CREATE POLICY "Allow authenticated read access" ON public.locations FOR SELECT USING (auth.role() = 'authenticated');
 CREATE POLICY "Allow authenticated read access" ON public.assets FOR SELECT USING (auth.role() = 'authenticated');
@@ -326,6 +348,15 @@ CREATE POLICY "Allow authenticated read access" ON public.notifications FOR SELE
 CREATE POLICY "Allow authenticated read access" ON public.reports FOR SELECT USING (auth.role() = 'authenticated');
 CREATE POLICY "Allow authenticated read access" ON public.system_settings FOR SELECT USING (auth.role() = 'authenticated');
 
+-- Optional public read access for unauthenticated front-end views
+CREATE POLICY "Allow public read access" ON public.assets FOR SELECT USING (auth.role() IN ('anon', 'authenticated'));
+CREATE POLICY "Allow public read access" ON public.work_orders FOR SELECT USING (auth.role() IN ('anon', 'authenticated'));
+CREATE POLICY "Allow public read access" ON public.user_profiles FOR SELECT USING (auth.role() IN ('anon', 'authenticated'));
+CREATE POLICY "Allow public read access" ON public.technicians FOR SELECT USING (auth.role() IN ('anon', 'authenticated'));
+
+CREATE POLICY "Allow public insert access" ON public.technicians
+    FOR INSERT WITH CHECK (auth.role() IN ('anon', 'authenticated'));
+
 -- Allow authenticated users to insert/update/delete (customize for production)
 CREATE POLICY "Allow authenticated write access" ON public.customers FOR ALL USING (auth.role() = 'authenticated');
 CREATE POLICY "Allow authenticated write access" ON public.locations FOR ALL USING (auth.role() = 'authenticated');
@@ -333,6 +364,7 @@ CREATE POLICY "Allow authenticated write access" ON public.assets FOR ALL USING 
 CREATE POLICY "Allow authenticated write access" ON public.asset_maintenance_history FOR ALL USING (auth.role() = 'authenticated');
 CREATE POLICY "Allow authenticated write access" ON public.asset_documents FOR ALL USING (auth.role() = 'authenticated');
 CREATE POLICY "Allow authenticated write access" ON public.work_orders FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Allow authenticated write access" ON public.technicians FOR ALL USING (auth.role() = 'authenticated');
 CREATE POLICY "Allow authenticated write access" ON public.work_order_comments FOR ALL USING (auth.role() = 'authenticated');
 CREATE POLICY "Allow authenticated write access" ON public.work_order_attachments FOR ALL USING (auth.role() = 'authenticated');
 CREATE POLICY "Allow authenticated write access" ON public.compliance_records FOR ALL USING (auth.role() = 'authenticated');
@@ -359,6 +391,7 @@ CREATE TRIGGER update_customers_updated_at BEFORE UPDATE ON public.customers FOR
 CREATE TRIGGER update_locations_updated_at BEFORE UPDATE ON public.locations FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_assets_updated_at BEFORE UPDATE ON public.assets FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_work_orders_updated_at BEFORE UPDATE ON public.work_orders FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_technicians_updated_at BEFORE UPDATE ON public.technicians FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_compliance_standards_updated_at BEFORE UPDATE ON public.compliance_standards FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_compliance_records_updated_at BEFORE UPDATE ON public.compliance_records FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
