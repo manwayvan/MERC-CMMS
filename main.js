@@ -2,8 +2,12 @@
 // Comprehensive functionality for Medical Device Management System
 
 // Initialize Supabase Client
-const supabaseUrl = 'https://hmdemsbqiqlqcggwblvl.supabase.co';
-const supabaseKey = 'sb_publishable_Z9oNxTGDCCz3EZnh6NqySg_QzF6amCN';
+const supabaseUrl = typeof CONFIG !== 'undefined' && CONFIG.SUPABASE_URL
+    ? CONFIG.SUPABASE_URL
+    : 'https://hmdemsbqiqlqcggwblvl.supabase.co';
+const supabaseKey = typeof CONFIG !== 'undefined' && CONFIG.SUPABASE_ANON_KEY
+    ? CONFIG.SUPABASE_ANON_KEY
+    : 'sb_publishable_Z9oNxTGDCCz3EZnh6NqySg_QzF6amCN';
 let supabaseClient = null;
 let supabaseInitPromise = null;
 
