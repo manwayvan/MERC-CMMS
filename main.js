@@ -857,8 +857,10 @@ const WorkOrderManager = {
     init: async () => {
         await WorkOrderManager.loadAssets();
         await WorkOrderManager.loadTechnicians();
-        await WorkOrderManager.loadWorkOrders();
+        // Load assets first so we can map asset names to work orders
+        await WorkOrderManager.loadAssets();
         await WorkOrderManager.loadWorkOrderTypes();
+        await WorkOrderManager.loadWorkOrders();
         WorkOrderManager.renderWorkOrders();
         WorkOrderManager.renderRecentWorkOrders();
         WorkOrderManager.updateSummaryCounts();
@@ -1021,19 +1023,38 @@ const WorkOrderManager = {
         // Map technician ID to name for display
         const technicianMap = new Map(AppState.technicians.map(tech => [tech.id, tech.full_name]));
         
+        // Map asset IDs to asset names for display - ensure assets are loaded
+        let assetMap = new Map();
+        if (AppState.assets && AppState.assets.length > 0) {
+            assetMap = new Map(AppState.assets.map(asset => [asset.id, asset.name || asset.id]));
+        } else {
+            // If assets not loaded, try to load them now
+            console.warn('Assets not loaded, attempting to load now for work order display');
+            await WorkOrderManager.loadAssets();
+            if (AppState.assets && AppState.assets.length > 0) {
+                assetMap = new Map(AppState.assets.map(asset => [asset.id, asset.name || asset.id]));
+            }
+        }
+        
         AppState.workOrders = (data || []).map(order => {
             const techId = technicianIdMap.get(order.id);
+            const assetName = assetMap.get(order.asset_id) || order.asset_id || 'Unknown Asset';
             return {
                 ...order,
                 assigned_technician_id: techId || null,
                 technician: techId 
                     ? (technicianMap.get(techId) || 'Unassigned')
-                    : 'Unassigned'
+                    : 'Unassigned',
+                asset_name: assetName
             };
         });
     },
 
     loadWorkOrderAssets: async () => {
+        // Ensure assets are loaded before populating options
+        if (AppState.assets.length === 0) {
+            await WorkOrderManager.loadAssets();
+        }
         WorkOrderManager.populateAssetOptions();
     },
 
@@ -1065,7 +1086,7 @@ const WorkOrderManager = {
                         </span>
                     </div>
                     <p class="text-sm text-slate-600 mb-2">${WorkOrderManager.formatWorkOrderType(wo.type)}</p>
-                    <p class="text-xs text-slate-500 mb-3">Asset: ${wo.asset_id}</p>
+                    <p class="text-xs text-slate-500 mb-3">Asset: ${wo.asset_name || wo.asset_id || 'Unknown Asset'}</p>
                     <div class="flex justify-between items-center">
                         <div class="flex items-center">
                             <div class="technician-avatar">${WorkOrderManager.getTechnicianInitials(wo.technician)}</div>
@@ -1107,7 +1128,7 @@ const WorkOrderManager = {
         tableBody.innerHTML = recentWorkOrders.map(wo => `
             <tr class="border-b border-slate-100 hover:bg-slate-50">
                 <td class="py-3 px-4 text-sm font-medium text-slate-900">${wo.id}</td>
-                <td class="py-3 px-4 text-sm text-slate-600">${wo.asset_id}</td>
+                <td class="py-3 px-4 text-sm text-slate-600">${wo.asset_name || wo.asset_id || 'Unknown Asset'}</td>
                 <td class="py-3 px-4 text-sm text-slate-600">${WorkOrderManager.formatWorkOrderType(wo.type)}</td>
                 <td class="py-3 px-4">
                     <span class="text-xs px-2 py-1 rounded-full ${WorkOrderManager.getPriorityColor(wo.priority)}">
@@ -1271,14 +1292,27 @@ const WorkOrderManager = {
         typeSelect.innerHTML = '<option value="">Select type</option>';
         AppState.workOrderTypes.forEach(type => {
             const option = document.createElement('option');
-            option.value = type.code;
-            option.textContent = type.label || type.code;
+            // AppState.workOrderTypes uses 'value' and 'label', not 'code'
+            option.value = type.value || type.code;
+            option.textContent = type.label || type.value || type.code;
             typeSelect.appendChild(option);
         });
         
-        // Restore selected value
+        // Restore selected value - ensure we match the stored type code
         if (currentValue) {
+            // Try exact match first
             typeSelect.value = currentValue;
+            // If no match, try to find by normalized value
+            if (!typeSelect.value && currentValue) {
+                const normalized = WorkOrderManager.toDatabaseWorkOrderType(currentValue);
+                const match = AppState.workOrderTypes.find(t => 
+                    (t.value || t.code) === normalized || 
+                    (t.value || t.code) === currentValue
+                );
+                if (match) {
+                    typeSelect.value = match.value || match.code;
+                }
+            }
         }
     },
 
@@ -1596,17 +1630,17 @@ const WorkOrderManager = {
 
         tableBody.innerHTML = filteredOrders.map(wo => `
             <tr class="hover:bg-slate-50 cursor-pointer" onclick="WorkOrderManager.viewWorkOrder('${wo.id}')">
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="text-xs px-2 py-1 rounded-full ${WorkOrderManager.getStatusColor(wo.status)}">
+                        ${wo.status === 'completed' ? 'CLOSED' : wo.status === 'cancelled' ? 'INCOMPLETE' : wo.status === 'open' ? 'OPEN' : wo.status.toUpperCase()}
+                    </span>
+                </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">${wo.id}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">${wo.asset_id}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">${wo.asset_name || wo.asset_id || 'Unknown Asset'}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">${WorkOrderManager.formatWorkOrderType(wo.type)}</td>
                 <td class="px-6 py-4 whitespace-nowrap">
                     <span class="text-xs px-2 py-1 rounded-full ${WorkOrderManager.getPriorityColor(wo.priority)}">
                         ${wo.priority.toUpperCase()}
-                    </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <span class="text-xs px-2 py-1 rounded-full ${WorkOrderManager.getStatusColor(wo.status)}">
-                        ${wo.status === 'completed' ? 'CLOSED' : wo.status === 'cancelled' ? 'INCOMPLETE' : wo.status === 'open' ? 'OPEN' : wo.status.toUpperCase()}
                     </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">${wo.technician || 'Unassigned'}</td>
