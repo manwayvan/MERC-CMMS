@@ -998,13 +998,14 @@ const WorkOrderManager = {
 
     // Render work orders in kanban board
     renderWorkOrders: () => {
+        const filteredOrders = WorkOrderManager.getFilteredWorkOrders();
         const columns = ['open', 'progress', 'completed', 'cancelled'];
 
         columns.forEach(status => {
             const container = document.getElementById(`${status === 'progress' ? 'progress' : status}-workorders`);
             if (!container) return;
 
-            const workOrders = AppState.workOrders.filter(wo =>
+            const workOrders = filteredOrders.filter(wo =>
                 (status === 'open' && wo.status === 'open') ||
                 (status === 'progress' && wo.status === 'in-progress') ||
                 (status === 'completed' && wo.status === 'completed') ||
@@ -1169,6 +1170,7 @@ const WorkOrderManager = {
             return;
         }
 
+        // Don't include 'id' - let the database generate it with the DEFAULT value
         const payload = {
             asset_id: assetId,
             type,
@@ -1178,6 +1180,11 @@ const WorkOrderManager = {
             estimated_hours: estimatedHours,
             description: description
         };
+        
+        // Explicitly exclude id to let database DEFAULT handle it
+        if (payload.id !== undefined) {
+            delete payload.id;
+        }
 
         const technicianName = WorkOrderManager.resolveTechnicianName(technicianId);
         if (technicianName && technicianName !== 'Unassigned') {
@@ -1278,6 +1285,256 @@ const WorkOrderManager = {
         if (partsUsedInput) partsUsedInput.value = '';
     },
 
+    // View switching (Grid/List)
+    currentView: 'grid',
+    switchView: (view) => {
+        WorkOrderManager.currentView = view;
+        const gridView = document.getElementById('workorders-grid-view');
+        const listView = document.getElementById('workorders-list-view');
+        const gridBtn = document.getElementById('grid-view-btn');
+        const listBtn = document.getElementById('list-view-btn');
+
+        if (view === 'grid') {
+            if (gridView) gridView.classList.remove('hidden');
+            if (listView) listView.classList.add('hidden');
+            if (gridBtn) gridBtn.classList.add('active');
+            if (listBtn) listBtn.classList.remove('active');
+            WorkOrderManager.renderWorkOrders();
+        } else {
+            if (gridView) gridView.classList.add('hidden');
+            if (listView) listView.classList.remove('hidden');
+            if (gridBtn) gridBtn.classList.remove('active');
+            if (listBtn) listBtn.classList.add('active');
+            WorkOrderManager.renderWorkOrdersList();
+        }
+    },
+
+    // Render work orders in list view
+    renderWorkOrdersList: () => {
+        const tableBody = document.getElementById('workorders-list-table');
+        if (!tableBody) return;
+
+        const filteredOrders = WorkOrderManager.getFilteredWorkOrders();
+        
+        if (filteredOrders.length === 0) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="8" class="px-6 py-8 text-center text-slate-500">
+                        <i class="fas fa-inbox text-4xl mb-4 text-slate-300"></i>
+                        <p>No work orders found</p>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        tableBody.innerHTML = filteredOrders.map(wo => `
+            <tr class="hover:bg-slate-50 cursor-pointer" onclick="WorkOrderManager.viewWorkOrder('${wo.id}')">
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">${wo.id}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">${wo.asset_id}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">${WorkOrderManager.formatWorkOrderType(wo.type)}</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="text-xs px-2 py-1 rounded-full ${WorkOrderManager.getPriorityColor(wo.priority)}">
+                        ${wo.priority.toUpperCase()}
+                    </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="text-xs px-2 py-1 rounded-full ${WorkOrderManager.getStatusColor(wo.status)}">
+                        ${wo.status.charAt(0).toUpperCase() + wo.status.slice(1)}
+                    </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">${wo.technician || 'Unassigned'}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">${WorkOrderManager.formatDate(wo.due_date)}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                    <button onclick="event.stopPropagation(); WorkOrderManager.viewWorkOrder('${wo.id}')" class="text-blue-600 hover:text-blue-900 mr-3">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    },
+
+    // Get filtered work orders based on search and filters
+    getFilteredWorkOrders: () => {
+        let filtered = [...AppState.workOrders];
+        
+        // Search filter
+        const searchInput = document.getElementById('workorder-search');
+        if (searchInput && searchInput.value.trim()) {
+            const searchTerm = searchInput.value.toLowerCase();
+            filtered = filtered.filter(wo => 
+                wo.id.toLowerCase().includes(searchTerm) ||
+                wo.asset_id.toLowerCase().includes(searchTerm) ||
+                WorkOrderManager.formatWorkOrderType(wo.type).toLowerCase().includes(searchTerm) ||
+                (wo.technician && wo.technician.toLowerCase().includes(searchTerm)) ||
+                (wo.description && wo.description.toLowerCase().includes(searchTerm))
+            );
+        }
+
+        // Priority filter
+        const priorityFilter = document.getElementById('priority-filter');
+        if (priorityFilter && priorityFilter.value) {
+            filtered = filtered.filter(wo => wo.priority === priorityFilter.value);
+        }
+
+        // Technician filter
+        const technicianFilter = document.getElementById('technician-filter');
+        if (technicianFilter && technicianFilter.value) {
+            filtered = filtered.filter(wo => {
+                const tech = AppState.technicians.find(t => t.id === technicianFilter.value);
+                return tech && wo.technician === tech.full_name;
+            });
+        }
+
+        return filtered;
+    },
+
+    // Setup search and filter event listeners
+    setupSearchAndFilters: () => {
+        const searchInput = document.getElementById('workorder-search');
+        const priorityFilter = document.getElementById('priority-filter');
+        const technicianFilter = document.getElementById('technician-filter');
+
+        const applyFilters = () => {
+            if (WorkOrderManager.currentView === 'list') {
+                WorkOrderManager.renderWorkOrdersList();
+            } else {
+                WorkOrderManager.renderWorkOrders();
+            }
+        };
+
+        if (searchInput) {
+            let searchTimeout;
+            searchInput.addEventListener('input', () => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(applyFilters, 300);
+            });
+        }
+
+        if (priorityFilter) {
+            priorityFilter.addEventListener('change', applyFilters);
+        }
+
+        if (technicianFilter) {
+            technicianFilter.addEventListener('change', applyFilters);
+        }
+    },
+
+    // Tasks Management
+    loadTasks: async (workOrderId) => {
+        if (!supabaseClient) return [];
+
+        const { data, error } = await supabaseClient
+            .from('work_order_tasks')
+            .select('*')
+            .eq('work_order_id', workOrderId)
+            .order('sort_order', { ascending: true })
+            .order('created_at', { ascending: true });
+
+        if (error) {
+            console.error('Error loading tasks:', error);
+            return [];
+        }
+
+        return data || [];
+    },
+
+    loadTaskAttachments: async (taskId) => {
+        if (!supabaseClient) return [];
+
+        const { data, error } = await supabaseClient
+            .from('work_order_task_attachments')
+            .select('*')
+            .eq('task_id', taskId)
+            .order('created_at', { ascending: true });
+
+        if (error) {
+            console.error('Error loading task attachments:', error);
+            return [];
+        }
+
+        return data || [];
+    },
+
+    uploadTaskFile: async (taskId, file, fileType = 'file') => {
+        if (!supabaseClient) {
+            showToast('Supabase not connected', 'error');
+            return null;
+        }
+
+        try {
+            // Upload to Supabase Storage
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${taskId}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+            const filePath = `work-order-tasks/${fileName}`;
+
+            const { data: uploadData, error: uploadError } = await supabaseClient.storage
+                .from('work-order-files')
+                .upload(filePath, file, {
+                    cacheControl: '3600',
+                    upsert: false
+                });
+
+            if (uploadError) throw uploadError;
+
+            // Get public URL
+            const { data: urlData } = supabaseClient.storage
+                .from('work-order-files')
+                .getPublicUrl(filePath);
+
+            // Save attachment record
+            const { data: attachmentData, error: attachmentError } = await supabaseClient
+                .from('work_order_task_attachments')
+                .insert({
+                    task_id: taskId,
+                    file_name: file.name,
+                    file_url: urlData.publicUrl,
+                    file_type: fileType,
+                    file_size: file.size,
+                    mime_type: file.type
+                })
+                .select()
+                .single();
+
+            if (attachmentError) throw attachmentError;
+
+            return attachmentData;
+        } catch (error) {
+            console.error('Error uploading file:', error);
+            showToast(`Failed to upload file: ${error.message}`, 'error');
+            return null;
+        }
+    },
+
+    createTask: async (workOrderId, taskData) => {
+        if (!supabaseClient) {
+            showToast('Supabase not connected', 'error');
+            return null;
+        }
+
+        try {
+            const { data, error } = await supabaseClient
+                .from('work_order_tasks')
+                .insert({
+                    work_order_id: workOrderId,
+                    title: taskData.title,
+                    description: taskData.description,
+                    status: taskData.status || 'pending',
+                    due_date: taskData.due_date || null,
+                    sort_order: taskData.sort_order || 0
+                })
+                .select()
+                .single();
+
+            if (error) throw error;
+            return data;
+        } catch (error) {
+            console.error('Error creating task:', error);
+            showToast(`Failed to create task: ${error.message}`, 'error');
+            return null;
+        }
+    },
+
     updateSummaryCounts: () => {
         const openCount = AppState.workOrders.filter(order => order.status === 'open').length;
         const progressCount = AppState.workOrders.filter(order => order.status === 'in-progress').length;
@@ -1339,13 +1596,22 @@ const WorkOrderManager = {
         AppState.assets.forEach(asset => {
             const option = document.createElement('option');
             option.value = asset.id;
+            // Check if asset.id is a UUID (36 chars with dashes) - if so, use serial_number or name as identifier
+            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(asset.id);
+            let displayId = asset.id;
+            
+            // If it's a UUID, try to find a readable identifier
+            if (isUUID) {
+                // Try asset_id, serial_number, or just use name
+                displayId = asset.asset_id || asset.serial_number || asset.name || 'Asset';
+            }
+            
             // Format: Asset ID - [Category] - Asset Name
-            const assetId = asset.id || 'N/A';
             const category = asset.category 
                 ? `[${asset.category.charAt(0).toUpperCase() + asset.category.slice(1)}]` 
                 : '';
             const assetName = asset.name || 'Unnamed Asset';
-            option.textContent = `${assetId} ${category} ${assetName}`.trim();
+            option.textContent = `${displayId} ${category} ${assetName}`.trim();
             assetSelect.appendChild(option);
         });
     },
