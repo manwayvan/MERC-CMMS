@@ -1672,6 +1672,47 @@ function normalizePageName(pageName) {
     return pageName;
 }
 
+async function requireAuth() {
+    if (AppState.currentPage === 'login') {
+        return true;
+    }
+
+    await loadSupabaseClient();
+
+    if (!supabaseClient?.auth?.getSession) {
+        return false;
+    }
+
+    try {
+        const { data } = await supabaseClient.auth.getSession();
+        if (!data?.session) {
+            window.location.href = 'login.html';
+            return false;
+        }
+        return true;
+    } catch (error) {
+        console.error('Error checking auth session:', error);
+        window.location.href = 'login.html';
+        return false;
+    }
+}
+
+function setupLogout() {
+    const logoutButton = document.getElementById('logout-button');
+    if (!logoutButton) return;
+
+    logoutButton.addEventListener('click', async () => {
+        if (supabaseClient?.auth?.signOut) {
+            try {
+                await supabaseClient.auth.signOut();
+            } catch (error) {
+                console.error('Error signing out:', error);
+            }
+        }
+        window.location.href = 'login.html';
+    });
+}
+
 // Initialize the application
 async function initApp() {
     const pageName = window.location.pathname.split('/').pop().replace('.html', '');
@@ -1680,14 +1721,11 @@ async function initApp() {
     setupMobileMenu();
 
     if (AppState.currentPage === 'assets') {
-        await loadSupabaseClient();
         assetManager.loadAssets();
         assetManager.setupEventLuisteners();
     } else if (AppState.currentPage === 'workorders') {
-        await loadSupabaseClient();
         await WorkOrderManager.init();
     } else if (AppState.currentPage === 'settings') {
-        await loadSupabaseClient();
         await SettingsManager.init();
     } else if (AppState.currentPage === 'customers') {
         initCustomerPage();
