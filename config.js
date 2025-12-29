@@ -4,8 +4,8 @@
 const CONFIG = {
     // Supabase Configuration
     // Get these from: https://supabase.com/dashboard → Your Project → Settings → API
-    SUPABASE_URL: 'https://hmdemsbqiqlqcggwblvl.supabase.co',
-    SUPABASE_ANON_KEY: 'sb_publishable_Z9oNxTGDCCz3EZnh6NqySg_QzF6amCN',
+    SUPABASE_URL: 'https://wxfyhuhsbhvtyfjzxakb.supabase.co',
+    SUPABASE_ANON_KEY: 'sb_publishable_Hgl9W9c6KNUA2sL9i3PE4g_03X6m5Dh',
     
     // Application Configuration
     APP_NAME: 'MERC-CMMS Enterprise',
