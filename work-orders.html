@@ -196,7 +196,7 @@
     <!-- Standard Header -->
     <nav class="fixed top-0 left-0 right-0 z-50 medical-gradient shadow-lg">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex flex-wrap justify-between items-center gap-3 py-2 min-h-[4rem]">
+            <div class="flex flex-nowrap justify-between items-center gap-3 py-2 min-h-[4rem]">
                 <a href="index.html" class="flex items-center space-x-4 min-w-0" aria-label="Go to dashboard">
                     <img src="/resources/Logo_without%20name.png" alt="MERC-CMMS logo" class="w-10 h-10 rounded-full bg-white object-contain p-1 block flex-shrink-0 overflow-hidden">
                     <div class="min-w-0">
@@ -225,6 +225,9 @@
                         <a href="settings.html" class="text-white hover:text-blue-200 transition-colors" aria-label="Open settings">
                             <i class="fas fa-gear text-xl"></i>
                         </a>
+                        <button id="logout-button" class="text-white hover:text-blue-200 transition-colors" aria-label="Sign out">
+                            <i class="fas fa-right-from-bracket text-xl"></i>
+                        </button>
                     </div>
                     <div class="flex items-center space-x-2 min-w-0">
                         <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
@@ -558,7 +561,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/js/all.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
+    <script src="auth.js"></script>
     <script src="main.js"></script>
 </body>
 </html>
