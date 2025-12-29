@@ -372,13 +372,32 @@ CREATE TABLE IF NOT EXISTS public.work_order_checklist_responses (
 -- Add foreign key for checklist_id in work_orders
 DO $$
 BEGIN
+    -- First, ensure the checklist_id column exists
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'work_orders' 
+        AND column_name = 'checklist_id'
+    ) THEN
+        ALTER TABLE public.work_orders 
+        ADD COLUMN checklist_id UUID;
+    END IF;
+
+    -- Then add the foreign key constraint if it doesn't exist
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.table_constraints 
         WHERE constraint_name = 'work_orders_checklist_id_fkey'
     ) THEN
-        ALTER TABLE public.work_orders 
-        ADD CONSTRAINT work_orders_checklist_id_fkey 
-        FOREIGN KEY (checklist_id) REFERENCES checklists(id);
+        -- Only add the constraint if checklists table exists
+        IF EXISTS (
+            SELECT 1 FROM information_schema.tables 
+            WHERE table_schema = 'public' 
+            AND table_name = 'checklists'
+        ) THEN
+            ALTER TABLE public.work_orders 
+            ADD CONSTRAINT work_orders_checklist_id_fkey 
+            FOREIGN KEY (checklist_id) REFERENCES checklists(id);
+        END IF;
     END IF;
 END $$;
 
