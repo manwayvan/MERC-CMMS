@@ -1181,16 +1181,18 @@ const WorkOrderManager = {
             return;
         }
 
-        // Populate the view modal
+        // Populate dropdowns FIRST (before setting values), passing the values to set
+        WorkOrderManager.populateViewAssetOptions(workOrder.asset_id || '');
+        WorkOrderManager.populateViewTechnicianOptions(workOrder.assigned_technician_id || '');
+        WorkOrderManager.populateViewWorkOrderTypes(workOrder.type || '');
+
+        // Now set the other values AFTER dropdowns are populated
         document.getElementById('view-workorder-id').value = workOrder.id;
         document.getElementById('view-workorder-wo-id').value = workOrder.id;
         document.getElementById('view-workorder-status').value = workOrder.status === 'completed' ? 'closed' : 
                                                                   workOrder.status === 'cancelled' ? 'incomplete' : 
                                                                   workOrder.status || 'open';
-        document.getElementById('view-workorder-asset-select').value = workOrder.asset_id || '';
-        document.getElementById('view-workorder-type-select').value = workOrder.type || '';
         document.getElementById('view-workorder-priority-select').value = workOrder.priority || 'medium';
-        document.getElementById('view-workorder-technician-select').value = workOrder.assigned_technician_id || '';
         
         // Format date for input
         if (workOrder.due_date) {
@@ -1202,11 +1204,6 @@ const WorkOrderManager = {
         document.getElementById('view-workorder-estimated-hours').value = workOrder.estimated_hours || '';
         document.getElementById('view-workorder-description').value = workOrder.description || '';
 
-        // Populate dropdowns
-        WorkOrderManager.populateViewAssetOptions();
-        WorkOrderManager.populateViewTechnicianOptions();
-        WorkOrderManager.populateViewWorkOrderTypes();
-
         // Show modal
         const modal = document.getElementById('view-workorder-modal');
         if (modal) {
@@ -1214,11 +1211,11 @@ const WorkOrderManager = {
         }
     },
 
-    populateViewAssetOptions: () => {
+    populateViewAssetOptions: (valueToSet = null) => {
         const assetSelect = document.getElementById('view-workorder-asset-select');
         if (!assetSelect) return;
 
-        const currentValue = assetSelect.value;
+        const currentValue = valueToSet !== null ? valueToSet : assetSelect.value;
         assetSelect.innerHTML = '<option value="">Select Asset</option>';
         AppState.assets.forEach(asset => {
             const option = document.createElement('option');
@@ -1247,11 +1244,11 @@ const WorkOrderManager = {
         }
     },
 
-    populateViewTechnicianOptions: () => {
+    populateViewTechnicianOptions: (valueToSet = null) => {
         const techSelect = document.getElementById('view-workorder-technician-select');
         if (!techSelect) return;
 
-        const currentValue = techSelect.value;
+        const currentValue = valueToSet !== null ? valueToSet : techSelect.value;
         techSelect.innerHTML = '<option value="">Select technician</option>';
         AppState.technicians.forEach(tech => {
             const option = document.createElement('option');
@@ -1266,11 +1263,11 @@ const WorkOrderManager = {
         }
     },
 
-    populateViewWorkOrderTypes: () => {
+    populateViewWorkOrderTypes: (valueToSet = null) => {
         const typeSelect = document.getElementById('view-workorder-type-select');
         if (!typeSelect) return;
 
-        const currentValue = typeSelect.value;
+        const currentValue = valueToSet !== null ? valueToSet : typeSelect.value;
         typeSelect.innerHTML = '<option value="">Select type</option>';
         AppState.workOrderTypes.forEach(type => {
             const option = document.createElement('option');
