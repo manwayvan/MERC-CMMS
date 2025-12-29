@@ -436,7 +436,7 @@
                     <div class="flex items-center justify-between mb-3">
                         <div>
                             <h4 class="text-sm font-semibold text-slate-800">Basic Info</h4>
-                            <p class="text-xs text-slate-500">Pick the asset and work order type from the system catalog.</p>
+                            <p class="text-xs text-slate-500">Pick the asset and work order type synced from Supabase.</p>
                         </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -510,20 +510,8 @@
                     </div>
                     <div class="mt-4">
                         <label class="block text-sm font-medium text-slate-700 mb-1">Parts Used</label>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                            <select id="workorder-parts-select" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                                <option value="">Select part</option>
-                            </select>
-                            <input id="workorder-parts-qty" type="number" min="1" value="1" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Qty">
-                            <input id="workorder-parts-custom" type="text" placeholder="Custom part name" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                        </div>
-                        <div class="flex items-center justify-between mt-3">
-                            <p class="text-xs text-slate-500">Select from available parts or enter a custom part name.</p>
-                            <button id="workorder-add-part" type="button" class="text-xs px-3 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900">
-                                Add Part
-                            </button>
-                        </div>
-                        <div id="workorder-parts-list" class="mt-3 space-y-2"></div>
+                        <textarea id="workorder-parts-used" rows="3" placeholder="List parts with quantities (e.g., Filter x2, Fuse x1)."
+                                  class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
                     </div>
                 </div>
                 <div>
