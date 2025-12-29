@@ -88,3 +88,4 @@ SELECT
     COUNT(CASE WHEN status = 'cancelled' THEN 1 END) as cancelled_count
 FROM public.work_orders;
 
+

@@ -101,6 +101,15 @@
         .workorder-card.priority-high { border-left-color: #d97706; }
         .workorder-card.priority-medium { border-left-color: #2563eb; }
         .workorder-card.priority-low { border-left-color: #6b7280; }
+        .view-toggle-btn {
+            background: white;
+            color: #64748b;
+            border: 1px solid #cbd5e1;
+            transition: all 0.2s ease;
+        }
+        .view-toggle-btn:hover {
+            background: #f8fafc;
+        }
         .view-toggle-btn.active {
             background: #2563eb;
             color: white;
@@ -214,6 +223,7 @@
                     <a href="customers.html" class="text-blue-200 hover:text-white transition-colors">Customers</a>
                     <a href="assets.html" class="text-blue-200 hover:text-white transition-colors">Assets</a>
                     <a href="work-orders.html" class="text-white font-semibold border-b-2 border-blue-300 pb-1">Work Orders</a>
+                    <a href="inventory.html" class="text-blue-200 hover:text-white transition-colors">Inventory</a>
                     <a href="compliance.html" class="text-blue-200 hover:text-white transition-colors">Compliance</a>
                 </div>
                 <div class="flex items-center gap-3 flex-shrink-0">
@@ -343,17 +353,19 @@
                 <div class="flex items-center justify-between mb-6">
                     <h2 class="text-2xl font-bold text-slate-800">Work Order Board</h2>
                     <div class="flex items-center gap-2">
-                        <button id="grid-view-btn" onclick="WorkOrderManager.switchView('grid')" class="view-toggle-btn px-4 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 active">
-                            <i class="fas fa-th"></i> Grid
-                        </button>
-                        <button id="list-view-btn" onclick="WorkOrderManager.switchView('list')" class="view-toggle-btn px-4 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50">
-                            <i class="fas fa-list"></i> List
-                        </button>
+                        <div class="flex gap-2 border border-slate-300 rounded-lg overflow-hidden">
+                            <button id="grid-view-btn" onclick="WorkOrderManager.switchView('grid')" class="view-toggle-btn px-4 py-2 text-sm font-medium">
+                                <i class="fas fa-th-large mr-2"></i>Grid View
+                            </button>
+                            <button id="list-view-btn" onclick="WorkOrderManager.switchView('list')" class="view-toggle-btn active px-4 py-2 text-sm font-medium">
+                                <i class="fas fa-list mr-2"></i>List View
+                            </button>
+                        </div>
                     </div>
                 </div>
                 
                 <!-- Grid/Kanban View -->
-                <div id="workorders-grid-view">
+                <div id="workorders-grid-view" class="hidden">
                     <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
                     <!-- Open Column -->
                     <div class="kanban-column">
@@ -399,7 +411,7 @@
                 </div>
                 
                 <!-- List View -->
-                <div id="workorders-list-view" class="hidden">
+                <div id="workorders-list-view">
                     <div class="bg-white rounded-lg shadow overflow-hidden">
                         <table class="w-full">
                             <thead class="bg-slate-50">
@@ -537,6 +549,29 @@
                     <textarea id="workorder-description" rows="4" placeholder="Detailed description of the work to be performed..."
                               class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
                 </div>
+                
+                <!-- Parts Section -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <div>
+                            <h4 class="text-sm font-semibold text-slate-800">Parts Used</h4>
+                            <p class="text-xs text-slate-500">Add parts that will be used for this work order.</p>
+                        </div>
+                        <button type="button" onclick="addPartToWorkOrder('create')" class="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">
+                            <i class="fas fa-plus mr-1"></i> Add Part
+                        </button>
+                    </div>
+                    <div id="create-wo-parts-list" class="space-y-2">
+                        <p class="text-xs text-slate-500 italic">No parts added yet</p>
+                    </div>
+                    <div id="create-wo-parts-total" class="mt-3 pt-3 border-t border-blue-200 hidden">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm font-semibold text-slate-800">Total Parts Cost:</span>
+                            <span class="text-lg font-bold text-blue-600" id="create-wo-parts-total-amount">$0.00</span>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="flex justify-end space-x-3 pt-4">
                     <button type="button" onclick="hideCreateWorkOrderModal()" class="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 transition-colors">
                         Cancel
@@ -551,13 +586,66 @@
 
     <!-- View/Edit Work Order Modal -->
     <div id="view-workorder-modal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content" style="max-width: 1200px; width: 95vw;">
             <div class="flex justify-between items-center mb-6">
-                <h3 class="text-2xl font-bold text-slate-800">Work Order Details</h3>
-                <button onclick="hideViewWorkOrderModal()" class="text-slate-400 hover:text-slate-600">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
+                <div class="flex items-center gap-4">
+                    <h3 id="view-workorder-title" class="text-2xl font-bold text-slate-800"></h3>
+                    <div class="flex items-center gap-2">
+                        <select id="view-workorder-status-header" class="px-3 py-1 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+                            <option value="open">Open</option>
+                            <option value="in-progress">In Progress</option>
+                            <option value="on-hold">On Hold</option>
+                            <option value="closed">Closed</option>
+                            <option value="incomplete">Incomplete</option>
+                        </select>
+                        <button id="wo-timer-btn" onclick="WorkOrderManager.toggleTimer()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
+                            <i class="fas fa-play mr-2"></i>Run Timer - <span id="wo-timer-display">0:00</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="relative">
+                        <button id="wo-action-menu-btn" onclick="WorkOrderManager.toggleActionMenu()" class="p-2 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                        <div id="wo-action-menu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 z-50">
+                            <button onclick="WorkOrderManager.linkWorkOrders()" class="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2">
+                                <i class="fas fa-link"></i> Link
+                            </button>
+                            <button onclick="WorkOrderManager.exportPDFReport()" class="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2">
+                                <i class="fas fa-file-pdf"></i> PDF Report
+                            </button>
+                            <button onclick="WorkOrderManager.archiveWorkOrder()" class="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2">
+                                <i class="fas fa-archive"></i> Archive
+                            </button>
+                        </div>
+                    </div>
+                    <button onclick="WorkOrderManager.editWorkOrder()" class="p-2 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button onclick="WorkOrderManager.deleteWorkOrder()" class="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                    <button onclick="hideViewWorkOrderModal()" class="text-slate-400 hover:text-slate-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
             </div>
+            
+            <!-- Tabs -->
+            <div class="border-b border-slate-200 mb-6">
+                <div class="flex gap-4">
+                    <button id="wo-details-tab" onclick="WorkOrderManager.switchWOTab('details')" class="px-4 py-2 border-b-2 border-blue-600 text-blue-600 font-medium text-sm">
+                        Details
+                    </button>
+                    <button id="wo-updates-tab" onclick="WorkOrderManager.switchWOTab('updates')" class="px-4 py-2 border-b-2 border-transparent text-slate-600 hover:text-slate-800 font-medium text-sm">
+                        Updates
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Details Tab Content -->
+            <div id="wo-details-content" class="space-y-5">
             <form id="view-workorder-form" class="space-y-5">
                 <input type="hidden" id="view-workorder-id">
                 <div class="bg-slate-50 border border-slate-200 rounded-lg p-4">
@@ -626,15 +714,140 @@
                     <textarea id="view-workorder-description" rows="4" placeholder="Detailed description of the work to be performed..."
                               class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
                 </div>
+                
+                <!-- Parts Section -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <div>
+                            <h4 class="text-sm font-semibold text-slate-800">Parts Used</h4>
+                            <p class="text-xs text-slate-500">Parts used in this work order.</p>
+                        </div>
+                        <button type="button" onclick="addPartToWorkOrder('view')" class="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">
+                            <i class="fas fa-plus mr-1"></i> Add Part
+                        </button>
+                    </div>
+                    <div id="view-wo-parts-list" class="space-y-2">
+                        <p class="text-xs text-slate-500 italic">Loading parts...</p>
+                    </div>
+                    <div id="view-wo-parts-total" class="mt-3 pt-3 border-t border-blue-200 hidden">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm font-semibold text-slate-800">Total Parts Cost:</span>
+                            <span class="text-lg font-bold text-blue-600" id="view-wo-parts-total-amount">$0.00</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Labor Costs Section -->
+                <div class="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <div>
+                            <h4 class="text-sm font-semibold text-slate-800">Labor Costs</h4>
+                            <p class="text-xs text-slate-500">Time logged by technicians. Hourly rate is optional.</p>
+                        </div>
+                        <button type="button" onclick="WorkOrderManager.showAddTimeModal()" class="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">
+                            <i class="fas fa-plus mr-1"></i> Add Time
+                        </button>
+                    </div>
+                    <div id="wo-labor-costs-list" class="space-y-2">
+                        <p class="text-xs text-slate-500 italic">No labor costs have been added yet. They'll show up here when a user logs time.</p>
+                    </div>
+                    <div id="wo-labor-total" class="mt-3 pt-3 border-t border-slate-200 hidden">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm font-semibold text-slate-800">Total Labor Cost:</span>
+                            <span class="text-lg font-bold text-blue-600" id="wo-labor-total-amount">$0.00</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Additional Costs Section -->
+                <div class="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <div>
+                            <h4 class="text-sm font-semibold text-slate-800">Additional Costs</h4>
+                            <p class="text-xs text-slate-500">Other costs associated with this work order.</p>
+                        </div>
+                        <button type="button" onclick="WorkOrderManager.showAddCostModal()" class="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">
+                            <i class="fas fa-plus mr-1"></i> Add Additional Cost
+                        </button>
+                    </div>
+                    <div id="wo-additional-costs-list" class="space-y-2">
+                        <p class="text-xs text-slate-500 italic">No additional costs have been added yet</p>
+                    </div>
+                    <div id="wo-additional-total" class="mt-3 pt-3 border-t border-slate-200 hidden">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm font-semibold text-slate-800">Total Additional Costs:</span>
+                            <span class="text-lg font-bold text-blue-600" id="wo-additional-total-amount">$0.00</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Links Section -->
+                <div class="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <div>
+                            <h4 class="text-sm font-semibold text-slate-800">Links</h4>
+                            <p class="text-xs text-slate-500">Link related work orders together.</p>
+                        </div>
+                        <button type="button" onclick="WorkOrderManager.showLinkWorkOrdersModal()" class="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">
+                            <i class="fas fa-link mr-1"></i> Link Work Orders
+                        </button>
+                    </div>
+                    <div id="wo-links-list" class="space-y-2">
+                        <p class="text-xs text-slate-500 italic">No work orders linked</p>
+                    </div>
+                </div>
+                
+                <!-- Files Section -->
+                <div class="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <div>
+                            <h4 class="text-sm font-semibold text-slate-800">Files</h4>
+                            <p class="text-xs text-slate-500">Attach files, photos, or documents to this work order.</p>
+                        </div>
+                        <button type="button" onclick="WorkOrderManager.showAddFileModal()" class="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">
+                            <i class="fas fa-plus mr-1"></i> Add File
+                        </button>
+                    </div>
+                    <div id="wo-files-list" class="space-y-2">
+                        <p class="text-xs text-slate-500 italic">No file attached to this work order</p>
+                    </div>
+                </div>
+                
+                <!-- Total Cost Summary -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div class="flex justify-between items-center">
+                        <span class="text-lg font-semibold text-slate-800">Total Work Order Cost:</span>
+                        <span class="text-2xl font-bold text-blue-600" id="wo-total-cost">$0.00</span>
+                    </div>
+                </div>
+                
                 <div class="flex justify-end space-x-3 pt-4">
                     <button type="button" onclick="hideViewWorkOrderModal()" class="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 transition-colors">
-                        Cancel
+                        Close
                     </button>
                     <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
                         Update Work Order
                     </button>
                 </div>
             </form>
+            </div>
+            
+            <!-- Updates Tab Content -->
+            <div id="wo-updates-content" class="hidden space-y-4">
+                <div class="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                    <h4 class="text-sm font-semibold text-slate-800 mb-4">Activity Timeline</h4>
+                    <div id="wo-updates-timeline" class="space-y-4">
+                        <p class="text-xs text-slate-500 italic">No updates yet</p>
+                    </div>
+                </div>
+                <div class="bg-white border border-slate-200 rounded-lg p-4">
+                    <h4 class="text-sm font-semibold text-slate-800 mb-3">Add Update</h4>
+                    <textarea id="wo-update-text" rows="3" placeholder="Add a note or update about this work order..." class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-3"></textarea>
+                    <button onclick="WorkOrderManager.addUpdate()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
+                        <i class="fas fa-plus mr-1"></i> Add Update
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -656,6 +869,214 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <script src="auth.js"></script>
+    <!-- Add Part to Work Order Modal -->
+    <div id="add-part-modal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-slate-800">Add Part to Work Order</h3>
+                <button onclick="closeAddPartModal()" class="text-slate-400 hover:text-slate-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <form id="add-part-form" class="space-y-4">
+                <input type="hidden" id="add-part-wo-id">
+                <input type="hidden" id="add-part-mode">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Part <span class="text-red-500">*</span></label>
+                    <select id="add-part-select" class="form-input" required>
+                        <option value="">Select Part</option>
+                    </select>
+                    <p class="text-xs text-slate-500 mt-1" id="part-stock-info"></p>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Quantity <span class="text-red-500">*</span></label>
+                        <input type="number" id="add-part-quantity" class="form-input" min="1" value="1" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Unit Cost <span class="text-red-500">*</span></label>
+                        <input type="number" id="add-part-unit-cost" class="form-input" step="0.01" min="0" required>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Total Cost</label>
+                    <input type="text" id="add-part-total-cost" class="form-input bg-slate-100" readonly>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Notes</label>
+                    <textarea id="add-part-notes" rows="2" class="form-input"></textarea>
+                </div>
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" onclick="closeAddPartModal()" class="btn btn-secondary">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Part</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Time Modal -->
+    <div id="add-time-modal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-slate-800">Add Labor Time</h3>
+                <button onclick="closeAddTimeModal()" class="text-slate-400 hover:text-slate-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <form id="add-time-form" class="space-y-4">
+                <input type="hidden" id="add-time-wo-id">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Technician <span class="text-red-500">*</span></label>
+                    <select id="add-time-technician" class="form-input" required>
+                        <option value="">Select Technician</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Hours <span class="text-red-500">*</span></label>
+                        <input type="number" id="add-time-hours" class="form-input" step="0.25" min="0" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Hourly Rate ($) <span class="text-slate-400 text-xs">(Optional)</span></label>
+                        <input type="number" id="add-time-rate" class="form-input" step="0.01" min="0" placeholder="Leave blank if not applicable">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Total Cost</label>
+                    <input type="text" id="add-time-total" class="form-input bg-slate-100" readonly>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Date</label>
+                    <input type="date" id="add-time-date" class="form-input" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Notes</label>
+                    <textarea id="add-time-notes" rows="3" class="form-input"></textarea>
+                </div>
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" onclick="closeAddTimeModal()" class="btn btn-secondary">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Time</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Additional Cost Modal -->
+    <div id="add-cost-modal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-slate-800">Add Additional Cost</h3>
+                <button onclick="closeAddCostModal()" class="text-slate-400 hover:text-slate-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <form id="add-cost-form" class="space-y-4">
+                <input type="hidden" id="add-cost-wo-id">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Description <span class="text-red-500">*</span></label>
+                    <input type="text" id="add-cost-description" class="form-input" required>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Amount ($) <span class="text-red-500">*</span></label>
+                        <input type="number" id="add-cost-amount" class="form-input" step="0.01" min="0" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Category</label>
+                        <input type="text" id="add-cost-category" class="form-input" placeholder="e.g., Travel, Materials">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Date</label>
+                    <input type="date" id="add-cost-date" class="form-input" required>
+                </div>
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" onclick="closeAddCostModal()" class="btn btn-secondary">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Cost</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Link Work Orders Modal -->
+    <div id="link-workorders-modal" class="modal">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-slate-800">Link Work Orders</h3>
+                <button onclick="closeLinkWorkOrdersModal()" class="text-slate-400 hover:text-slate-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <form id="link-workorders-form" class="space-y-4">
+                <input type="hidden" id="link-wo-id">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Link To Work Order <span class="text-red-500">*</span></label>
+                    <select id="link-wo-select" class="form-input" required>
+                        <option value="">Select Work Order</option>
+                    </select>
+                    <p class="text-xs text-slate-500 mt-1">Select a work order to link to this one</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Link Type</label>
+                    <select id="link-wo-type" class="form-input">
+                        <option value="related">Related</option>
+                        <option value="parent">Parent</option>
+                        <option value="child">Child</option>
+                        <option value="duplicate">Duplicate</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Notes</label>
+                    <textarea id="link-wo-notes" rows="3" class="form-input"></textarea>
+                </div>
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" onclick="closeLinkWorkOrdersModal()" class="btn btn-secondary">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Link Work Orders</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add File Modal -->
+    <div id="add-file-modal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-slate-800">Add File</h3>
+                <button onclick="closeAddFileModal()" class="text-slate-400 hover:text-slate-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <form id="add-file-form" class="space-y-4">
+                <input type="hidden" id="add-file-wo-id">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">File <span class="text-red-500">*</span></label>
+                    <input type="file" id="add-file-input" class="form-input" required>
+                    <p class="text-xs text-slate-500 mt-1">Max file size: 10MB</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Description</label>
+                    <textarea id="add-file-description" rows="3" class="form-input" placeholder="Optional description of the file"></textarea>
+                </div>
+                <div id="add-file-progress" class="hidden">
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                        <div class="flex items-center gap-2">
+                            <div class="flex-1 bg-blue-200 rounded-full h-2">
+                                <div id="add-file-progress-bar" class="bg-blue-600 h-2 rounded-full" style="width: 0%"></div>
+                            </div>
+                            <span id="add-file-progress-text" class="text-sm text-blue-600">0%</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" onclick="closeAddFileModal()" class="btn btn-secondary">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Upload File</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script src="main.js"></script>
+    <script src="js/work-order-parts.js"></script>
+    <script src="js/pm-auto-generator.js"></script>
 </body>
 </html>

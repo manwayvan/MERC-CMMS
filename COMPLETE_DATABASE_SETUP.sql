@@ -635,3 +635,4 @@ BEGIN
     RAISE NOTICE 'Successfully created % required tables', table_count;
 END $$;
 
+

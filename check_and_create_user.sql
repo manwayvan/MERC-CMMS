@@ -38,3 +38,4 @@ SELECT id, email, full_name, role, is_active
 FROM public.user_profiles 
 WHERE email = 'info@medequiprepairco.com';
 
+

@@ -102,6 +102,7 @@
                     <a href="customers.html" class="text-blue-200 hover:text-white transition-colors">Customers</a>
                     <a href="assets.html" class="text-blue-200 hover:text-white transition-colors">Assets</a>
                     <a href="work-orders.html" class="text-blue-200 hover:text-white transition-colors">Work Orders</a>
+                    <a href="inventory.html" class="text-blue-200 hover:text-white transition-colors">Inventory</a>
                     <a href="compliance.html" class="text-blue-200 hover:text-white transition-colors">Compliance</a>
                 </div>
                 <div class="flex items-center gap-3 flex-shrink-0">
@@ -284,22 +285,22 @@
                     <div class="bg-slate-50 rounded-xl p-6">
                         <h3 class="text-xl font-semibold text-slate-800 mb-6">Quick Actions</h3>
                         <div class="grid grid-cols-2 gap-4">
-                            <button class="bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-lg transition-colors flex flex-col items-center space-y-2" onclick="showComingSoon()">
+                            <a href="assets.html" class="bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-lg transition-colors flex flex-col items-center space-y-2">
                                 <i class="fas fa-plus text-2xl"></i>
                                 <span class="font-medium">Add Asset</span>
-                            </button>
-                            <button class="bg-green-600 hover:bg-green-700 text-white p-4 rounded-lg transition-colors flex flex-col items-center space-y-2" onclick="showComingSoon()">
+                            </a>
+                            <a href="work-orders.html" class="bg-green-600 hover:bg-green-700 text-white p-4 rounded-lg transition-colors flex flex-col items-center space-y-2">
                                 <i class="fas fa-clipboard-list text-2xl"></i>
                                 <span class="font-medium">Create Work Order</span>
-                            </button>
-                            <button class="bg-amber-600 hover:bg-amber-700 text-white p-4 rounded-lg transition-colors flex flex-col items-center space-y-2" onclick="showComingSoon()">
+                            </a>
+                            <a href="assets.html" class="bg-amber-600 hover:bg-amber-700 text-white p-4 rounded-lg transition-colors flex flex-col items-center space-y-2">
                                 <i class="fas fa-search text-2xl"></i>
                                 <span class="font-medium">Asset Search</span>
-                            </button>
-                            <button class="bg-purple-600 hover:bg-purple-700 text-white p-4 rounded-lg transition-colors flex flex-col items-center space-y-2" onclick="showComingSoon()">
+                            </a>
+                            <a href="compliance.html" class="bg-purple-600 hover:bg-purple-700 text-white p-4 rounded-lg transition-colors flex flex-col items-center space-y-2">
                                 <i class="fas fa-chart-bar text-2xl"></i>
                                 <span class="font-medium">View Reports</span>
-                            </button>
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -327,5 +328,6 @@
     <script src="config.js"></script>
     <script src="auth.js"></script>
     <script src="main.js"></script>
+    <script src="js/pm-auto-generator.js"></script>
 </body>
 </html>

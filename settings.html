@@ -172,7 +172,7 @@
         }
         .toggle-row {
             display: flex;
-            items-align: center;
+            align-items: center;
             justify-content: space-between;
             padding: 12px 0;
         }
@@ -292,6 +292,18 @@
         .toast.info {
             border-left: 4px solid #3b82f6;
         }
+        .hierarchy-tree-item {
+            transition: background-color 0.2s;
+        }
+        .hierarchy-tree-item:hover {
+            background-color: #f8fafc;
+        }
+        .hierarchy-indent {
+            margin-left: 2rem;
+        }
+        .hierarchy-indent-2 {
+            margin-left: 4rem;
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800">
@@ -311,6 +323,7 @@
                     <a href="customers.html" class="text-blue-200 hover:text-white transition-colors">Customers</a>
                     <a href="assets.html" class="text-blue-200 hover:text-white transition-colors">Assets</a>
                     <a href="work-orders.html" class="text-blue-200 hover:text-white transition-colors">Work Orders</a>
+                    <a href="inventory.html" class="text-blue-200 hover:text-white transition-colors">Inventory</a>
                     <a href="compliance.html" class="text-blue-200 hover:text-white transition-colors">Compliance</a>
                 </div>
                 <div class="flex items-center gap-3 flex-shrink-0">
@@ -352,6 +365,7 @@
             <a href="customers.html" class="block text-blue-200 hover:text-white transition-colors">Customers</a>
             <a href="assets.html" class="block text-blue-200 hover:text-white transition-colors">Assets</a>
             <a href="work-orders.html" class="block text-blue-200 hover:text-white transition-colors">Work Orders</a>
+            <a href="inventory.html" class="block text-blue-200 hover:text-white transition-colors">Inventory</a>
             <a href="compliance.html" class="block text-blue-200 hover:text-white transition-colors">Compliance</a>
             <a href="settings.html" class="block text-white font-semibold">Settings</a>
         </div>
@@ -398,6 +412,9 @@
                         </button>
                         <button class="tab-button" data-tab="checklists" onclick="switchTab('checklists')">
                             <i class="fas fa-tasks"></i>Checklists
+                        </button>
+                        <button class="tab-button" data-tab="master-database" onclick="switchTab('master-database')">
+                            <i class="fas fa-database"></i>Master Database
                         </button>
                         <button class="tab-button" data-tab="system" onclick="switchTab('system')">
                             <i class="fas fa-sliders-h"></i>System
@@ -517,129 +534,7 @@
                                         <button class="toggle active" role="switch" aria-checked="true" onclick="toggleSetting(this)"></button>
                                     </div>
 
-                                    <div class="bg-white rounded-xl p-6 border border-slate-200 card-hover">
-                                        <div class="flex items-center justify-between mb-4">
-                                            <div>
-                                                <h3 class="text-lg font-semibold text-slate-800">Master Model Checklist</h3>
-                                                <p class="text-sm text-slate-500">Attach required steps to every work order generated from this model.</p>
-                                            </div>
-                                            <span class="text-xs uppercase tracking-widest text-blue-600 font-semibold">WO Sync</span>
-                                        </div>
-                                        <div class="space-y-4">
-                                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                                <div>
-                                                    <label class="text-sm font-medium text-slate-700">Checklist Item</label>
-                                                    <input class="form-input mt-2" type="text" placeholder="e.g., Meter reading capture">
-                                                </div>
-                                                <div>
-                                                    <label class="text-sm font-medium text-slate-700">Type</label>
-                                                    <select class="form-input mt-2">
-                                                        <option>Meter Reading</option>
-                                                        <option>Output Verification</option>
-                                                        <option>Calibration</option>
-                                                        <option>Safety Check</option>
-                                                    </select>
-                                                </div>
-                                                <div>
-                                                    <label class="text-sm font-medium text-slate-700">Expected Range/Output</label>
-                                                    <input class="form-input mt-2" type="text" placeholder="e.g., 98-102 PSI">
-                                                </div>
-                                            </div>
-                                            <div class="flex flex-wrap gap-3">
-                                                <button class="btn btn-primary"><i class="fas fa-plus"></i>Add Checklist Item</button>
-                                                <button class="btn btn-secondary"><i class="fas fa-clipboard-list"></i>Import Template</button>
-                                            </div>
-                                            <div class="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                                                <div class="flex items-center justify-between mb-3">
-                                                    <h4 class="text-sm font-semibold text-slate-700">Linked Items</h4>
-                                                    <span class="text-xs text-slate-500">Auto-populated into work orders</span>
-                                                </div>
-                                                <ul class="space-y-2 text-sm text-slate-600">
-                                                    <li class="flex items-center justify-between">
-                                                        <span>Capture meter reading at startup</span>
-                                                        <span class="text-xs font-semibold text-slate-500">Meter Reading</span>
-                                                    </li>
-                                                    <li class="flex items-center justify-between">
-                                                        <span>Verify output waveform stability</span>
-                                                        <span class="text-xs font-semibold text-slate-500">Output Verification</span>
-                                                    </li>
-                                                    <li class="flex items-center justify-between">
-                                                        <span>Document final calibration values</span>
-                                                        <span class="text-xs font-semibold text-slate-500">Calibration</span>
-                                                    </li>
-                                                </ul>
-                                            </div>
-                                            <div class="flex items-center justify-between bg-slate-50 rounded-lg p-4 border border-slate-200">
-                                                <div>
-                                                    <p class="text-sm font-semibold text-slate-700">Apply checklist to new work orders</p>
-                                                    <p class="text-xs text-slate-500">Ensures meter readings and outputs are captured every time.</p>
-                                                </div>
-                                                <div class="toggle active" role="switch" aria-checked="true"></div>
-                                            </div>
-                                        </div>
-                                    </div>
 
-                                    <div class="bg-white rounded-xl p-6 border border-slate-200 card-hover">
-                                        <div class="flex items-center justify-between mb-4">
-                                            <div>
-                                                <h3 class="text-lg font-semibold text-slate-800">Master Model Checklist</h3>
-                                                <p class="text-sm text-slate-500">Attach required steps to every work order generated from this model.</p>
-                                            </div>
-                                            <span class="text-xs uppercase tracking-widest text-blue-600 font-semibold">WO Sync</span>
-                                        </div>
-                                        <div class="space-y-4">
-                                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                                <div>
-                                                    <label class="text-sm font-medium text-slate-700">Checklist Item</label>
-                                                    <input class="form-input mt-2" type="text" placeholder="e.g., Meter reading capture">
-                                                </div>
-                                                <div>
-                                                    <label class="text-sm font-medium text-slate-700">Type</label>
-                                                    <select class="form-input mt-2">
-                                                        <option>Meter Reading</option>
-                                                        <option>Output Verification</option>
-                                                        <option>Calibration</option>
-                                                        <option>Safety Check</option>
-                                                    </select>
-                                                </div>
-                                                <div>
-                                                    <label class="text-sm font-medium text-slate-700">Expected Range/Output</label>
-                                                    <input class="form-input mt-2" type="text" placeholder="e.g., 98-102 PSI">
-                                                </div>
-                                            </div>
-                                            <div class="flex flex-wrap gap-3">
-                                                <button class="btn btn-primary"><i class="fas fa-plus"></i>Add Checklist Item</button>
-                                                <button class="btn btn-secondary"><i class="fas fa-clipboard-list"></i>Import Template</button>
-                                            </div>
-                                            <div class="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                                                <div class="flex items-center justify-between mb-3">
-                                                    <h4 class="text-sm font-semibold text-slate-700">Linked Items</h4>
-                                                    <span class="text-xs text-slate-500">Auto-populated into work orders</span>
-                                                </div>
-                                                <ul class="space-y-2 text-sm text-slate-600">
-                                                    <li class="flex items-center justify-between">
-                                                        <span>Capture meter reading at startup</span>
-                                                        <span class="text-xs font-semibold text-slate-500">Meter Reading</span>
-                                                    </li>
-                                                    <li class="flex items-center justify-between">
-                                                        <span>Verify output waveform stability</span>
-                                                        <span class="text-xs font-semibold text-slate-500">Output Verification</span>
-                                                    </li>
-                                                    <li class="flex items-center justify-between">
-                                                        <span>Document final calibration values</span>
-                                                        <span class="text-xs font-semibold text-slate-500">Calibration</span>
-                                                    </li>
-                                                </ul>
-                                            </div>
-                                            <div class="flex items-center justify-between bg-slate-50 rounded-lg p-4 border border-slate-200">
-                                                <div>
-                                                    <p class="text-sm font-semibold text-slate-700">Apply checklist to new work orders</p>
-                                                    <p class="text-xs text-slate-500">Ensures meter readings and outputs are captured every time.</p>
-                                                </div>
-                                                <div class="toggle active" role="switch" aria-checked="true"></div>
-                                            </div>
-                                        </div>
-                                    </div>
                                 </div>
                                 <div class="settings-group">
                                     <div class="flex items-center justify-between mb-3">
@@ -709,9 +604,6 @@
                                     <span class="status-badge status-inactive">Inactive</span>
                                 </div>
                             </div>
-                            <button class="btn btn-secondary btn-sm mt-4" onclick="openModal('report-template-modal')">
-                                <i class="fas fa-plus"></i>Create New Template
-                            </button>
                         </div>
 
                         <div class="flex justify-end gap-3 mt-6">
@@ -916,12 +808,116 @@
                         </div>
                     </div>
 
+                    <!-- Master Database Setup Tab -->
+                    <div id="master-database" class="tab-content p-8" style="display: none;">
+                        <div class="flex items-center justify-between mb-6">
+                            <div>
+                                <h2 class="text-2xl font-bold text-slate-800">Master Database Setup</h2>
+                                <p class="text-sm text-slate-600 mt-1">Manage the complete device catalog hierarchy: Type → Make → Model, plus PM Frequencies</p>
+                            </div>
+                            <button onclick="MasterDBManager.openMasterModal()" class="btn btn-primary">
+                                <i class="fas fa-database"></i>Manage Master Database
+                            </button>
+                        </div>
+
+                        <!-- Quick Stats -->
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                            <div class="settings-section text-center">
+                                <div class="text-3xl font-bold text-blue-600" id="stats-categories">-</div>
+                                <div class="text-sm text-slate-600 mt-1">Device Types</div>
+                            </div>
+                            <div class="settings-section text-center">
+                                <div class="text-3xl font-bold text-green-600" id="stats-makes">-</div>
+                                <div class="text-sm text-slate-600 mt-1">Manufacturers</div>
+                            </div>
+                            <div class="settings-section text-center">
+                                <div class="text-3xl font-bold text-purple-600" id="stats-models">-</div>
+                                <div class="text-sm text-slate-600 mt-1">Models</div>
+                            </div>
+                            <div class="settings-section text-center">
+                                <div class="text-3xl font-bold text-orange-600" id="stats-frequencies">-</div>
+                                <div class="text-sm text-slate-600 mt-1">PM Frequencies</div>
+                            </div>
+                        </div>
+
+                        <!-- Info Card -->
+                        <div class="settings-section bg-blue-50 border-blue-200">
+                            <div class="flex items-start gap-3">
+                                <i class="fas fa-info-circle text-blue-600 text-xl mt-1"></i>
+                                <div>
+                                    <h3 class="font-semibold text-slate-800 mb-2">Hierarchical Structure</h3>
+                                    <p class="text-sm text-slate-600 mb-2">
+                                        The Master Database follows a hierarchical structure where each level depends on the previous:
+                                    </p>
+                                    <ul class="text-sm text-slate-600 list-disc list-inside space-y-1">
+                                        <li><strong>Device Types</strong> are the top-level categories (e.g., Diagnostic, Therapeutic)</li>
+                                        <li><strong>Manufacturers</strong> belong to a Device Type (e.g., Philips under Diagnostic)</li>
+                                        <li><strong>Models</strong> belong to a Manufacturer (e.g., HeartStart FR3 under Philips)</li>
+                                        <li><strong>PM Frequencies</strong> are independent and can be used with any model</li>
+                                    </ul>
+                                    <button onclick="MasterDBManager.openMasterModal()" class="btn btn-primary btn-sm mt-3">
+                                        <i class="fas fa-external-link-alt"></i>Open Master Database Manager
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- System Tab -->
                     <div id="system" class="tab-content p-8" style="display: none;">
                         <h2 class="text-2xl font-bold text-slate-800 mb-6">System Configuration</h2>
+                        
                         <div class="settings-section">
-                            <p class="text-sm text-slate-600">Manage catalogs, automations, and other system-level configurations.</p>
-                            <p class="text-sm text-slate-500 mt-2">Work order types have moved to their own tab for easier access.</p>
+                            <h3 class="text-lg font-semibold text-slate-800 mb-4">System Preferences</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-700 mb-2">Default Timezone</label>
+                                    <select id="system-timezone" class="form-input">
+                                        <option value="UTC">UTC</option>
+                                        <option value="America/New_York" selected>America/New_York (EST/EDT)</option>
+                                        <option value="America/Chicago">America/Chicago (CST/CDT)</option>
+                                        <option value="America/Denver">America/Denver (MST/MDT)</option>
+                                        <option value="America/Los_Angeles">America/Los_Angeles (PST/PDT)</option>
+                                    </select>
+                                    <p class="settings-description">Timezone for all date/time displays</p>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-700 mb-2">Maintenance Fiscal Year Start</label>
+                                    <select id="system-fiscal-year" class="form-input">
+                                        <option value="January" selected>January</option>
+                                        <option value="April">April</option>
+                                        <option value="July">July</option>
+                                        <option value="October">October</option>
+                                    </select>
+                                    <p class="settings-description">Start month for fiscal year reporting</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="settings-section">
+                            <h3 class="text-lg font-semibold text-slate-800 mb-4">Data Management</h3>
+                            <div class="space-y-4">
+                                <div class="toggle-row">
+                                    <div class="flex-1">
+                                        <div class="settings-label">Enable data export</div>
+                                        <div class="settings-description">Allow exporting data to CSV/Excel formats</div>
+                                    </div>
+                                    <button class="toggle active" role="switch" aria-checked="true" onclick="toggleSetting(this)"></button>
+                                </div>
+                                <div class="toggle-row">
+                                    <div class="flex-1">
+                                        <div class="settings-label">Enable audit logging</div>
+                                        <div class="settings-description">Track all system changes for compliance</div>
+                                    </div>
+                                    <button class="toggle active" role="switch" aria-checked="true" onclick="toggleSetting(this)"></button>
+                                </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end gap-3 mt-6">
+                            <button class="btn btn-secondary" onclick="showToast('Changes discarded', 'info')">Discard Changes</button>
+                            <button class="btn btn-primary" onclick="SettingsManager.saveSystemSettings()">Save Settings</button>
                         </div>
                     </div>
 
@@ -992,40 +988,6 @@
                         </div>
                     </div>
 
-                    <!-- Technicians Tab -->
-                    <div id="technicians" class="tab-content p-8" style="display: none;">
-                        <h2 class="text-2xl font-bold text-slate-800 mb-6">Technician Directory</h2>
-
-                        <div class="settings-section">
-                            <h3 class="text-lg font-semibold text-slate-800 mb-4">System Preferences</h3>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label class="block text-sm font-semibold text-slate-700 mb-2">Default timezone</label>
-                                    <select class="form-input">
-                                        <option>UTC</option>
-                                        <option selected>America/New_York</option>
-                                        <option>America/Chicago</option>
-                                        <option>America/Denver</option>
-                                        <option>America/Los_Angeles</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-semibold text-slate-700 mb-2">Maintenance fiscal year start</label>
-                                    <select class="form-input">
-                                        <option selected>January</option>
-                                        <option>April</option>
-                                        <option>July</option>
-                                        <option>October</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="flex justify-end gap-3 mt-6">
-                            <button class="btn btn-secondary" onclick="showToast('Changes discarded', 'info')">Discard Changes</button>
-                            <button class="btn btn-primary" onclick="showToast('System settings saved', 'success')">Save Settings</button>
-                        </div>
-                    </div>
                 </div>
             </div>
         </section>
@@ -1038,6 +1000,337 @@
     </footer>
 
     <div id="toast-container" class="fixed bottom-4 right-4 z-50"></div>
+
+    <!-- Master Database Unified Modal -->
+    <div id="master-db-modal" class="modal">
+        <div class="modal-content" style="max-width: 1200px; max-height: 90vh;">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h3 class="text-2xl font-bold text-slate-800">Master Database Manager</h3>
+                    <p class="text-sm text-slate-600 mt-1">Manage Type → Make → Model hierarchy and PM Frequencies</p>
+                </div>
+                <button onclick="MasterDBManager.closeModal()" class="text-slate-400 hover:text-slate-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+
+            <!-- Tabs for different sections -->
+            <div class="flex gap-2 mb-6 border-b border-slate-200">
+                <button id="master-db-tab-configurations" onclick="MasterDBManager.switchMasterTab('configurations')" class="px-4 py-2 font-semibold text-blue-600 border-b-2 border-blue-600">
+                    <i class="fas fa-cogs"></i> Device Configurations
+                </button>
+                <button id="master-db-tab-hierarchy" onclick="MasterDBManager.switchMasterTab('hierarchy')" class="px-4 py-2 font-semibold text-slate-500 hover:text-slate-700">
+                    <i class="fas fa-sitemap"></i> Type → Make → Model
+                </button>
+                <button id="master-db-tab-frequencies" onclick="MasterDBManager.switchMasterTab('frequencies')" class="px-4 py-2 font-semibold text-slate-500 hover:text-slate-700">
+                    <i class="fas fa-calendar-alt"></i> PM Frequencies
+                </button>
+            </div>
+
+            <!-- Configurations Tab Content -->
+            <div id="master-db-configurations-content" class="space-y-4">
+                <!-- Search and Actions -->
+                <div class="flex gap-3 mb-4">
+                    <input type="text" id="config-search" placeholder="Search configurations..." class="form-input flex-1" onkeyup="MasterDBManager.filterConfigurations()">
+                    <button onclick="MasterDBManager.openConfigModal()" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Add Configuration
+                    </button>
+                    <button onclick="MasterDBManager.showBulkUploadModal()" class="btn btn-secondary">
+                        <i class="fas fa-upload"></i> Bulk Upload
+                    </button>
+                </div>
+
+                <!-- Configurations Table -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-50">
+                            <tr>
+                                <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Configuration Name</th>
+                                <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Type</th>
+                                <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Make</th>
+                                <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Model</th>
+                                <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">PM Frequency</th>
+                                <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Checklist</th>
+                                <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Status</th>
+                                <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="configurations-table" class="bg-white divide-y divide-slate-200">
+                            <tr>
+                                <td colspan="8" class="px-4 py-8 text-center text-slate-500">
+                                    <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                                    <p>Loading configurations...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Hierarchy Tab Content -->
+            <div id="master-db-hierarchy-content" class="space-y-4" style="display: none;">
+                <!-- Search and Add Type -->
+                <div class="flex gap-3 mb-4">
+                    <input type="text" id="hierarchy-search" placeholder="Search types, makes, or models..." class="form-input flex-1" onkeyup="MasterDBManager.filterHierarchy()">
+                    <button onclick="MasterDBManager.openAddModal('category')" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Add Type
+                    </button>
+                </div>
+
+                <!-- Hierarchical Tree View -->
+                <div class="bg-white rounded-lg border border-slate-200 max-h-[60vh] overflow-y-auto">
+                    <div id="hierarchy-tree" class="p-4">
+                        <div class="text-center text-slate-500 py-8">
+                            <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                            <p>Loading hierarchy...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PM Frequencies Tab Content -->
+            <div id="master-db-frequencies-content" class="space-y-4" style="display: none;">
+                <div class="flex gap-3 mb-4">
+                    <input type="text" id="frequency-search" placeholder="Search PM frequencies..." class="form-input flex-1" onkeyup="MasterDBManager.filterFrequencies()">
+                    <button onclick="MasterDBManager.openAddModal('pm-frequency')" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Add Frequency
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-50">
+                            <tr>
+                                <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Name</th>
+                                <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Code</th>
+                                <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Days</th>
+                                <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Description</th>
+                                <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Status</th>
+                                <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="master-db-frequencies-table" class="bg-white divide-y divide-slate-200">
+                            <tr>
+                                <td colspan="6" class="px-4 py-8 text-center text-slate-500">
+                                    <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                                    <p>Loading PM frequencies...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Configuration Modal -->
+    <div id="config-modal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-slate-800" id="config-modal-title">Add Device Configuration</h3>
+                <button onclick="MasterDBManager.closeConfigModal()" class="text-slate-400 hover:text-slate-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <form id="config-form" class="space-y-4">
+                <input type="hidden" id="config-id">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Configuration Name <span class="text-red-500">*</span></label>
+                    <input type="text" id="config-name" class="form-input" required placeholder="e.g., Zoll R Series Defib - Monthly PM">
+                    <p class="text-xs text-slate-500 mt-1">A descriptive name for this configuration</p>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Device Type <span class="text-red-500">*</span></label>
+                        <select id="config-category" class="form-input" required onchange="MasterDBManager.updateConfigMakes()">
+                            <option value="">Select Type</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Manufacturer <span class="text-red-500">*</span></label>
+                        <select id="config-make" class="form-input" required onchange="MasterDBManager.updateConfigModels()">
+                            <option value="">Select Manufacturer</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Model <span class="text-red-500">*</span></label>
+                        <select id="config-model" class="form-input" required>
+                            <option value="">Select Model</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">PM Frequency</label>
+                        <select id="config-pm-frequency" class="form-input">
+                            <option value="">No PM Schedule</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">PM Checklist</label>
+                    <select id="config-checklist" class="form-input">
+                        <option value="">No Checklist</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Description</label>
+                    <textarea id="config-description" rows="3" class="form-input" placeholder="Optional description"></textarea>
+                </div>
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" id="config-active" checked class="rounded border-gray-300">
+                    <label for="config-active" class="text-sm font-medium text-slate-700">Active</label>
+                </div>
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" onclick="MasterDBManager.closeConfigModal()" class="btn btn-secondary">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Configuration</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bulk Upload Modal -->
+    <div id="bulk-upload-modal" class="modal">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-slate-800">Bulk Upload Configurations</h3>
+                <button onclick="MasterDBManager.closeBulkUploadModal()" class="text-slate-400 hover:text-slate-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 class="font-semibold text-blue-900 mb-2">CSV Format</h4>
+                    <p class="text-sm text-blue-800 mb-2">Upload a CSV file with the following columns:</p>
+                    <code class="text-xs bg-white p-2 rounded block">Type, Make, Model, PM Frequency, Checklist (optional), Description (optional)</code>
+                    <a href="#" onclick="MasterDBManager.downloadTemplate()" class="text-sm text-blue-600 hover:underline mt-2 inline-block">
+                        <i class="fas fa-download"></i> Download CSV Template
+                    </a>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Select CSV File</label>
+                    <input type="file" id="bulk-upload-file" accept=".csv" class="form-input">
+                </div>
+                <div id="bulk-upload-preview" class="hidden">
+                    <h4 class="font-semibold text-slate-800 mb-2">Preview (first 5 rows)</h4>
+                    <div class="overflow-x-auto max-h-60 overflow-y-auto border border-slate-200 rounded">
+                        <table class="w-full text-sm" id="bulk-preview-table"></table>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" onclick="MasterDBManager.closeBulkUploadModal()" class="btn btn-secondary">Cancel</button>
+                    <button type="button" onclick="MasterDBManager.processBulkUpload()" class="btn btn-primary" id="bulk-upload-btn" disabled>
+                        <i class="fas fa-upload"></i> Upload Configurations
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Item Modal (for individual items) -->
+    <div id="master-db-item-modal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-slate-800" id="master-db-item-modal-title">Add Device Type</h3>
+                <button onclick="MasterDBManager.closeItemModal()" class="text-slate-400 hover:text-slate-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <form id="master-db-form" class="space-y-4">
+                <input type="hidden" id="master-db-id">
+                <input type="hidden" id="master-db-type">
+                
+                <!-- Category Fields -->
+                <div id="category-fields">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Name <span class="text-red-500">*</span></label>
+                        <input type="text" id="category-name" class="form-input" required placeholder="e.g., Diagnostic">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Description</label>
+                        <textarea id="category-description" class="form-input" rows="3" placeholder="Brief description"></textarea>
+                    </div>
+                </div>
+
+                <!-- Make Fields -->
+                <div id="make-fields" style="display: none;">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Device Type <span class="text-red-500">*</span></label>
+                        <select id="make-category-id" class="form-input" required>
+                            <option value="">Select Device Type</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Manufacturer Name <span class="text-red-500">*</span></label>
+                        <input type="text" id="make-name" class="form-input" required placeholder="e.g., Philips">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Description</label>
+                        <textarea id="make-description" class="form-input" rows="3" placeholder="Brief description"></textarea>
+                    </div>
+                </div>
+
+                <!-- Model Fields -->
+                <div id="model-fields" style="display: none;">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Device Type <span class="text-red-500">*</span></label>
+                        <select id="model-category-id" class="form-input" required onchange="MasterDBManager.updateMakeDropdown()">
+                            <option value="">Select Device Type</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Manufacturer <span class="text-red-500">*</span></label>
+                        <select id="model-make-id" class="form-input" required>
+                            <option value="">Select Manufacturer</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Model Name <span class="text-red-500">*</span></label>
+                        <input type="text" id="model-name" class="form-input" required placeholder="e.g., HeartStart FR3">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Description</label>
+                        <textarea id="model-description" class="form-input" rows="3" placeholder="Brief description"></textarea>
+                    </div>
+                </div>
+
+                <!-- PM Frequency Fields -->
+                <div id="pm-frequency-fields" style="display: none;">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Name <span class="text-red-500">*</span></label>
+                        <input type="text" id="pm-frequency-name" class="form-input" required placeholder="e.g., Monthly">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Code <span class="text-red-500">*</span></label>
+                        <input type="text" id="pm-frequency-code" class="form-input" required placeholder="e.g., monthly">
+                        <p class="text-xs text-slate-500 mt-1">Used internally by the system (lowercase, no spaces)</p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-2">Days <span class="text-red-500">*</span></label>
+                            <input type="number" id="pm-frequency-days" class="form-input" required min="1" placeholder="30">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-2">Sort Order</label>
+                            <input type="number" id="pm-frequency-sort" class="form-input" min="0" value="0">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Description</label>
+                        <textarea id="pm-frequency-description" class="form-input" rows="2" placeholder="e.g., Every 30 days"></textarea>
+                    </div>
+                    <div class="flex items-center justify-between bg-white rounded-lg border border-slate-200 px-4 py-3">
+                        <span class="text-sm text-slate-600">Active</span>
+                        <input type="checkbox" id="pm-frequency-active" class="rounded border-slate-300" checked>
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-3 pt-4 border-t border-slate-200">
+                    <button type="button" onclick="MasterDBManager.closeItemModal()" class="btn btn-secondary">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <!-- Create/Edit Checklist Modal -->
     <div id="checklist-modal" class="modal">
@@ -1108,5 +1401,63 @@
     <script src="config.js"></script>
     <script src="auth.js"></script>
     <script src="main.js"></script>
+    <script src="js/master-db-manager.js?v=2"></script>
+    <script src="js/settings-manager.js"></script>
+    <script>
+        // Tab switching function
+        function switchTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+                content.style.display = 'none';
+            });
+            
+            // Remove active class from all tab buttons
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            const selectedTab = document.getElementById(tabName);
+            if (selectedTab) {
+                selectedTab.classList.add('active');
+                selectedTab.style.display = 'block';
+            }
+            
+            // Add active class to selected tab button
+            const selectedButton = document.querySelector(`[data-tab="${tabName}"]`);
+            if (selectedButton) {
+                selectedButton.classList.add('active');
+            }
+        }
+
+        // Toggle setting function
+        function toggleSetting(element) {
+            element.classList.toggle('active');
+            element.setAttribute('aria-checked', element.classList.contains('active'));
+        }
+
+        // Show toast function (if not in main.js)
+        if (typeof showToast === 'undefined') {
+            function showToast(message, type = 'info', duration = 3000) {
+                const container = document.getElementById('toast-container');
+                if (!container) return;
+
+                const toast = document.createElement('div');
+                toast.className = `toast ${type}`;
+                toast.innerHTML = `
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+                    <span>${message}</span>
+                `;
+                
+                container.appendChild(toast);
+                
+                setTimeout(() => {
+                    toast.style.animation = 'slideOut 0.3s ease-out';
+                    setTimeout(() => toast.remove(), 300);
+                }, duration);
+            }
+        }
+    </script>
 </body>
 </html>

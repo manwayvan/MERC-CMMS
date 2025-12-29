@@ -61,3 +61,4 @@ You should now be able to log in successfully!
 - Find the user and click the three dots
 - Select "Send confirmation email" or manually confirm the email
 
+

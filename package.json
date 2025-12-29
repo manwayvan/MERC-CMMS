@@ -2,5 +2,12 @@
   "name": "merc-cmms",
   "version": "1.0",
   "private": true,
-  "scripts": {}
+  "scripts": {
+    "preview": "npx http-server . -p 8080 -o",
+    "serve": "npx http-server . -p 8080 -o",
+    "dev": "npx http-server . -p 8080 -o --cors"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
 }

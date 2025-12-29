@@ -40,3 +40,4 @@ After updating the API key, create the user:
 
 Then run the SQL in `create_merc_user.sql` to create the user profile.
 
+

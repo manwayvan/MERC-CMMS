@@ -34,3 +34,4 @@ FROM information_schema.triggers
 WHERE event_object_table = 'work_orders'
 AND trigger_name = 'update_work_orders_updated_at';
 
+

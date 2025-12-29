@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inventory Management - MERC-CMMS</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="auth.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+* { font-family: 'Inter', sans-serif; }
+.medical-gradient { background: linear-gradient(135deg, #1e293b 0%, #2563eb 50%, #0891b2 100%); }
+.card-hover { transition: all 0.3s ease; }
+.card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
+.notification-badge { position: absolute; top: -8px; right: -8px; background: #dc2626; color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; }
+.form-input { width: 100%; padding: 10px 16px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; transition: all 0.2s; }
+.form-input:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s; border: none; }
+.btn-primary { background: #2563eb; color: white; }
+.btn-primary:hover { background: #1d4ed8; }
+.btn-secondary { background: #e2e8f0; color: #475569; }
+.btn-secondary:hover { background: #cbd5e1; }
+.btn-success { background: #059669; color: white; }
+.btn-success:hover { background: #047857; }
+.btn-danger { background: #dc2626; color: white; }
+.btn-danger:hover { background: #b91c1c; }
+.modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 1000; }
+.modal.active { display: flex; align-items: center; justify-content: center; }
+.modal-content { background: white; border-radius: 16px; max-width: 900px; width: 95%; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); }
+.tab-button { padding: 12px 24px; border-bottom: 2px solid transparent; font-weight: 600; cursor: pointer; transition: all 0.2s; color: #64748b; }
+.tab-button.active { color: #2563eb; border-bottom-color: #2563eb; background: #eff6ff; }
+.tab-button:hover { background: #f8fafc; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.stock-low { background-color: #fef2f2; border-left: 4px solid #dc2626; }
+.stock-ok { background-color: #f0fdf4; border-left: 4px solid #059669; }
+.stock-warning { background-color: #fffbeb; border-left: 4px solid #d97706; }
+#toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 10000; display: flex; flex-direction: column; gap: 10px; }
+.toast { padding: 12px 20px; border-radius: 8px; color: white; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); animation: slideIn 0.3s ease-out; max-width: 400px; }
+.toast-success { background: #059669; }
+.toast-error { background: #dc2626; }
+.toast-warning { background: #d97706; }
+.toast-info { background: #2563eb; }
+@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+.status-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: capitalize; }
+</style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+    <!-- Header -->
+    <nav class="fixed top-0 left-0 right-0 z-50 medical-gradient shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-nowrap justify-between items-center gap-3 py-2 min-h-[4rem]">
+                <a href="index.html" class="flex items-center space-x-4 min-w-0">
+                    <img src="/resources/Logo_without%20name.png" alt="MERC-CMMS logo" class="w-10 h-10 rounded-full bg-white object-contain p-1">
+                    <div class="min-w-0">
+                        <h1 class="text-white text-xl font-bold truncate">MERC-CMMS</h1>
+                        <p class="text-blue-200 text-xs truncate">Enterprise Medical Device Management</p>
+                    </div>
+                </a>
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="index.html" class="text-blue-200 hover:text-white transition-colors">Dashboard</a>
+                    <a href="customers.html" class="text-blue-200 hover:text-white transition-colors">Customers</a>
+                    <a href="assets.html" class="text-blue-200 hover:text-white transition-colors">Assets</a>
+                    <a href="work-orders.html" class="text-blue-200 hover:text-white transition-colors">Work Orders</a>
+                    <a href="inventory.html" class="text-white font-semibold border-b-2 border-blue-300 pb-1">Inventory</a>
+                    <a href="compliance.html" class="text-blue-200 hover:text-white transition-colors">Compliance</a>
+                </div>
+                <div class="flex items-center gap-3 flex-shrink-0">
+                    <button id="mobile-menu-button" class="md:hidden text-white hover:text-blue-200 transition-colors">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                    <div class="flex items-center gap-3">
+                        <div class="relative">
+                            <button class="text-white hover:text-blue-200 transition-colors">
+                                <i class="fas fa-bell text-xl"></i>
+                            </button>
+                            <div class="notification-badge">3</div>
+                        </div>
+                        <a href="settings.html" class="text-white hover:text-blue-200 transition-colors" aria-label="Open settings">
+                            <i class="fas fa-gear text-xl"></i>
+                        </a>
+                        <button id="logout-button" class="text-white hover:text-blue-200 transition-colors" aria-label="Sign out">
+                            <i class="fas fa-right-from-bracket text-xl"></i>
+                        </button>
+                    </div>
+                    <div class="flex items-center space-x-2 min-w-0">
+                        <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                            <i class="fas fa-user text-white text-sm"></i>
+                        </div>
+                        <div class="hidden md:block min-w-0">
+                            <p class="text-white text-sm font-medium truncate">System Admin</p>
+                            <p class="text-blue-200 text-xs truncate">Super Administrator</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <div id="mobile-menu" class="md:hidden hidden">
+        <div class="px-4 py-4 space-y-2">
+            <a href="index.html" class="block text-blue-200 hover:text-white transition-colors">Dashboard</a>
+            <a href="customers.html" class="block text-blue-200 hover:text-white transition-colors">Customers</a>
+            <a href="assets.html" class="block text-blue-200 hover:text-white transition-colors">Assets</a>
+            <a href="work-orders.html" class="block text-blue-200 hover:text-white transition-colors">Work Orders</a>
+            <a href="inventory.html" class="block text-white font-semibold">Inventory</a>
+            <a href="compliance.html" class="block text-blue-200 hover:text-white transition-colors">Compliance</a>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="pt-16">
+        <!-- Header Section -->
+        <section class="bg-gradient-to-r from-slate-800 to-slate-600 relative">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+                <div class="text-center">
+                    <h1 class="text-4xl md:text-5xl font-bold text-white mb-4">Inventory Management</h1>
+                    <p class="text-xl text-blue-200 mb-8 max-w-3xl mx-auto">
+                        Complete parts inventory tracking, vendor management, and stock level monitoring
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Statistics Dashboard -->
+        <section class="py-8 bg-white">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-slate-600">Total Parts</p>
+                                <p class="text-3xl font-bold text-slate-800" id="stat-total-parts">-</p>
+                            </div>
+                            <i class="fas fa-boxes text-4xl text-blue-500"></i>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-slate-600">In Stock</p>
+                                <p class="text-3xl font-bold text-slate-800" id="stat-in-stock">-</p>
+                            </div>
+                            <i class="fas fa-check-circle text-4xl text-green-500"></i>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-yellow-500">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-slate-600">Low Stock</p>
+                                <p class="text-3xl font-bold text-slate-800" id="stat-low-stock">-</p>
+                            </div>
+                            <i class="fas fa-exclamation-triangle text-4xl text-yellow-500"></i>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-red-500">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-slate-600">Out of Stock</p>
+                                <p class="text-3xl font-bold text-slate-800" id="stat-out-of-stock">-</p>
+                            </div>
+                            <i class="fas fa-times-circle text-4xl text-red-500"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Content Area -->
+        <section class="py-8">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <!-- Tabs -->
+                <div class="bg-white rounded-lg shadow-md mb-6">
+                    <div class="flex flex-wrap border-b border-slate-200">
+                        <button class="tab-button active" onclick="switchTab('parts')" data-tab="parts">
+                            <i class="fas fa-boxes"></i> Parts
+                        </button>
+                        <button class="tab-button" onclick="switchTab('vendors')" data-tab="vendors">
+                            <i class="fas fa-truck"></i> Vendors
+                        </button>
+                        <button class="tab-button" onclick="switchTab('locations')" data-tab="locations">
+                            <i class="fas fa-map-marker-alt"></i> Locations
+                        </button>
+                        <button class="tab-button" onclick="switchTab('purchase-orders')" data-tab="purchase-orders">
+                            <i class="fas fa-shopping-cart"></i> Purchase Orders
+                        </button>
+                        <button class="tab-button" onclick="switchTab('transactions')" data-tab="transactions">
+                            <i class="fas fa-exchange-alt"></i> Transactions
+                        </button>
+                    </div>
+
+                    <!-- Parts Tab -->
+                    <div id="parts-tab" class="tab-content active p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-2xl font-bold text-slate-800">Parts Inventory</h2>
+                            <button onclick="openPartModal()" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Add Part
+                            </button>
+                        </div>
+                        <div class="mb-4 flex gap-3">
+                            <input type="text" id="parts-search" placeholder="Search parts..." class="form-input flex-1" onkeyup="filterParts()">
+                            <select id="parts-category-filter" class="form-input" style="width: 200px;" onchange="filterParts()">
+                                <option value="">All Categories</option>
+                            </select>
+                            <select id="parts-status-filter" class="form-input" style="width: 150px;" onchange="filterParts()">
+                                <option value="">All Status</option>
+                                <option value="in-stock">In Stock</option>
+                                <option value="low-stock">Low Stock</option>
+                                <option value="out-of-stock">Out of Stock</option>
+                            </select>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left">
+                                <thead class="bg-slate-50">
+                                    <tr>
+                                        <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Part Number</th>
+                                        <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Name</th>
+                                        <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Category</th>
+                                        <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Vendor</th>
+                                        <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Stock</th>
+                                        <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Reorder Point</th>
+                                        <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Unit Cost</th>
+                                        <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Status</th>
+                                        <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="parts-table-body" class="bg-white divide-y divide-slate-200">
+                                    <tr>
+                                        <td colspan="9" class="px-4 py-8 text-center text-slate-500">
+                                            <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                                            <p>Loading parts...</p>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Vendors Tab -->
+                    <div id="vendors-tab" class="tab-content p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-2xl font-bold text-slate-800">Vendors</h2>
+                            <button onclick="openVendorModal()" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Add Vendor
+                            </button>
+                        </div>
+                        <div class="mb-4">
+                            <input type="text" id="vendors-search" placeholder="Search vendors..." class="form-input" onkeyup="filterVendors()">
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left">
+                                <thead class="bg-slate-50">
+                                    <tr>
+                                        <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Name</th>
+                                        <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Contact Person</th>
+                                        <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Email</th>
+                                        <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Phone</th>
+                                        <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Status</th>
+                                        <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="vendors-table-body" class="bg-white divide-y divide-slate-200">
+                                    <tr>
+                                        <td colspan="6" class="px-4 py-8 text-center text-slate-500">
+                                            <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                                            <p>Loading vendors...</p>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Locations Tab -->
+                    <div id="locations-tab" class="tab-content p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-2xl font-bold text-slate-800">Inventory Locations</h2>
+                            <button onclick="openLocationModal()" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Add Location
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="locations-grid">
+                            <div class="text-center text-slate-500 py-8">
+                                <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                                <p>Loading locations...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Purchase Orders Tab -->
+                    <div id="purchase-orders-tab" class="tab-content p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-2xl font-bold text-slate-800">Purchase Orders</h2>
+                            <button onclick="openPOModal()" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Create PO
+                            </button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left">
+                                <thead class="bg-slate-50">
+                                    <tr>
+                                        <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">PO Number</th>
+                                        <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Vendor</th>
+                                        <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Order Date</th>
+                                        <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Expected Delivery</th>
+                                        <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Total Amount</th>
+                                        <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Status</th>
+                                        <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="purchase-orders-table-body" class="bg-white divide-y divide-slate-200">
+                                    <tr>
+                                        <td colspan="7" class="px-4 py-8 text-center text-slate-500">
+                                            <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                                            <p>Loading purchase orders...</p>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Transactions Tab -->
+                    <div id="transactions-tab" class="tab-content p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-2xl font-bold text-slate-800">Inventory Transactions</h2>
+                            <button onclick="openTransactionModal()" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Add Transaction
+                            </button>
+                        </div>
+                        <div class="mb-4 flex gap-3">
+                            <input type="text" id="transactions-search" placeholder="Search transactions..." class="form-input flex-1" onkeyup="filterTransactions()">
+                            <select id="transactions-type-filter" class="form-input" style="width: 200px;" onchange="filterTransactions()">
+                                <option value="">All Types</option>
+                                <option value="purchase">Purchase</option>
+                                <option value="usage">Usage</option>
+                                <option value="adjustment">Adjustment</option>
+                                <option value="return">Return</option>
+                                <option value="damage">Damage</option>
+                                <option value="expired">Expired</option>
+                            </select>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left">
+                                <thead class="bg-slate-50">
+                                    <tr>
+                                        <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Date</th>
+                                        <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Part</th>
+                                        <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Type</th>
+                                        <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Quantity</th>
+                                        <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Unit Cost</th>
+                                        <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Reference</th>
+                                        <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Notes</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="transactions-table-body" class="bg-white divide-y divide-slate-200">
+                                    <tr>
+                                        <td colspan="7" class="px-4 py-8 text-center text-slate-500">
+                                            <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                                            <p>Loading transactions...</p>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <!-- Part Modal -->
+    <div id="part-modal" class="modal">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-slate-800" id="part-modal-title">Add Part</h3>
+                <button onclick="closePartModal()" class="text-slate-400 hover:text-slate-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <form id="part-form" class="space-y-4">
+                <input type="hidden" id="part-id">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Part Number <span class="text-red-500">*</span></label>
+                        <input type="text" id="part-number" class="form-input" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Name <span class="text-red-500">*</span></label>
+                        <input type="text" id="part-name" class="form-input" required>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Description</label>
+                    <textarea id="part-description" rows="3" class="form-input"></textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Category</label>
+                        <select id="part-category" class="form-input">
+                            <option value="">Select Category</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Manufacturer</label>
+                        <input type="text" id="part-manufacturer" class="form-input">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Vendor</label>
+                        <select id="part-vendor" class="form-input">
+                            <option value="">Select Vendor</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Location</label>
+                        <select id="part-location" class="form-input">
+                            <option value="">Select Location</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-4 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Unit Cost <span class="text-red-500">*</span></label>
+                        <input type="number" id="part-unit-cost" class="form-input" step="0.01" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Stock Quantity</label>
+                        <input type="number" id="part-stock-quantity" class="form-input" value="0">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Reorder Point</label>
+                        <input type="number" id="part-reorder-point" class="form-input" value="0">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Reorder Quantity</label>
+                        <input type="number" id="part-reorder-quantity" class="form-input" value="0">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Unit of Measure</label>
+                        <select id="part-unit-of-measure" class="form-input">
+                            <option value="each">Each</option>
+                            <option value="box">Box</option>
+                            <option value="case">Case</option>
+                            <option value="pack">Pack</option>
+                            <option value="roll">Roll</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center gap-2 mt-6">
+                        <input type="checkbox" id="part-active" checked class="rounded border-gray-300">
+                        <label for="part-active" class="text-sm font-medium text-slate-700">Active</label>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Notes</label>
+                    <textarea id="part-notes" rows="2" class="form-input"></textarea>
+                </div>
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" onclick="closePartModal()" class="btn btn-secondary">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Part</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Vendor Modal -->
+    <div id="vendor-modal" class="modal">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-slate-800" id="vendor-modal-title">Add Vendor</h3>
+                <button onclick="closeVendorModal()" class="text-slate-400 hover:text-slate-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <form id="vendor-form" class="space-y-4">
+                <input type="hidden" id="vendor-id">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Name <span class="text-red-500">*</span></label>
+                    <input type="text" id="vendor-name" class="form-input" required>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Contact Person</label>
+                        <input type="text" id="vendor-contact-person" class="form-input">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Email</label>
+                        <input type="email" id="vendor-email" class="form-input">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Phone</label>
+                        <input type="text" id="vendor-phone" class="form-input">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Website</label>
+                        <input type="url" id="vendor-website" class="form-input">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Address</label>
+                    <textarea id="vendor-address" rows="2" class="form-input"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Payment Terms</label>
+                    <input type="text" id="vendor-payment-terms" class="form-input" placeholder="e.g., Net 30">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Notes</label>
+                    <textarea id="vendor-notes" rows="3" class="form-input"></textarea>
+                </div>
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" id="vendor-active" checked class="rounded border-gray-300">
+                    <label for="vendor-active" class="text-sm font-medium text-slate-700">Active</label>
+                </div>
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" onclick="closeVendorModal()" class="btn btn-secondary">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Vendor</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Location Modal -->
+    <div id="location-modal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-slate-800" id="location-modal-title">Add Location</h3>
+                <button onclick="closeLocationModal()" class="text-slate-400 hover:text-slate-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <form id="location-form" class="space-y-4">
+                <input type="hidden" id="location-id">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Name <span class="text-red-500">*</span></label>
+                    <input type="text" id="location-name" class="form-input" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Description</label>
+                    <textarea id="location-description" rows="2" class="form-input"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Address</label>
+                    <textarea id="location-address" rows="2" class="form-input"></textarea>
+                </div>
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" id="location-active" checked class="rounded border-gray-300">
+                    <label for="location-active" class="text-sm font-medium text-slate-700">Active</label>
+                </div>
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" onclick="closeLocationModal()" class="btn btn-secondary">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Location</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Transaction Modal -->
+    <div id="transaction-modal" class="modal">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-slate-800">Add Transaction</h3>
+                <button onclick="closeTransactionModal()" class="text-slate-400 hover:text-slate-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <form id="transaction-form" class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Part <span class="text-red-500">*</span></label>
+                        <select id="transaction-part" class="form-input" required>
+                            <option value="">Select Part</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Transaction Type <span class="text-red-500">*</span></label>
+                        <select id="transaction-type" class="form-input" required>
+                            <option value="">Select Type</option>
+                            <option value="purchase">Purchase</option>
+                            <option value="usage">Usage</option>
+                            <option value="adjustment">Adjustment</option>
+                            <option value="return">Return</option>
+                            <option value="transfer">Transfer</option>
+                            <option value="damage">Damage</option>
+                            <option value="expired">Expired</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Quantity <span class="text-red-500">*</span></label>
+                        <input type="number" id="transaction-quantity" class="form-input" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Unit Cost</label>
+                        <input type="number" id="transaction-unit-cost" class="form-input" step="0.01">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Reference Type</label>
+                    <select id="transaction-reference-type" class="form-input">
+                        <option value="">None</option>
+                        <option value="work_order">Work Order</option>
+                        <option value="purchase_order">Purchase Order</option>
+                        <option value="adjustment">Adjustment</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Reference ID</label>
+                    <input type="text" id="transaction-reference-id" class="form-input">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Notes</label>
+                    <textarea id="transaction-notes" rows="3" class="form-input"></textarea>
+                </div>
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" onclick="closeTransactionModal()" class="btn btn-secondary">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Transaction</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="main.js"></script>
+    <script src="js/inventory-manager.js"></script>
+</body>
+</html>
+

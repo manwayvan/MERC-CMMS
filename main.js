@@ -218,6 +218,350 @@ async function fetchWorkOrderTypes() {
     return data || [];
 }
 
+// Dashboard Management
+const DashboardManager = {
+    async init() {
+        await this.loadDashboardData();
+        this.updateStatistics();
+        this.updateCharts();
+        this.updateRecentActivity();
+        ChartManager.initializeCharts();
+    },
+
+    async loadDashboardData() {
+        // Load assets
+        await DataManager.loadAssets();
+        
+        // Load work orders
+        await DataManager.loadWorkOrders();
+        
+        // Load customers if needed
+        if (!AppState.customers || AppState.customers.length === 0) {
+            await this.loadCustomers();
+        }
+    },
+
+    async loadCustomers() {
+        if (!supabaseClient) {
+            AppState.customers = [];
+            return;
+        }
+
+        const { data, error } = await supabaseClient
+            .from('customers')
+            .select('id, name, created_at')
+            .order('created_at', { ascending: false })
+            .limit(100);
+
+        if (error) {
+            console.error('Error loading customers:', error);
+            AppState.customers = [];
+        } else {
+            AppState.customers = data || [];
+        }
+    },
+
+    updateStatistics() {
+        const assets = AppState.assets || [];
+        const workOrders = AppState.workOrders || [];
+        
+        // Total Assets
+        const totalAssets = assets.length;
+        const totalAssetsEl = document.getElementById('total-assets');
+        if (totalAssetsEl) {
+            totalAssetsEl.textContent = totalAssets.toLocaleString();
+        }
+
+        // Active Work Orders
+        const activeWorkOrders = workOrders.filter(wo => 
+            wo.status === 'open' || wo.status === 'in-progress'
+        ).length;
+        const overdueWorkOrders = workOrders.filter(wo => {
+            if (!wo.due_date || wo.status === 'closed' || wo.status === 'completed') return false;
+            return new Date(wo.due_date) < new Date();
+        }).length;
+        const activeWOEl = document.getElementById('active-work-orders');
+        if (activeWOEl) {
+            activeWOEl.textContent = activeWorkOrders;
+        }
+        // Update overdue count in subtitle if element exists
+        const overdueEl = activeWOEl?.parentElement?.querySelector('.text-amber-600');
+        if (overdueEl && overdueWorkOrders > 0) {
+            overdueEl.innerHTML = `<i class="fas fa-exclamation-triangle mr-1"></i>${overdueWorkOrders} overdue`;
+        }
+
+        // Compliance Rate
+        const totalAssetsWithCompliance = assets.filter(a => a.compliance_status).length;
+        const compliantAssets = assets.filter(a => 
+            a.compliance_status === 'compliant' || a.compliance_status === 'in-compliance'
+        ).length;
+        const complianceRate = totalAssetsWithCompliance > 0 
+            ? ((compliantAssets / totalAssetsWithCompliance) * 100).toFixed(1)
+            : 0;
+        const complianceEl = document.getElementById('compliance-rate');
+        if (complianceEl) {
+            complianceEl.textContent = complianceRate + '%';
+        }
+
+        // Maintenance Due
+        const maintenanceDue = assets.filter(a => {
+            if (!a.next_maintenance) return false;
+            const nextMaintenance = new Date(a.next_maintenance);
+            const today = new Date();
+            return nextMaintenance <= new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000); // Within 30 days
+        }).length;
+        const criticalMaintenance = assets.filter(a => {
+            if (!a.next_maintenance) return false;
+            return new Date(a.next_maintenance) < new Date();
+        }).length;
+        const maintenanceEl = document.getElementById('maintenance-due');
+        if (maintenanceEl) {
+            maintenanceEl.textContent = maintenanceDue;
+        }
+        // Update critical count in subtitle if element exists
+        const criticalEl = maintenanceEl?.parentElement?.querySelector('.text-red-600');
+        if (criticalEl && criticalMaintenance > 0) {
+            criticalEl.innerHTML = `<i class="fas fa-clock mr-1"></i>${criticalMaintenance} critical`;
+        }
+    },
+
+    updateCharts() {
+        // Update asset distribution chart
+        if (ChartManager.charts.assetDistribution) {
+            const assets = AppState.assets || [];
+            const categoryCounts = {};
+            
+            assets.forEach(asset => {
+                const category = asset.category || asset.category_id || 'Uncategorized';
+                categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+            });
+
+            const chartData = Object.entries(categoryCounts).map(([name, value]) => ({
+                value,
+                name: name.charAt(0).toUpperCase() + name.slice(1)
+            }));
+
+            ChartManager.charts.assetDistribution.setOption({
+                series: [{
+                    data: chartData.length > 0 ? chartData : [{ value: 0, name: 'No Data' }]
+                }]
+            });
+        }
+
+        // Update work order trends chart
+        if (ChartManager.charts.workOrderTrends) {
+            const workOrders = AppState.workOrders || [];
+            const sixMonthsAgo = new Date();
+            sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+            
+            const monthlyData = {};
+            const months = [];
+            for (let i = 5; i >= 0; i--) {
+                const date = new Date();
+                date.setMonth(date.getMonth() - i);
+                const monthKey = date.toLocaleDateString('en-US', { month: 'short' });
+                months.push(monthKey);
+                monthlyData[monthKey] = {
+                    preventive: 0,
+                    corrective: 0,
+                    inspection: 0,
+                    calibration: 0
+                };
+            }
+
+            workOrders.forEach(wo => {
+                if (!wo.created_date) return;
+                const woDate = new Date(wo.created_date);
+                if (woDate < sixMonthsAgo) return;
+                
+                const monthKey = woDate.toLocaleDateString('en-US', { month: 'short' });
+                const woType = (wo.type || '').toLowerCase();
+                
+                if (monthlyData[monthKey]) {
+                    if (woType.includes('preventive') || woType.includes('pm')) {
+                        monthlyData[monthKey].preventive++;
+                    } else if (woType.includes('corrective') || woType.includes('repair')) {
+                        monthlyData[monthKey].corrective++;
+                    } else if (woType.includes('inspection')) {
+                        monthlyData[monthKey].inspection++;
+                    } else if (woType.includes('calibration')) {
+                        monthlyData[monthKey].calibration++;
+                    }
+                }
+            });
+
+            ChartManager.charts.workOrderTrends.setOption({
+                xAxis: { data: months },
+                series: [
+                    {
+                        name: 'Preventive',
+                        data: months.map(m => monthlyData[m].preventive)
+                    },
+                    {
+                        name: 'Corrective',
+                        data: months.map(m => monthlyData[m].corrective)
+                    },
+                    {
+                        name: 'Inspection',
+                        data: months.map(m => monthlyData[m].inspection)
+                    },
+                    {
+                        name: 'Calibration',
+                        data: months.map(m => monthlyData[m].calibration)
+                    }
+                ]
+            });
+        }
+
+        // Update maintenance cost chart
+        if (ChartManager.charts.maintenanceCost) {
+            const workOrders = AppState.workOrders || [];
+            const sixMonthsAgo = new Date();
+            sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+            
+            const monthlyCosts = {};
+            const months = [];
+            for (let i = 5; i >= 0; i--) {
+                const date = new Date();
+                date.setMonth(date.getMonth() - i);
+                const monthKey = date.toLocaleDateString('en-US', { month: 'short' });
+                months.push(monthKey);
+                monthlyCosts[monthKey] = 0;
+            }
+
+            workOrders.forEach(wo => {
+                if (!wo.created_date) return;
+                const woDate = new Date(wo.created_date);
+                if (woDate < sixMonthsAgo) return;
+                
+                const monthKey = woDate.toLocaleDateString('en-US', { month: 'short' });
+                const cost = parseFloat(wo.cost || 0);
+                
+                if (monthlyCosts[monthKey] !== undefined) {
+                    monthlyCosts[monthKey] += cost;
+                }
+            });
+
+            ChartManager.charts.maintenanceCost.setOption({
+                xAxis: { data: months },
+                series: [{
+                    data: months.map(m => Math.round(monthlyCosts[m] || 0))
+                }]
+            });
+        }
+
+        // Update equipment status heatmap
+        if (ChartManager.charts.equipmentStatus) {
+            const assets = AppState.assets || [];
+            const locationStatus = {};
+            
+            assets.forEach(asset => {
+                const location = asset.location || 'Unknown';
+                const status = asset.status || 'unknown';
+                
+                if (!locationStatus[location]) {
+                    locationStatus[location] = { active: 0, maintenance: 0, down: 0 };
+                }
+                
+                if (status === 'active') {
+                    locationStatus[location].active++;
+                } else if (status === 'maintenance') {
+                    locationStatus[location].maintenance++;
+                } else if (status === 'inactive' || status === 'retired') {
+                    locationStatus[location].down++;
+                }
+            });
+
+            const locations = Object.keys(locationStatus).slice(0, 5); // Top 5 locations
+            const statuses = ['Active', 'Maintenance', 'Down'];
+            const heatmapData = [];
+            
+            locations.forEach((loc, locIdx) => {
+                statuses.forEach((stat, statIdx) => {
+                    const count = locationStatus[loc][stat.toLowerCase()] || 0;
+                    heatmapData.push([locIdx, statIdx, count]);
+                });
+            });
+
+            ChartManager.charts.equipmentStatus.setOption({
+                xAxis: { data: locations },
+                yAxis: { data: statuses },
+                series: [{
+                    data: heatmapData
+                }]
+            });
+        }
+    },
+
+    updateRecentActivity() {
+        const activityContainer = document.getElementById('recent-activity');
+        if (!activityContainer) return;
+
+        const activities = [];
+        const workOrders = AppState.workOrders || [];
+        const assets = AppState.assets || [];
+
+        // Get recent work orders
+        workOrders.slice(0, 5).forEach(wo => {
+            const asset = assets.find(a => a.id === wo.asset_id);
+            const assetName = asset ? asset.name : 'Unknown Asset';
+            const date = wo.created_date ? new Date(wo.created_date).toLocaleDateString() : 'Unknown date';
+            
+            activities.push({
+                type: 'work-order',
+                icon: 'fa-clipboard-list',
+                color: 'text-blue-600',
+                message: `Work order ${wo.id} created for ${assetName}`,
+                date: date,
+                status: wo.status
+            });
+        });
+
+        // Get recent assets
+        assets.slice(0, 3).forEach(asset => {
+            const date = asset.created_at ? new Date(asset.created_at).toLocaleDateString() : 'Unknown date';
+            activities.push({
+                type: 'asset',
+                icon: 'fa-heartbeat',
+                color: 'text-green-600',
+                message: `Asset ${asset.name} added`,
+                date: date,
+                status: asset.status
+            });
+        });
+
+        // Sort by date (most recent first) and take top 10
+        activities.sort((a, b) => {
+            const dateA = new Date(a.date);
+            const dateB = new Date(b.date);
+            return dateB - dateA;
+        });
+
+        if (activities.length === 0) {
+            activityContainer.innerHTML = `
+                <div class="text-center py-8 text-slate-500">
+                    <i class="fas fa-inbox text-4xl mb-4"></i>
+                    <p>No recent activity</p>
+                </div>
+            `;
+            return;
+        }
+
+        activityContainer.innerHTML = activities.slice(0, 10).map(activity => `
+            <div class="flex items-start space-x-3 p-3 bg-white rounded-lg border border-slate-200 hover:shadow-md transition-shadow">
+                <div class="flex-shrink-0 mt-1">
+                    <i class="fas ${activity.icon} ${activity.color}"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm text-slate-800">${activity.message}</p>
+                    <p class="text-xs text-slate-500 mt-1">${activity.date}</p>
+                </div>
+                ${activity.status ? `<span class="px-2 py-1 text-xs rounded-full bg-slate-100 text-slate-600">${activity.status}</span>` : ''}
+            </div>
+        `).join('');
+    }
+};
+
 // Chart Initialization and Management
 const ChartManager = {
     charts: {},
@@ -240,35 +584,40 @@ const ChartManager = {
     // Initialize dashboard charts
     initDashboardCharts: () => {
         // Asset Distribution Donut Chart
-        const assetChart = echarts.init(document.getElementById('asset-distribution-chart'));
-        const assetOption = {
-            tooltip: { trigger: 'item' },
-            legend: { bottom: '0%', left: 'center' },
-            series: [{
-                type: 'pie',
-                radius: ['40%', '70%'],
-                avoidLabelOverlap: false,
-                itemStyle: { borderRadius: 10, borderColor: '#fff', borderWidth: 2 },
-                label: { show: false, position: 'center' },
-                emphasis: { label: { show: true, fontSize: 20, fontWeight: 'bold' } },
-                labelLine: { show: false },
-                data: [
-                    { value: 456, name: 'Diagnostic' },
-                    { value: 892, name: 'Therapeutic' },
-                    { value: 234, name: 'Surgical' },
-                    { value: 567, name: 'Monitoring' },
-                    { value: 189, name: 'Imaging' },
-                    { value: 509, name: 'Laboratory' }
-                ],
-                color: ['#2563eb', '#059669', '#dc2626', '#d97706', '#7c3aed', '#0891b2']
-            }]
-        };
-        assetChart.setOption(assetOption);
-        ChartManager.charts.assetDistribution = assetChart;
+        const assetChartEl = document.getElementById('asset-distribution-chart');
+        if (assetChartEl) {
+            const assetChart = echarts.init(assetChartEl);
+            const assetOption = {
+                tooltip: { trigger: 'item' },
+                legend: { bottom: '0%', left: 'center' },
+                series: [{
+                    type: 'pie',
+                    radius: ['40%', '70%'],
+                    avoidLabelOverlap: false,
+                    itemStyle: { borderRadius: 10, borderColor: '#fff', borderWidth: 2 },
+                    label: { show: false, position: 'center' },
+                    emphasis: { label: { show: true, fontSize: 20, fontWeight: 'bold' } },
+                    labelLine: { show: false },
+                    data: [
+                        { value: 456, name: 'Diagnostic' },
+                        { value: 892, name: 'Therapeutic' },
+                        { value: 234, name: 'Surgical' },
+                        { value: 567, name: 'Monitoring' },
+                        { value: 189, name: 'Imaging' },
+                        { value: 509, name: 'Laboratory' }
+                    ],
+                    color: ['#2563eb', '#059669', '#dc2626', '#d97706', '#7c3aed', '#0891b2']
+                }]
+            };
+            assetChart.setOption(assetOption);
+            ChartManager.charts.assetDistribution = assetChart;
+        }
 
         // Work Order Trends Line Chart
-        const trendsChart = echarts.init(document.getElementById('work-order-trends-chart'));
-        const trendsOption = {
+        const trendsChartEl = document.getElementById('work-order-trends-chart');
+        if (trendsChartEl) {
+            const trendsChart = echarts.init(trendsChartEl);
+            const trendsOption = {
             tooltip: { trigger: 'axis' },
             legend: { data: ['Preventive', 'Corrective', 'Inspection', 'Calibration'] },
             grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
@@ -308,16 +657,19 @@ const ChartManager = {
                     itemStyle: { color: '#d97706' }
                 }
             ]
-        };
-        trendsChart.setOption(trendsOption);
-        ChartManager.charts.workOrderTrends = trendsChart;
+            };
+            trendsChart.setOption(trendsOption);
+            ChartManager.charts.workOrderTrends = trendsChart;
+        }
 
         // Compliance Gauge Charts
         ChartManager.initComplianceGauges();
 
         // Maintenance Cost Chart
-        const costChart = echarts.init(document.getElementById('maintenance-cost-chart'));
-        const costOption = {
+        const costChartEl = document.getElementById('maintenance-cost-chart');
+        if (costChartEl) {
+            const costChart = echarts.init(costChartEl);
+            const costOption = {
             tooltip: { trigger: 'axis' },
             xAxis: {
                 type: 'category',
@@ -329,13 +681,16 @@ const ChartManager = {
                 type: 'bar',
                 itemStyle: { color: '#2563eb' }
             }]
-        };
-        costChart.setOption(costOption);
-        ChartManager.charts.maintenanceCost = costChart;
+            };
+            costChart.setOption(costOption);
+            ChartManager.charts.maintenanceCost = costChart;
+        }
 
         // Equipment Status Heatmap
-        const heatmapChart = echarts.init(document.getElementById('equipment-status-heatmap'));
-        const heatmapOption = {
+        const heatmapChartEl = document.getElementById('equipment-status-heatmap');
+        if (heatmapChartEl) {
+            const heatmapChart = echarts.init(heatmapChartEl);
+            const heatmapOption = {
             tooltip: { position: 'top' },
             grid: { height: '50%', top: '10%' },
             xAxis: {
@@ -369,9 +724,10 @@ const ChartManager = {
                 ],
                 label: { show: true }
             }]
-        };
-        heatmapChart.setOption(heatmapOption);
-        ChartManager.charts.equipmentStatus = heatmapChart;
+            };
+            heatmapChart.setOption(heatmapOption);
+            ChartManager.charts.equipmentStatus = heatmapChart;
+        }
     },
 
     // Initialize compliance gauges
@@ -865,6 +1221,7 @@ const WorkOrderManager = {
         WorkOrderManager.renderRecentWorkOrders();
         WorkOrderManager.updateSummaryCounts();
         WorkOrderManager.setupEventListeners();
+        WorkOrderManager.initView();
         await WorkOrderManager.loadWorkOrderAssets();
     },
 
@@ -1195,11 +1552,29 @@ const WorkOrderManager = {
     },
 
     // View work order
-    viewWorkOrder: (workOrderId) => {
+    viewWorkOrder: async (workOrderId) => {
         const workOrder = AppState.workOrders.find(wo => wo.id === workOrderId);
         if (!workOrder) {
             showToast('Work order not found', 'error');
             return;
+        }
+
+        WorkOrderManager.currentWorkOrderId = workOrderId;
+
+        // Set title with work order ID and asset name
+        const titleEl = document.getElementById('view-workorder-title');
+        if (titleEl) {
+            const asset = AppState.assets.find(a => a.id === workOrder.asset_id);
+            const assetName = asset ? asset.name : 'Unknown Asset';
+            titleEl.textContent = `${workOrder.id} - ${assetName}`;
+        }
+
+        // Set status header dropdown
+        const statusHeader = document.getElementById('view-workorder-status-header');
+        if (statusHeader) {
+            statusHeader.value = workOrder.status === 'completed' ? 'closed' : 
+                                workOrder.status === 'cancelled' ? 'incomplete' : 
+                                workOrder.status || 'open';
         }
 
         // Populate dropdowns FIRST (before setting values), passing the values to set
@@ -1225,10 +1600,62 @@ const WorkOrderManager = {
         document.getElementById('view-workorder-estimated-hours').value = workOrder.estimated_hours || '';
         document.getElementById('view-workorder-description').value = workOrder.description || '';
 
+        // Reset timer
+        if (WorkOrderManager.timerInterval) {
+            clearInterval(WorkOrderManager.timerInterval);
+            WorkOrderManager.timerInterval = null;
+        }
+        WorkOrderManager.timerElapsed = 0;
+        const timerDisplay = document.getElementById('wo-timer-display');
+        if (timerDisplay) {
+            timerDisplay.textContent = '0:00';
+        }
+
+        // Load and display parts
+        if (typeof WorkOrderParts !== 'undefined') {
+            WorkOrderParts.renderWorkOrderParts(workOrder.id, 'view');
+        }
+
+        // Load additional data
+        await WorkOrderManager.loadLaborCosts(workOrderId);
+        await WorkOrderManager.loadAdditionalCosts(workOrderId);
+        await WorkOrderManager.loadLinks(workOrderId);
+        await WorkOrderManager.loadFiles(workOrderId);
+        await WorkOrderManager.loadUpdates(workOrderId);
+
+        // Reset to details tab
+        WorkOrderManager.switchWOTab('details');
+
+        // Close action menu if open
+        const actionMenu = document.getElementById('wo-action-menu');
+        if (actionMenu) {
+            actionMenu.classList.add('hidden');
+        }
+
         // Show modal
         const modal = document.getElementById('view-workorder-modal');
         if (modal) {
             modal.classList.add('active');
+            // Close action menu when clicking outside
+            document.addEventListener('click', WorkOrderManager.handleOutsideClick, true);
+        }
+    },
+
+    toggleActionMenu: () => {
+        const menu = document.getElementById('wo-action-menu');
+        if (menu) {
+            menu.classList.toggle('hidden');
+            // Close menu when clicking outside
+            if (!menu.classList.contains('hidden')) {
+                setTimeout(() => {
+                    document.addEventListener('click', function closeMenuOnOutsideClick(e) {
+                        if (!menu.contains(e.target) && !document.getElementById('wo-action-menu-btn').contains(e.target)) {
+                            menu.classList.add('hidden');
+                            document.removeEventListener('click', closeMenuOnOutsideClick);
+                        }
+                    });
+                }, 100);
+            }
         }
     },
 
@@ -1483,6 +1910,60 @@ const WorkOrderManager = {
             
             console.log('✅ UI refreshed');
             
+            // If work order was completed and is a PM work order, update asset PM dates
+            const workOrderId = document.getElementById('view-workorder-id')?.value;
+            if (workOrderId && status === 'completed' || status === 'closed') {
+                try {
+                    const { data: wo } = await supabaseClient
+                        .from('work_orders')
+                        .select('asset_id, type')
+                        .eq('id', workOrderId)
+                        .single();
+                    
+                    if (wo && wo.type === 'preventive_maintenance' && wo.asset_id) {
+                        // Update asset PM dates
+                        const { data: asset } = await supabaseClient
+                            .from('assets')
+                            .select('pm_schedule_type, pm_interval_days, last_maintenance')
+                            .eq('id', wo.asset_id)
+                            .single();
+                        
+                        if (asset && asset.pm_schedule_type) {
+                            const completionDate = new Date();
+                            const lastMaintenance = completionDate.toISOString();
+                            
+                            // Calculate next maintenance date
+                            let nextMaintenance = null;
+                            if (asset.pm_schedule_type === 'custom' && asset.pm_interval_days) {
+                                nextMaintenance = new Date(completionDate);
+                                nextMaintenance.setDate(nextMaintenance.getDate() + asset.pm_interval_days);
+                            } else {
+                                const intervals = {
+                                    daily: 1, weekly: 7, biweekly: 14, monthly: 30,
+                                    quarterly: 90, semiannually: 180, annually: 365
+                                };
+                                const days = intervals[asset.pm_schedule_type] || 30;
+                                nextMaintenance = new Date(completionDate);
+                                nextMaintenance.setDate(nextMaintenance.getDate() + days);
+                            }
+                            
+                            await supabaseClient
+                                .from('assets')
+                                .update({
+                                    last_maintenance: lastMaintenance,
+                                    next_maintenance: nextMaintenance.toISOString(),
+                                    compliance_status: 'compliant'
+                                })
+                                .eq('id', wo.asset_id);
+                            
+                            console.log('✅ Asset PM dates updated after work order completion');
+                        }
+                    }
+                } catch (pmError) {
+                    console.warn('Failed to update PM dates:', pmError);
+                }
+            }
+            
             // Close modal
             hideViewWorkOrderModal();
             
@@ -1667,6 +2148,28 @@ const WorkOrderManager = {
             }
         }
 
+        // Save parts if any were added
+        if (data && data.id && typeof WorkOrderParts !== 'undefined') {
+            try {
+                // Get the temporary work order ID used during creation
+                const tempIds = Object.keys(WorkOrderParts.workOrderParts || {});
+                const tempId = tempIds.find(id => id.startsWith('temp-'));
+                
+                if (tempId && WorkOrderParts.workOrderParts[tempId] && WorkOrderParts.workOrderParts[tempId].length > 0) {
+                    // Transfer parts from temp ID to actual work order ID
+                    WorkOrderParts.workOrderParts[data.id] = WorkOrderParts.workOrderParts[tempId];
+                    delete WorkOrderParts.workOrderParts[tempId];
+                    
+                    // Save parts to database
+                    await WorkOrderParts.saveWorkOrderParts(data.id);
+                    showToast(`Work order created with ${WorkOrderParts.workOrderParts[data.id].length} part(s).`, 'success');
+                }
+            } catch (err) {
+                console.warn('Error saving work order parts:', err);
+                showToast('Work order created, but parts could not be saved. Please add them manually.', 'warning');
+            }
+        }
+
         WorkOrderManager.renderWorkOrders();
         WorkOrderManager.renderRecentWorkOrders();
         WorkOrderManager.updateSummaryCounts();
@@ -1692,7 +2195,7 @@ const WorkOrderManager = {
     },
 
     // View switching (Grid/List)
-    currentView: 'grid',
+    currentView: 'list',
     switchView: (view) => {
         WorkOrderManager.currentView = view;
         const gridView = document.getElementById('workorders-grid-view');
@@ -1713,6 +2216,24 @@ const WorkOrderManager = {
             if (listBtn) listBtn.classList.add('active');
             WorkOrderManager.renderWorkOrdersList();
         }
+    },
+
+    // Initialize default view on page load
+    initView: () => {
+        const gridView = document.getElementById('workorders-grid-view');
+        const listView = document.getElementById('workorders-list-view');
+        const gridBtn = document.getElementById('grid-view-btn');
+        const listBtn = document.getElementById('list-view-btn');
+        
+        // Set initial view state
+        if (gridView) gridView.classList.add('hidden');
+        if (listView) listView.classList.remove('hidden');
+        if (gridBtn) gridBtn.classList.remove('active');
+        if (listBtn) listBtn.classList.add('active');
+        
+        WorkOrderManager.currentView = 'list';
+        // Render list view
+        WorkOrderManager.renderWorkOrdersList();
     },
 
     // Render work orders in list view
@@ -2095,10 +2616,529 @@ const WorkOrderManager = {
         const parsed = new Date(dateValue);
         if (Number.isNaN(parsed.getTime())) return '--';
         return parsed.toLocaleDateString();
+    },
+
+    // Enhanced Work Order Modal Functions
+    currentWorkOrderId: null,
+    timerInterval: null,
+    timerStartTime: null,
+    timerElapsed: 0,
+    currentTab: 'details',
+
+    switchWOTab: (tab) => {
+        WorkOrderManager.currentTab = tab;
+        const detailsTab = document.getElementById('wo-details-tab');
+        const updatesTab = document.getElementById('wo-updates-tab');
+        const detailsContent = document.getElementById('wo-details-content');
+        const updatesContent = document.getElementById('wo-updates-content');
+
+        if (tab === 'details') {
+            detailsTab.classList.add('border-blue-600', 'text-blue-600');
+            detailsTab.classList.remove('border-transparent', 'text-slate-600');
+            updatesTab.classList.remove('border-blue-600', 'text-blue-600');
+            updatesTab.classList.add('border-transparent', 'text-slate-600');
+            detailsContent.classList.remove('hidden');
+            updatesContent.classList.add('hidden');
+        } else {
+            updatesTab.classList.add('border-blue-600', 'text-blue-600');
+            updatesTab.classList.remove('border-transparent', 'text-slate-600');
+            detailsTab.classList.remove('border-blue-600', 'text-blue-600');
+            detailsTab.classList.add('border-transparent', 'text-slate-600');
+            updatesContent.classList.remove('hidden');
+            detailsContent.classList.add('hidden');
+        }
+    },
+
+    toggleTimer: () => {
+        const btn = document.getElementById('wo-timer-btn');
+        const display = document.getElementById('wo-timer-display');
+        
+        if (WorkOrderManager.timerInterval) {
+            // Stop timer
+            clearInterval(WorkOrderManager.timerInterval);
+            WorkOrderManager.timerInterval = null;
+            btn.innerHTML = '<i class="fas fa-play mr-2"></i>Run Timer - <span id="wo-timer-display">' + WorkOrderManager.formatTimer(WorkOrderManager.timerElapsed) + '</span>';
+            btn.classList.remove('bg-red-600');
+            btn.classList.add('bg-blue-600');
+        } else {
+            // Start timer
+            WorkOrderManager.timerStartTime = Date.now() - WorkOrderManager.timerElapsed;
+            WorkOrderManager.timerInterval = setInterval(() => {
+                WorkOrderManager.timerElapsed = Date.now() - WorkOrderManager.timerStartTime;
+                display.textContent = WorkOrderManager.formatTimer(WorkOrderManager.timerElapsed);
+            }, 1000);
+            btn.innerHTML = '<i class="fas fa-stop mr-2"></i>Stop Timer - <span id="wo-timer-display">0:00</span>';
+            btn.classList.remove('bg-blue-600');
+            btn.classList.add('bg-red-600');
+        }
+    },
+
+    formatTimer: (ms) => {
+        const totalSeconds = Math.floor(ms / 1000);
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+        if (hours > 0) {
+            return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+        return `${minutes}:${String(seconds).padStart(2, '0')}`;
+    },
+
+
+    showAddTimeModal: () => {
+        const workOrderId = WorkOrderManager.currentWorkOrderId;
+        if (!workOrderId) {
+            showToast('No work order selected', 'error');
+            return;
+        }
+
+        document.getElementById('add-time-wo-id').value = workOrderId;
+        document.getElementById('add-time-date').value = new Date().toISOString().split('T')[0];
+        
+        // Populate technician dropdown
+        const techSelect = document.getElementById('add-time-technician');
+        if (techSelect) {
+            techSelect.innerHTML = '<option value="">Select Technician</option>';
+            AppState.technicians.forEach(tech => {
+                const option = document.createElement('option');
+                option.value = tech.id;
+                option.textContent = tech.full_name || 'Unnamed Technician';
+                techSelect.appendChild(option);
+            });
+        }
+
+        // Calculate total when hours or rate changes
+        const hoursInput = document.getElementById('add-time-hours');
+        const rateInput = document.getElementById('add-time-rate');
+        const totalInput = document.getElementById('add-time-total');
+        
+        const calculateTotal = () => {
+            const hours = parseFloat(hoursInput.value) || 0;
+            const rate = parseFloat(rateInput.value) || 0;
+            if (rate > 0) {
+                const total = hours * rate;
+                totalInput.value = '$' + total.toFixed(2);
+            } else {
+                totalInput.value = hours > 0 ? `${hours} hour(s) - No rate specified` : '--';
+            }
+        };
+        
+        hoursInput.addEventListener('input', calculateTotal);
+        rateInput.addEventListener('input', calculateTotal);
+
+        openModal('add-time-modal');
+    },
+
+    showAddCostModal: () => {
+        const workOrderId = WorkOrderManager.currentWorkOrderId;
+        if (!workOrderId) {
+            showToast('No work order selected', 'error');
+            return;
+        }
+
+        document.getElementById('add-cost-wo-id').value = workOrderId;
+        document.getElementById('add-cost-date').value = new Date().toISOString().split('T')[0];
+        openModal('add-cost-modal');
+    },
+
+    showLinkWorkOrdersModal: () => {
+        const workOrderId = WorkOrderManager.currentWorkOrderId;
+        if (!workOrderId) {
+            showToast('No work order selected', 'error');
+            return;
+        }
+
+        document.getElementById('link-wo-id').value = workOrderId;
+        
+        // Populate work orders dropdown (exclude current work order)
+        const woSelect = document.getElementById('link-wo-select');
+        if (woSelect) {
+            woSelect.innerHTML = '<option value="">Select Work Order</option>';
+            AppState.workOrders.forEach(wo => {
+                if (wo.id !== workOrderId) {
+                    const option = document.createElement('option');
+                    option.value = wo.id;
+                    const asset = AppState.assets.find(a => a.id === wo.asset_id);
+                    const assetName = asset ? asset.name : 'Unknown Asset';
+                    option.textContent = `${wo.id} - ${assetName}`;
+                    woSelect.appendChild(option);
+                }
+            });
+        }
+
+        openModal('link-workorders-modal');
+    },
+
+    showAddFileModal: () => {
+        const workOrderId = WorkOrderManager.currentWorkOrderId;
+        if (!workOrderId) {
+            showToast('No work order selected', 'error');
+            return;
+        }
+
+        document.getElementById('add-file-wo-id').value = workOrderId;
+        document.getElementById('add-file-input').value = '';
+        document.getElementById('add-file-description').value = '';
+        document.getElementById('add-file-progress').classList.add('hidden');
+        openModal('add-file-modal');
+    },
+
+    linkWorkOrders: () => {
+        WorkOrderManager.toggleActionMenu();
+        WorkOrderManager.showLinkWorkOrdersModal();
+    },
+
+    exportPDFReport: async () => {
+        WorkOrderManager.toggleActionMenu();
+        const workOrderId = WorkOrderManager.currentWorkOrderId;
+        if (!workOrderId) {
+            showToast('No work order selected', 'error');
+            return;
+        }
+
+        const workOrder = AppState.workOrders.find(wo => wo.id === workOrderId);
+        if (!workOrder) {
+            showToast('Work order not found', 'error');
+            return;
+        }
+
+        // Generate PDF report
+        try {
+            const asset = AppState.assets.find(a => a.id === workOrder.asset_id);
+            const technician = AppState.technicians.find(t => t.id === workOrder.assigned_technician_id);
+            
+            // Create PDF content
+            const pdfContent = `
+                <html>
+                <head>
+                    <title>Work Order Report - ${workOrder.id}</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; padding: 20px; }
+                        h1 { color: #2563eb; }
+                        .section { margin: 20px 0; }
+                        .label { font-weight: bold; }
+                        table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+                        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                        th { background-color: #f8fafc; }
+                    </style>
+                </head>
+                <body>
+                    <h1>Work Order Report</h1>
+                    <div class="section">
+                        <p><span class="label">Work Order ID:</span> ${workOrder.id}</p>
+                        <p><span class="label">Status:</span> ${workOrder.status}</p>
+                        <p><span class="label">Priority:</span> ${workOrder.priority}</p>
+                        <p><span class="label">Asset:</span> ${asset ? asset.name : 'N/A'}</p>
+                        <p><span class="label">Technician:</span> ${technician ? technician.full_name : 'Unassigned'}</p>
+                        <p><span class="label">Due Date:</span> ${WorkOrderManager.formatDate(workOrder.due_date)}</p>
+                        <p><span class="label">Created Date:</span> ${WorkOrderManager.formatDate(workOrder.created_date)}</p>
+                    </div>
+                    <div class="section">
+                        <h2>Description</h2>
+                        <p>${workOrder.description || 'No description provided'}</p>
+                    </div>
+                    <div class="section">
+                        <h2>Cost Summary</h2>
+                        <p><span class="label">Total Cost:</span> $${parseFloat(workOrder.cost || 0).toFixed(2)}</p>
+                    </div>
+                </body>
+                </html>
+            `;
+
+            // Open in new window for printing
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(pdfContent);
+            printWindow.document.close();
+            printWindow.print();
+            
+            showToast('PDF report generated. Use browser print to save as PDF.', 'success');
+        } catch (error) {
+            console.error('Error generating PDF:', error);
+            showToast('Failed to generate PDF report', 'error');
+        }
+    },
+
+    archiveWorkOrder: async () => {
+        WorkOrderManager.toggleActionMenu();
+        const workOrderId = WorkOrderManager.currentWorkOrderId;
+        if (!workOrderId) {
+            showToast('No work order selected', 'error');
+            return;
+        }
+
+        if (!confirm('Are you sure you want to archive this work order?')) {
+            return;
+        }
+
+        if (!supabaseClient) {
+            showToast('Database not connected', 'error');
+            return;
+        }
+
+        try {
+            const { error } = await supabaseClient
+                .from('work_orders')
+                .update({ status: 'archived' })
+                .eq('id', workOrderId);
+
+            if (error) throw error;
+
+            showToast('Work order archived successfully', 'success');
+            await WorkOrderManager.loadWorkOrders();
+            WorkOrderManager.renderWorkOrders();
+            WorkOrderManager.renderWorkOrdersList();
+            hideViewWorkOrderModal();
+        } catch (error) {
+            console.error('Error archiving work order:', error);
+            showToast('Failed to archive work order', 'error');
+        }
+    },
+
+    editWorkOrder: () => {
+        // Enable editing mode
+        const form = document.getElementById('view-workorder-form');
+        const inputs = form.querySelectorAll('input, select, textarea');
+        inputs.forEach(input => {
+            if (input.id !== 'view-workorder-wo-id') {
+                input.disabled = false;
+                input.classList.remove('bg-slate-100');
+            }
+        });
+        showToast('Edit mode enabled', 'info');
+    },
+
+    deleteWorkOrder: async () => {
+        const workOrderId = WorkOrderManager.currentWorkOrderId;
+        if (!workOrderId) {
+            showToast('No work order selected', 'error');
+            return;
+        }
+
+        if (!confirm('Are you sure you want to delete this work order? This action cannot be undone.')) {
+            return;
+        }
+
+        if (!supabaseClient) {
+            showToast('Database not connected', 'error');
+            return;
+        }
+
+        try {
+            const { error } = await supabaseClient
+                .from('work_orders')
+                .delete()
+                .eq('id', workOrderId);
+
+            if (error) throw error;
+
+            showToast('Work order deleted successfully', 'success');
+            await WorkOrderManager.loadWorkOrders();
+            WorkOrderManager.renderWorkOrders();
+            WorkOrderManager.renderWorkOrdersList();
+            hideViewWorkOrderModal();
+        } catch (error) {
+            console.error('Error deleting work order:', error);
+            showToast('Failed to delete work order', 'error');
+        }
+    },
+
+    addUpdate: async () => {
+        const updateText = document.getElementById('wo-update-text').value.trim();
+        if (!updateText) {
+            showToast('Please enter an update', 'warning');
+            return;
+        }
+
+        const workOrderId = WorkOrderManager.currentWorkOrderId;
+        if (!workOrderId) {
+            showToast('No work order selected', 'error');
+            return;
+        }
+
+        if (!supabaseClient) {
+            showToast('Database not connected', 'error');
+            return;
+        }
+
+        try {
+            const { error } = await supabaseClient
+                .from('work_order_updates')
+                .insert({
+                    work_order_id: workOrderId,
+                    update_text: updateText,
+                    update_type: 'note'
+                });
+
+            if (error) throw error;
+
+            showToast('Update added successfully', 'success');
+            document.getElementById('wo-update-text').value = '';
+            await WorkOrderManager.loadUpdates(workOrderId);
+        } catch (error) {
+            console.error('Error adding update:', error);
+            showToast('Failed to add update', 'error');
+        }
+    },
+
+    loadUpdates: async (workOrderId) => {
+        const timeline = document.getElementById('wo-updates-timeline');
+        if (!timeline) return;
+
+        if (!supabaseClient) {
+            timeline.innerHTML = '<p class="text-xs text-slate-500 italic">No updates yet</p>';
+            return;
+        }
+
+        try {
+            const { data, error } = await supabaseClient
+                .from('work_order_updates')
+                .select('*')
+                .eq('work_order_id', workOrderId)
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+
+            if (!data || data.length === 0) {
+                timeline.innerHTML = '<p class="text-xs text-slate-500 italic">No updates yet</p>';
+                return;
+            }
+
+            timeline.innerHTML = data.map(update => {
+                const date = new Date(update.created_at);
+                const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+                return `
+                    <div class="flex gap-3 p-3 bg-white rounded-lg border border-slate-200">
+                        <div class="flex-shrink-0 w-2 h-2 bg-blue-600 rounded-full mt-2"></div>
+                        <div class="flex-1">
+                            <p class="text-sm text-slate-800">${update.update_text}</p>
+                            <p class="text-xs text-slate-500 mt-1">${dateStr}</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        } catch (error) {
+            console.error('Error loading updates:', error);
+            timeline.innerHTML = '<p class="text-xs text-red-500 italic">Error loading updates</p>';
+        }
+    },
+
+    loadLaborCosts: async (workOrderId) => {
+        const list = document.getElementById('wo-labor-costs-list');
+        const totalEl = document.getElementById('wo-labor-total');
+        const totalAmountEl = document.getElementById('wo-labor-total-amount');
+        
+        if (!list) return;
+
+        if (!supabaseClient) {
+            list.innerHTML = '<p class="text-xs text-slate-500 italic">No labor costs have been added yet. They\'ll show up here when a user logs time.</p>';
+            return;
+        }
+
+        try {
+            const { data, error } = await supabaseClient
+                .from('work_order_labor')
+                .select('*, technicians(full_name)')
+                .eq('work_order_id', workOrderId)
+                .order('date', { ascending: false });
+
+            if (error) throw error;
+
+            if (!data || data.length === 0) {
+                list.innerHTML = '<p class="text-xs text-slate-500 italic">No labor costs have been added yet. They\'ll show up here when a user logs time.</p>';
+                if (totalEl) totalEl.classList.add('hidden');
+                return;
+            }
+
+            let total = 0;
+            list.innerHTML = data.map(item => {
+                const cost = parseFloat(item.total_cost || 0);
+                total += cost;
+                const techName = item.technicians?.full_name || 'Unknown Technician';
+                const date = new Date(item.date).toLocaleDateString();
+                const hourlyRate = parseFloat(item.hourly_rate || 0);
+                const rateDisplay = hourlyRate > 0 ? `@ $${hourlyRate.toFixed(2)}/hr` : '(No rate specified)';
+                const costDisplay = cost > 0 ? `$${cost.toFixed(2)}` : 'No cost';
+                return `
+                    <div class="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-200">
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-slate-800">${techName}</p>
+                            <p class="text-xs text-slate-500">${item.hours} hours ${rateDisplay} • ${date}</p>
+                            ${item.notes ? `<p class="text-xs text-slate-600 mt-1">${item.notes}</p>` : ''}
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-sm font-semibold text-slate-800">${costDisplay}</span>
+                            <button onclick="WorkOrderManager.deleteLaborCost('${item.id}')" class="text-red-600 hover:text-red-800">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            if (totalEl && totalAmountEl) {
+                if (total > 0) {
+                    totalEl.classList.remove('hidden');
+                    totalAmountEl.textContent = '$' + total.toFixed(2);
+                } else {
+                    totalEl.classList.add('hidden');
+                }
+            }
+        } catch (error) {
+            console.error('Error loading labor costs:', error);
+            list.innerHTML = '<p class="text-xs text-red-500 italic">Error loading labor costs</p>';
+        }
+    },
+
+    loadAdditionalCosts: async (workOrderId) => {
+        // TODO: Load additional costs from database
+        const list = document.getElementById('wo-additional-costs-list');
+        if (list) {
+            list.innerHTML = '<p class="text-xs text-slate-500 italic">No additional costs have been added yet</p>';
+        }
+    },
+
+    loadLinks: async (workOrderId) => {
+        // TODO: Load linked work orders from database
+        const list = document.getElementById('wo-links-list');
+        if (list) {
+            list.innerHTML = '<p class="text-xs text-slate-500 italic">No work orders linked</p>';
+        }
+    },
+
+    loadFiles: async (workOrderId) => {
+        // TODO: Load files from database/storage
+        const list = document.getElementById('wo-files-list');
+        if (list) {
+            list.innerHTML = '<p class="text-xs text-slate-500 italic">No file attached to this work order</p>';
+        }
+    },
+
+    updateTotalCost: () => {
+        const partsTotal = parseFloat(document.getElementById('view-wo-parts-total-amount')?.textContent.replace('$', '') || 0);
+        const laborTotal = parseFloat(document.getElementById('wo-labor-total-amount')?.textContent.replace('$', '') || 0);
+        const additionalTotal = parseFloat(document.getElementById('wo-additional-total-amount')?.textContent.replace('$', '') || 0);
+        const total = partsTotal + laborTotal + additionalTotal;
+        const totalEl = document.getElementById('wo-total-cost');
+        if (totalEl) {
+            totalEl.textContent = '$' + total.toFixed(2);
+        }
+    },
+
+    updateStatusFromHeader: () => {
+        const statusHeader = document.getElementById('view-workorder-status-header');
+        const statusSelect = document.getElementById('view-workorder-status');
+        if (statusHeader && statusSelect) {
+            statusSelect.value = statusHeader.value;
+        }
     }
 };
 
-const SettingsManager = {
+// SettingsManager moved to js/settings-manager.js to avoid duplicate declaration
+// SettingsManager has been moved to js/settings-manager.js
+// This legacy code is kept for reference but should not be used
+// Commented out to prevent duplicate declaration errors
+/*
+const SettingsManagerLegacy = {
     elements: {
         technicianForm: null,
         technicianList: null,
@@ -2115,10 +3155,10 @@ const SettingsManager = {
     workOrderTypeEditId: null,
 
     init: async () => {
-        SettingsManager.cacheElements();
-        SettingsManager.bindEvents();
-        await SettingsManager.loadTechnicians();
-        await SettingsManager.loadWorkOrderTypes();
+        SettingsManagerLegacy.cacheElements();
+        SettingsManagerLegacy.bindEvents();
+        await SettingsManagerLegacy.loadTechnicians();
+        await SettingsManagerLegacy.loadWorkOrderTypes();
     },
 
     cacheElements: () => {
@@ -2462,6 +3502,8 @@ const SettingsManager = {
         }
     }
 };
+*/
+*/
 
 function showToast(message, type = 'info') {
     const container = document.getElementById('toast-container');
@@ -2552,9 +3594,38 @@ function hideLocationModal() {
 
 function showCreateWorkOrderModal() {
     openModal('create-workorder-modal');
+    // Initialize parts list for new work order
+    if (typeof WorkOrderParts !== 'undefined') {
+        const tempId = 'temp-' + Date.now();
+        WorkOrderParts.workOrderParts[tempId] = [];
+        const partsList = document.getElementById('create-wo-parts-list');
+        if (partsList) {
+            partsList.innerHTML = '<p class="text-xs text-slate-500 italic">No parts added yet</p>';
+        }
+        const partsTotal = document.getElementById('create-wo-parts-total');
+        if (partsTotal) {
+            partsTotal.classList.add('hidden');
+        }
+    }
 }
 
 function hideCreateWorkOrderModal() {
+    // Clear parts when closing create modal
+    if (typeof WorkOrderParts !== 'undefined') {
+        const tempIds = Object.keys(WorkOrderParts.workOrderParts || {}).filter(id => id.startsWith('temp-'));
+        tempIds.forEach(id => {
+            WorkOrderParts.clearWorkOrderParts(id);
+        });
+        // Reset parts display
+        const partsList = document.getElementById('create-wo-parts-list');
+        if (partsList) {
+            partsList.innerHTML = '<p class="text-xs text-slate-500 italic">No parts added yet</p>';
+        }
+        const partsTotal = document.getElementById('create-wo-parts-total');
+        if (partsTotal) {
+            partsTotal.classList.add('hidden');
+        }
+    }
     closeModal('create-workorder-modal');
     // Reset form if needed
     const form = document.getElementById('create-workorder-form');
@@ -2562,6 +3633,14 @@ function hideCreateWorkOrderModal() {
 }
 
 function hideViewWorkOrderModal() {
+    // Stop timer if running
+    if (WorkOrderManager.timerInterval) {
+        clearInterval(WorkOrderManager.timerInterval);
+        WorkOrderManager.timerInterval = null;
+    }
+    WorkOrderManager.currentWorkOrderId = null;
+    WorkOrderManager.timerElapsed = 0;
+    
     closeModal('view-workorder-modal');
     // Reset form if needed
     const form = document.getElementById('view-workorder-form');
@@ -3170,23 +4249,374 @@ function setupLogout() {
 async function initApp() {
     const pageName = window.location.pathname.split('/').pop().replace('.html', '');
     AppState.currentPage = normalizePageName(pageName);
-    ChartManager.initializeCharts();
     setupMobileMenu();
 
     await loadSupabaseClient();
 
-    if (AppState.currentPage === 'assets') {
+    if (AppState.currentPage === 'dashboard') {
+        await DashboardManager.init();
+    } else if (AppState.currentPage === 'assets') {
         assetManager.loadAssets();
         assetManager.setupEventLuisteners();
     } else if (AppState.currentPage === 'workorders') {
         await WorkOrderManager.init();
     } else if (AppState.currentPage === 'settings') {
-        await SettingsManager.init();
+        // SettingsManager.init() is now handled in js/settings-manager.js
+        // await SettingsManager.init();
         await ChecklistManager.init();
     } else if (AppState.currentPage === 'customers') {
         initCustomerPage();
     }
 }
+
+// Work Order Enhancement Modal Functions
+function closeAddTimeModal() {
+    closeModal('add-time-modal');
+    document.getElementById('add-time-form').reset();
+}
+
+function closeAddCostModal() {
+    closeModal('add-cost-modal');
+    document.getElementById('add-cost-form').reset();
+}
+
+function closeLinkWorkOrdersModal() {
+    closeModal('link-workorders-modal');
+    document.getElementById('link-workorders-form').reset();
+}
+
+function closeAddFileModal() {
+    closeModal('add-file-modal');
+    document.getElementById('add-file-form').reset();
+}
+
+// Form Handlers
+document.addEventListener('DOMContentLoaded', () => {
+    // Add Time Form
+    const addTimeForm = document.getElementById('add-time-form');
+    if (addTimeForm) {
+        addTimeForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const workOrderId = document.getElementById('add-time-wo-id').value;
+            const technicianId = document.getElementById('add-time-technician').value;
+            const hours = parseFloat(document.getElementById('add-time-hours').value);
+            const hourlyRateInput = document.getElementById('add-time-rate').value;
+            const hourlyRate = hourlyRateInput ? parseFloat(hourlyRateInput) : 0;
+            const date = document.getElementById('add-time-date').value;
+            const notes = document.getElementById('add-time-notes').value;
+
+            if (!supabaseClient) {
+                showToast('Database not connected', 'error');
+                return;
+            }
+
+            try {
+                const { error } = await supabaseClient
+                    .from('work_order_labor')
+                    .insert({
+                        work_order_id: workOrderId,
+                        technician_id: technicianId,
+                        hours: hours,
+                        hourly_rate: hourlyRate,
+                        date: date,
+                        notes: notes || null
+                    });
+
+                if (error) throw error;
+
+                showToast('Labor time added successfully', 'success');
+                closeAddTimeModal();
+                await WorkOrderManager.loadLaborCosts(workOrderId);
+                WorkOrderManager.updateTotalCost();
+            } catch (error) {
+                console.error('Error adding labor time:', error);
+                showToast('Failed to add labor time', 'error');
+            }
+        });
+    }
+
+    // Add Cost Form
+    const addCostForm = document.getElementById('add-cost-form');
+    if (addCostForm) {
+        addCostForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const workOrderId = document.getElementById('add-cost-wo-id').value;
+            const description = document.getElementById('add-cost-description').value;
+            const amount = parseFloat(document.getElementById('add-cost-amount').value);
+            const category = document.getElementById('add-cost-category').value;
+            const date = document.getElementById('add-cost-date').value;
+
+            if (!supabaseClient) {
+                showToast('Database not connected', 'error');
+                return;
+            }
+
+            try {
+                const { error } = await supabaseClient
+                    .from('work_order_additional_costs')
+                    .insert({
+                        work_order_id: workOrderId,
+                        description: description,
+                        amount: amount,
+                        category: category || null,
+                        date: date
+                    });
+
+                if (error) throw error;
+
+                showToast('Additional cost added successfully', 'success');
+                closeAddCostModal();
+                await WorkOrderManager.loadAdditionalCosts(workOrderId);
+                WorkOrderManager.updateTotalCost();
+            } catch (error) {
+                console.error('Error adding additional cost:', error);
+                showToast('Failed to add additional cost', 'error');
+            }
+        });
+    }
+
+    // Link Work Orders Form
+    const linkWOForm = document.getElementById('link-workorders-form');
+    if (linkWOForm) {
+        linkWOForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const workOrderId = document.getElementById('link-wo-id').value;
+            const linkedWorkOrderId = document.getElementById('link-wo-select').value;
+            const linkType = document.getElementById('link-wo-type').value;
+            const notes = document.getElementById('link-wo-notes').value;
+
+            if (!supabaseClient) {
+                showToast('Database not connected', 'error');
+                return;
+            }
+
+            try {
+                const { error } = await supabaseClient
+                    .from('work_order_links')
+                    .insert({
+                        work_order_id: workOrderId,
+                        linked_work_order_id: linkedWorkOrderId,
+                        link_type: linkType,
+                        notes: notes || null
+                    });
+
+                if (error) throw error;
+
+                showToast('Work orders linked successfully', 'success');
+                closeLinkWorkOrdersModal();
+                await WorkOrderManager.loadLinks(workOrderId);
+            } catch (error) {
+                console.error('Error linking work orders:', error);
+                if (error.message.includes('unique')) {
+                    showToast('These work orders are already linked', 'warning');
+                } else {
+                    showToast('Failed to link work orders', 'error');
+                }
+            }
+        });
+    }
+
+    // Add File Form
+    const addFileForm = document.getElementById('add-file-form');
+    if (addFileForm) {
+        addFileForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const workOrderId = document.getElementById('add-file-wo-id').value;
+            const fileInput = document.getElementById('add-file-input');
+            const description = document.getElementById('add-file-description').value;
+            const progressDiv = document.getElementById('add-file-progress');
+            const progressBar = document.getElementById('add-file-progress-bar');
+            const progressText = document.getElementById('add-file-progress-text');
+
+            if (!fileInput.files || fileInput.files.length === 0) {
+                showToast('Please select a file', 'warning');
+                return;
+            }
+
+            const file = fileInput.files[0];
+            if (file.size > 10 * 1024 * 1024) { // 10MB limit
+                showToast('File size exceeds 10MB limit', 'error');
+                return;
+            }
+
+            if (!supabaseClient) {
+                showToast('Database not connected', 'error');
+                return;
+            }
+
+            try {
+                progressDiv.classList.remove('hidden');
+                progressBar.style.width = '0%';
+                progressText.textContent = '0%';
+
+                // Upload to Supabase Storage
+                const fileExt = file.name.split('.').pop();
+                const fileName = `${workOrderId}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+                const filePath = `work-orders/${fileName}`;
+
+                const { data: uploadData, error: uploadError } = await supabaseClient.storage
+                    .from('work-order-files')
+                    .upload(filePath, file, {
+                        cacheControl: '3600',
+                        upsert: false
+                    });
+
+                if (uploadError) {
+                    // Try to create bucket if it doesn't exist
+                    if (uploadError.message.includes('Bucket not found')) {
+                        showToast('Storage bucket not configured. Please configure Supabase Storage.', 'error');
+                    } else {
+                        throw uploadError;
+                    }
+                    return;
+                }
+
+                progressBar.style.width = '100%';
+                progressText.textContent = '100%';
+
+                // Get public URL
+                const { data: urlData } = supabaseClient.storage
+                    .from('work-order-files')
+                    .getPublicUrl(filePath);
+
+                // Save file record to database
+                const { error: dbError } = await supabaseClient
+                    .from('work_order_files')
+                    .insert({
+                        work_order_id: workOrderId,
+                        file_name: file.name,
+                        file_path: urlData.publicUrl,
+                        file_size: file.size,
+                        file_type: file.type,
+                        description: description || null
+                    });
+
+                if (dbError) throw dbError;
+
+                showToast('File uploaded successfully', 'success');
+                closeAddFileModal();
+                await WorkOrderManager.loadFiles(workOrderId);
+            } catch (error) {
+                console.error('Error uploading file:', error);
+                showToast('Failed to upload file', 'error');
+            } finally {
+                progressDiv.classList.add('hidden');
+            }
+        });
+    }
+});
+
+// Delete Functions
+WorkOrderManager.deleteLaborCost = async (laborId) => {
+    if (!confirm('Are you sure you want to delete this labor entry?')) return;
+
+    if (!supabaseClient) {
+        showToast('Database not connected', 'error');
+        return;
+    }
+
+    try {
+        const { error } = await supabaseClient
+            .from('work_order_labor')
+            .delete()
+            .eq('id', laborId);
+
+        if (error) throw error;
+
+        showToast('Labor entry deleted', 'success');
+        await WorkOrderManager.loadLaborCosts(WorkOrderManager.currentWorkOrderId);
+        WorkOrderManager.updateTotalCost();
+    } catch (error) {
+        console.error('Error deleting labor entry:', error);
+        showToast('Failed to delete labor entry', 'error');
+    }
+};
+
+WorkOrderManager.deleteAdditionalCost = async (costId) => {
+    if (!confirm('Are you sure you want to delete this cost entry?')) return;
+
+    if (!supabaseClient) {
+        showToast('Database not connected', 'error');
+        return;
+    }
+
+    try {
+        const { error } = await supabaseClient
+            .from('work_order_additional_costs')
+            .delete()
+            .eq('id', costId);
+
+        if (error) throw error;
+
+        showToast('Cost entry deleted', 'success');
+        await WorkOrderManager.loadAdditionalCosts(WorkOrderManager.currentWorkOrderId);
+        WorkOrderManager.updateTotalCost();
+    } catch (error) {
+        console.error('Error deleting cost entry:', error);
+        showToast('Failed to delete cost entry', 'error');
+    }
+};
+
+WorkOrderManager.deleteLink = async (linkId) => {
+    if (!confirm('Are you sure you want to unlink these work orders?')) return;
+
+    if (!supabaseClient) {
+        showToast('Database not connected', 'error');
+        return;
+    }
+
+    try {
+        const { error } = await supabaseClient
+            .from('work_order_links')
+            .delete()
+            .eq('id', linkId);
+
+        if (error) throw error;
+
+        showToast('Work orders unlinked', 'success');
+        await WorkOrderManager.loadLinks(WorkOrderManager.currentWorkOrderId);
+    } catch (error) {
+        console.error('Error deleting link:', error);
+        showToast('Failed to unlink work orders', 'error');
+    }
+};
+
+WorkOrderManager.deleteFile = async (fileId, filePath) => {
+    if (!confirm('Are you sure you want to delete this file?')) return;
+
+    if (!supabaseClient) {
+        showToast('Database not connected', 'error');
+        return;
+    }
+
+    try {
+        // Delete from storage (extract path from URL)
+        const pathMatch = filePath.match(/work-order-files\/(.+)/);
+        if (pathMatch) {
+            const { error: storageError } = await supabaseClient.storage
+                .from('work-order-files')
+                .remove([pathMatch[1]]);
+            
+            if (storageError) {
+                console.warn('Error deleting file from storage:', storageError);
+            }
+        }
+
+        // Delete from database
+        const { error } = await supabaseClient
+            .from('work_order_files')
+            .delete()
+            .eq('id', fileId);
+
+        if (error) throw error;
+
+        showToast('File deleted', 'success');
+        await WorkOrderManager.loadFiles(WorkOrderManager.currentWorkOrderId);
+    } catch (error) {
+        console.error('Error deleting file:', error);
+        showToast('Failed to delete file', 'error');
+    }
+};
 
 // Initialize the app when the DOM is loaded
 document.addEventListener('DOMContentLoaded', initApp);

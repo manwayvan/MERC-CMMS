@@ -8,6 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
 <script src="auth.js"></script>
+<script src="js/mmd-asset-form.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
@@ -60,9 +61,20 @@
 .wo-card.priority-high { border-left-color: #d97706; }
 .wo-card.priority-medium { border-left-color: #2563eb; }
 .wo-card.priority-low { border-left-color: #6b7280; }
-.view-toggle-btn { background: white; color: #64748b; border: 1px solid #cbd5e1; }
-.view-toggle-btn:hover { background: #f8fafc; }
-.view-toggle-btn.active { background: #2563eb; color: white; border-color: #2563eb; }
+.view-toggle-btn { 
+    background: white; 
+    color: #64748b; 
+    border: 1px solid #cbd5e1; 
+    transition: all 0.2s ease;
+}
+.view-toggle-btn:hover { 
+    background: #f8fafc; 
+}
+.view-toggle-btn.active { 
+    background: #2563eb; 
+    color: white; 
+    border-color: #2563eb; 
+}
 </style>
 </head>
 <body class="bg-slate-50 text-slate-800">
@@ -82,6 +94,7 @@
                     <a href="customers.html" class="text-blue-200 hover:text-white transition-colors">Customers</a>
                     <a href="assets.html" class="text-white font-semibold border-b-2 border-blue-300 pb-1">Assets</a>
                     <a href="work-orders.html" class="text-blue-200 hover:text-white transition-colors">Work Orders</a>
+                    <a href="inventory.html" class="text-blue-200 hover:text-white transition-colors">Inventory</a>
                     <a href="compliance.html" class="text-blue-200 hover:text-white transition-colors">Compliance</a>
                 </div>
                 <div class="flex items-center gap-3 flex-shrink-0">
@@ -197,10 +210,10 @@
                     <option value="retired">Retired</option>
                 </select>
                 <div class="flex gap-2 border border-slate-300 rounded-lg overflow-hidden">
-                    <button id="grid-view-btn" onclick="switchView('grid')" class="view-toggle-btn active px-4 py-2 text-sm font-medium transition-colors">
+                    <button id="grid-view-btn" onclick="switchView('grid')" class="view-toggle-btn px-4 py-2 text-sm font-medium transition-colors">
                         <i class="fas fa-th-large mr-2"></i>Grid View
                     </button>
-                    <button id="list-view-btn" onclick="switchView('list')" class="view-toggle-btn px-4 py-2 text-sm font-medium transition-colors">
+                    <button id="list-view-btn" onclick="switchView('list')" class="view-toggle-btn active px-4 py-2 text-sm font-medium transition-colors">
                         <i class="fas fa-list mr-2"></i>List View
                     </button>
                 </div>
@@ -228,8 +241,8 @@
                     <div class="loading-spinner mx-auto mb-4"></div>
                     <p class="text-gray-600 font-medium">Loading assets from Supabase...</p>
                 </div>
-                <div id="assets-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 fade-in" style="display:none"></div>
-                <div id="assets-list" class="hidden">
+                <div id="assets-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 fade-in hidden"></div>
+                <div id="assets-list">
                     <div class="bg-white rounded-xl shadow-md overflow-hidden">
                         <table class="min-w-full divide-y divide-slate-200">
                             <thead class="bg-slate-50">
@@ -272,7 +285,7 @@
 
     <!-- Bulk Import Modal -->
     <div id="bulk-import-modal" class="modal">
-        <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-content" style="max-width: 900px; width: 95vw;">
             <div class="p-6 border-b border-gray-200">
                 <div class="flex justify-between items-center">
                     <h2 class="text-2xl font-bold text-gray-900">Bulk Import Assets</h2>
@@ -282,35 +295,132 @@
                 </div>
             </div>
             <div class="p-6">
-                <div class="mb-6">
-                    <h3 class="font-semibold text-gray-900 mb-2">CSV Format Requirements:</h3>
-                    <p class="text-sm text-gray-600 mb-3">Your CSV file should include the following columns:</p>
-                    <div class="bg-slate-50 p-4 rounded-lg text-sm font-mono">
-                        name,category,manufacturer,model,serial_number,status,purchase_date,purchase_cost,warranty_expiry,customer_id,location_id,description
+                <!-- Step 1: File Upload -->
+                <div id="import-step-1">
+                    <div class="mb-6">
+                        <h3 class="font-semibold text-gray-900 mb-2">CSV Format Requirements:</h3>
+                        <p class="text-sm text-gray-600 mb-3">Your CSV file should include the following columns:</p>
+                        <div class="bg-slate-50 p-4 rounded-lg text-sm font-mono">
+                            name,category,manufacturer,model,serial_number,status,purchase_date,purchase_cost,warranty_expiry,customer_id,location_id,description
+                        </div>
+                        <button onclick="downloadTemplate()" class="mt-3 text-blue-600 hover:text-blue-700 text-sm font-semibold">
+                            <i class="fas fa-download mr-2"></i>Download CSV Template
+                        </button>
                     </div>
-                    <button onclick="downloadTemplate()" class="mt-3 text-blue-600 hover:text-blue-700 text-sm font-semibold">
-                        <i class="fas fa-download mr-2"></i>Download CSV Template
-                    </button>
+                    <div class="drag-drop-zone" id="drop-zone">
+                        <i class="fas fa-cloud-upload-alt text-5xl text-gray-400 mb-4"></i>
+                        <p class="text-lg font-semibold text-gray-700 mb-2">Drag and drop your CSV file here</p>
+                        <p class="text-sm text-gray-500 mb-4">or</p>
+                        <button onclick="document.getElementById('csv-file-input').click()" class="btn btn-primary">
+                            <i class="fas fa-file-csv mr-2"></i>Select CSV File
+                        </button>
+                        <input type="file" id="csv-file-input" accept=".csv" style="display: none;" onchange="handleFileSelect(event)">
+                    </div>
                 </div>
-                <div class="drag-drop-zone" id="drop-zone">
-                    <i class="fas fa-cloud-upload-alt text-5xl text-gray-400 mb-4"></i>
-                    <p class="text-lg font-semibold text-gray-700 mb-2">Drag and drop your CSV file here</p>
-                    <p class="text-sm text-gray-500 mb-4">or</p>
-                    <button onclick="document.getElementById('csv-file-input').click()" class="btn btn-primary">
-                        <i class="fas fa-file-csv mr-2"></i>Select CSV File
-                    </button>
-                    <input type="file" id="csv-file-input" accept=".csv" style="display: none;" onchange="handleFileSelect(event)">
+
+                <!-- Step 2: Column Mapping -->
+                <div id="import-step-2" class="mt-6" style="display: none;">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-semibold text-gray-900">Column Mapping</h3>
+                        <button onclick="showAddColumnModal()" class="btn btn-secondary text-sm">
+                            <i class="fas fa-plus mr-2"></i>Add New Column
+                        </button>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-4">Map your CSV columns to database columns. Unmapped columns will be ignored.</p>
+                    <div class="bg-slate-50 p-4 rounded-lg max-h-96 overflow-y-auto">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="border-b border-gray-300">
+                                    <th class="text-left p-2 font-semibold">CSV Column</th>
+                                    <th class="text-left p-2 font-semibold">Sample Value</th>
+                                    <th class="text-left p-2 font-semibold">Map To Database Column</th>
+                                    <th class="text-left p-2 font-semibold">Data Type</th>
+                                </tr>
+                            </thead>
+                            <tbody id="column-mapping-table">
+                                <!-- Will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="flex justify-end gap-3 mt-4">
+                        <button onclick="backToStep1()" class="btn btn-secondary">Back</button>
+                        <button onclick="proceedToPreview()" class="btn btn-primary">
+                            <i class="fas fa-arrow-right mr-2"></i>Continue to Preview
+                        </button>
+                    </div>
                 </div>
-                <div id="import-preview" class="mt-6" style="display: none;">
+
+                <!-- Step 3: Import Preview -->
+                <div id="import-step-3" class="mt-6" style="display: none;">
                     <h3 class="font-semibold text-gray-900 mb-2">Import Preview:</h3>
                     <div id="preview-content" class="bg-slate-50 p-4 rounded-lg max-h-48 overflow-auto"></div>
                     <div class="flex justify-end gap-3 mt-4">
+                        <button onclick="backToStep2()" class="btn btn-secondary">Back</button>
                         <button onclick="cancelImport()" class="btn btn-secondary">Cancel</button>
                         <button onclick="confirmImport()" class="btn btn-primary">
                             <i class="fas fa-check mr-2"></i>Import Assets
                         </button>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Column Modal -->
+    <div id="add-column-modal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-2xl font-bold text-gray-900">Add New Column to Assets Table</h2>
+                    <button onclick="closeAddColumnModal()" class="text-gray-400 hover:text-gray-600 text-2xl">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-6">
+                <form id="add-column-form" onsubmit="handleAddColumn(event)">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Column Name *</label>
+                        <input type="text" id="new-column-name" class="form-input" required 
+                               pattern="[a-z_][a-z0-9_]*" 
+                               title="Must start with a letter and contain only lowercase letters, numbers, and underscores"
+                               placeholder="e.g., installation_date">
+                        <p class="text-xs text-gray-500 mt-1">Use lowercase with underscores (e.g., installation_date)</p>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Data Type *</label>
+                        <select id="new-column-type" class="form-input" required>
+                            <option value="text">Text</option>
+                            <option value="integer">Integer</option>
+                            <option value="numeric">Numeric (Decimal)</option>
+                            <option value="date">Date</option>
+                            <option value="timestamp">Timestamp</option>
+                            <option value="boolean">Boolean</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Default Value (Optional)</label>
+                        <input type="text" id="new-column-default" class="form-input" 
+                               placeholder="Leave empty for NULL">
+                    </div>
+                    <div class="mb-4">
+                        <label class="flex items-center">
+                            <input type="checkbox" id="new-column-nullable" class="mr-2" checked>
+                            <span class="text-sm text-gray-700">Allow NULL values</span>
+                        </label>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Description (Optional)</label>
+                        <textarea id="new-column-description" class="form-input" rows="2" 
+                                  placeholder="What this column will store"></textarea>
+                    </div>
+                    <div class="flex justify-end gap-3">
+                        <button type="button" onclick="closeAddColumnModal()" class="btn btn-secondary">Cancel</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-plus mr-2"></i>Add Column
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -336,9 +446,6 @@
                     <button class="tab-button" onclick="switchTab('workorders')" id="wo-tab-button">
                         <i class="fas fa-clipboard-list mr-2"></i>Work Orders <span id="wo-count" class="ml-1 bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-xs"></span>
                     </button>
-                    <button class="tab-button" onclick="switchTab('pmschedule')" id="pm-tab-button">
-                        <i class="fas fa-calendar-alt mr-2"></i>PM Schedule
-                    </button>
                 </div>
             </div>
 
@@ -350,38 +457,72 @@
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Asset Name *</label>
                             <input type="text" name="name" required class="form-input" placeholder="e.g., MRI Scanner">
                         </div>
-                        <div>
-                            <div class="flex items-center justify-between mb-2">
-                                <label class="block text-sm font-semibold text-gray-700">Category *</label>
-                                <button type="button" id="add-category-btn" class="text-sm font-semibold text-blue-600 hover:text-blue-700" onclick="addNewLookup('categories', 'Category')">
-                                    <i class="fas fa-plus mr-1"></i>Add
-                                </button>
+                        <!-- MMD Hierarchy Selection (Type → Make → Model → PM Frequency) -->
+                        <div class="md:col-span-2">
+                            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-lg p-5 mb-4">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div>
+                                        <h3 class="text-lg font-bold text-blue-900 flex items-center">
+                                            <i class="fas fa-sitemap mr-2"></i>Master Model Device (MMD) Selection
+                                        </h3>
+                                        <p class="text-xs text-blue-700 mt-1">Select Type → Make → Model to enforce standardized asset creation</p>
+                                    </div>
+                                    <a href="settings.html#master-database" target="_blank" class="text-xs text-blue-600 hover:text-blue-800 font-semibold flex items-center">
+                                        <i class="fas fa-external-link-alt mr-1"></i>Manage MMD
+                                    </a>
+                                </div>
+                                
+                                <!-- Cascading Dropdowns -->
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                                    <!-- Equipment Type -->
+                                    <div>
+                                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                            Equipment Type <span class="text-red-500">*</span>
+                                        </label>
+                                        <select id="mmd-type-select" required class="form-input focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                            <option value="">-- Select Type --</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <!-- Equipment Make -->
+                                    <div>
+                                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                            Make <span class="text-red-500">*</span>
+                                        </label>
+                                        <select id="mmd-make-select" required disabled class="form-input focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                            <option value="">-- Select Make --</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <!-- Equipment Model -->
+                                    <div>
+                                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                            Model <span class="text-red-500">*</span>
+                                        </label>
+                                        <select id="mmd-model-select" name="model_id" required disabled class="form-input focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                            <option value="">-- Select Model --</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <!-- PM Frequency Display (Read-only, auto-populated) -->
+                                <div id="mmd-pm-frequency-display" class="mb-4">
+                                    <p class="text-sm text-gray-500">Select a model to see PM frequency</p>
+                                </div>
+                                
+                                <!-- Summary Preview -->
+                                <div id="mmd-summary" class="mb-2">
+                                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                                        <p class="text-sm text-gray-500">Complete the Type → Make → Model selection to see preview</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- Hidden fields for form submission -->
+                                <input type="hidden" id="mmd-type-id" name="type_id">
+                                <input type="hidden" id="mmd-make-id" name="make_id">
+                                <input type="hidden" id="mmd-pm-frequency-id" name="pm_frequency_id">
+                                <input type="hidden" id="mmd-pm-frequency-days" name="pm_frequency_days">
                             </div>
-                            <select name="category_id" id="category-select" required class="form-input">
-                                <option value="">Select Category</option>
-                            </select>
-                        </div>
-                        <div>
-                            <div class="flex items-center justify-between mb-2">
-                                <label class="block text-sm font-semibold text-gray-700">Make *</label>
-                                <button type="button" id="add-manufacturer-btn" class="text-sm font-semibold text-blue-600 hover:text-blue-700" onclick="addNewLookup('manufacturers', 'Make')">
-                                    <i class="fas fa-plus mr-1"></i>Add
-                                </button>
-                            </div>
-                            <select name="manufacturer_id" id="manufacturer-select" required class="form-input" disabled>
-                                <option value="">Select Make</option>
-                            </select>
-                        </div>
-                        <div>
-                            <div class="flex items-center justify-between mb-2">
-                                <label class="block text-sm font-semibold text-gray-700">Model *</label>
-                                <button type="button" id="add-model-btn" class="text-sm font-semibold text-blue-600 hover:text-blue-700" onclick="addNewLookup('models', 'Model')">
-                                    <i class="fas fa-plus mr-1"></i>Add
-                                </button>
-                            </div>
-                            <select name="model_id" id="model-select" required class="form-input" disabled>
-                                <option value="">Select Model</option>
-                            </select>
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Serial Number *</label>
@@ -402,11 +543,42 @@
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Purchase Cost ($)</label>
-                            <input type="number" name="purchase_cost" step="0.01" class="form-input">
+                            <input type="number" name="purchase_cost" id="purchase-cost" step="0.01" class="form-input" onchange="updateDepreciationPreview()">
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Warranty Expiry</label>
                             <input type="date" name="warranty_expiry" class="form-input">
+                        </div>
+                        <div class="md:col-span-2 border-t border-slate-200 pt-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Depreciation Settings</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Depreciation Method</label>
+                                    <select name="depreciation_method" id="depreciation-method" class="form-input" onchange="updateDepreciationPreview()">
+                                        <option value="none">No Depreciation</option>
+                                        <option value="straight_line" selected>Straight-Line</option>
+                                        <option value="declining_balance">Declining Balance</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Useful Life (Years)</label>
+                                    <input type="number" name="useful_life_years" id="useful-life-years" class="form-input" min="1" value="5" onchange="updateDepreciationPreview()">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Salvage Value ($)</label>
+                                    <input type="number" name="salvage_value" id="salvage-value" step="0.01" class="form-input" value="0" onchange="updateDepreciationPreview()">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Depreciation Start Date</label>
+                                    <input type="date" name="depreciation_start_date" id="depreciation-start-date" class="form-input" onchange="updateDepreciationPreview()">
+                                </div>
+                                <div class="md:col-span-2 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                    <h4 class="font-semibold text-blue-900 mb-2">Depreciation Preview</h4>
+                                    <div id="depreciation-preview" class="text-sm text-blue-800 space-y-1">
+                                        <p>Enter purchase cost and settings to see depreciation calculation.</p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Customer</label>
@@ -498,60 +670,6 @@
                 </div>
             </div>
 
-            <!-- PM Schedule Tab -->
-            <div id="pmschedule-tab" class="tab-content p-6 border-t border-slate-200">
-                <form id="pm-schedule-form">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">PM Schedule Type</label>
-                            <select name="pm_schedule_type" id="pm-schedule-type-edit" class="form-input">
-                                <option value="">No PM Schedule</option>
-                                <option value="daily">Daily (Every 24 hours)</option>
-                                <option value="weekly">Weekly (Every 7 days)</option>
-                                <option value="biweekly">Bi-Weekly (Every 14 days)</option>
-                                <option value="monthly">Monthly (Every 30 days)</option>
-                                <option value="quarterly">Quarterly (Every 90 days)</option>
-                                <option value="semiannually">Semi-Annually (Every 180 days)</option>
-                                <option value="annually">Annually (Every 365 days)</option>
-                                <option value="custom">Custom Interval</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Custom Interval (days)</label>
-                            <input type="number" name="pm_interval_days" id="pm-interval-days-edit" class="form-input" min="1" placeholder="e.g., 45">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Last Maintenance Date</label>
-                            <input type="date" name="last_maintenance" id="last-maintenance-edit" class="form-input">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Next Maintenance Due</label>
-                            <input type="date" name="next_maintenance" id="next-maintenance-edit" class="form-input" readonly style="background: #f8fafc;">
-                        </div>
-                        <div class="md:col-span-2">
-                            <label class="flex items-center gap-2">
-                                <input type="checkbox" name="auto_generate_wo" id="auto-generate-wo-edit" class="rounded border-gray-300">
-                                <span class="text-sm font-semibold text-gray-700">Auto-Generate Work Orders (7 days before PM due)</span>
-                            </label>
-                        </div>
-                        <div class="md:col-span-2 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                            <h4 class="font-semibold text-blue-900 mb-2">PM Schedule Preview</h4>
-                            <div id="pm-preview-edit" class="text-sm text-blue-800">
-                                <p>Select a PM schedule type to see upcoming maintenance dates.</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="flex justify-end gap-3 mt-8">
-                        <button type="button" onclick="closeAssetModal()" class="btn btn-secondary">
-                            <i class="fas fa-times"></i> Cancel
-                        </button>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save"></i> Save Schedule
-                        </button>
-                    </div>
-                </form>
-            </div>
-
         </div>
     </div>
 
@@ -590,13 +708,20 @@
         let locations = [];
         let currentAsset = null;
         let csvData = null;
+        let csvHeaders = [];
+        let csvSampleRow = {};
+        let columnMapping = {};
+        let databaseColumns = [];
         let assetSchema = { hasCustomerId: true, hasLookupIds: true, makeField: 'manufacturer_id' };
-        let referenceData = { categories: [], manufacturers: [], models: [] };
+        let referenceData = { categories: [], manufacturers: [], models: [], pmFrequencies: [] };
         let referenceMaps = {
             categoriesById: new Map(),
             manufacturersById: new Map(),
-            modelsById: new Map()
+            modelsById: new Map(),
+            pmFrequenciesByCode: new Map()
         };
+        // Expose to window for global access
+        window.referenceMaps = referenceMaps;
         let lookupContext = { type: null, label: null, parentId: null };
         let canManageReferenceData = false;
 
@@ -616,9 +741,13 @@
             supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             await detectAssetSchema();
             await loadReferenceData();
+            await loadDeviceConfigurations();
+            await loadPMFrequencies();
+            await loadDatabaseColumns(); // Load database columns for import mapping
             await Promise.all([loadAssets(), loadCustomers(), loadLocations()]);
             setupEventListeners();
             setupDragDrop();
+            initializeView(); // Initialize to list view
         });
 
         async function detectAssetSchema() {
@@ -686,44 +815,197 @@
             }
         }
 
+        // Helper function for retrying queries with exponential backoff
+        async function retryQuery(fn, maxRetries = 3, delay = 1000) {
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const result = await fn();
+                    if (!result.error || !/does not exist|not found|schema cache|relation.*does not exist/i.test(result.error.message || '')) {
+                        return result;
+                    }
+                    if (i < maxRetries - 1) {
+                        console.log(`Retrying query (attempt ${i + 2}/${maxRetries}) after ${delay * (i + 1)}ms...`);
+                        await new Promise(resolve => setTimeout(resolve, delay * (i + 1)));
+                    }
+                } catch (err) {
+                    if (i === maxRetries - 1) throw err;
+                    await new Promise(resolve => setTimeout(resolve, delay * (i + 1)));
+                }
+            }
+            return await fn(); // Final attempt
+        }
+
         async function loadReferenceData() {
             try {
                 await detectReferenceAccess();
-                const [{ data: categories, error: categoryError }, { data: manufacturers, error: manufacturerError }, { data: models, error: modelError }] = await Promise.all([
-                    supabaseClient.from('device_categories').select('id, name').order('name'),
-                    supabaseClient.from('device_makes').select('id, name, category_id').order('name'),
-                    supabaseClient.from('device_models').select('id, name, make_id').order('name')
+                
+                // Try direct table queries first
+                let categories = null, manufacturers = null, models = null;
+                let categoryError = null, manufacturerError = null, modelError = null;
+                
+                // Load with retry logic for schema cache issues
+                const [
+                    categoryResult,
+                    manufacturerResult,
+                    modelResult
+                ] = await Promise.all([
+                    retryQuery(() => supabaseClient.from('device_categories').select('id, name').order('name'), 2, 500),
+                    retryQuery(() => supabaseClient.from('device_makes').select('id, name, category_id').order('name'), 2, 500),
+                    retryQuery(() => supabaseClient.from('device_models').select('id, name, make_id').order('name'), 2, 500)
                 ]);
-                const missingTableErrors = [categoryError, manufacturerError, modelError].filter(error => error && /does not exist|not found|schema cache/i.test(error.message || ''));
-                if (missingTableErrors.length) {
-                    referenceData = { categories: [], manufacturers: [], models: [] };
-                    assetSchema.hasLookupIds = false;
-                    buildReferenceMaps();
-                    refreshReferenceLookups();
-                    updateReferenceActionState();
-                    return;
+                
+                categories = categoryResult.data;
+                categoryError = categoryResult.error;
+                manufacturers = manufacturerResult.data;
+                manufacturerError = manufacturerResult.error;
+                models = modelResult.data;
+                modelError = modelResult.error;
+                
+                // If direct queries failed with schema errors, try using functions as fallback
+                const hasSchemaErrors = [categoryError, manufacturerError, modelError].some(
+                    error => error && /does not exist|not found|schema cache|relation.*does not exist|400/i.test(error.message || '')
+                );
+                
+                if (hasSchemaErrors) {
+                    console.log('Direct table queries failed, trying function-based fallback...');
+                    
+                    // Try using RPC functions as fallback
+                    try {
+                        if (categoryError && /does not exist|not found|schema cache|relation.*does not exist|400/i.test(categoryError.message || '')) {
+                            const funcResult = await supabaseClient.rpc('get_device_categories');
+                            if (funcResult.data && !funcResult.error) {
+                                categories = funcResult.data;
+                                categoryError = null;
+                                console.log('Successfully loaded categories via function');
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('Function fallback for categories failed:', e);
+                    }
+                    
+                    try {
+                        if (manufacturerError && /does not exist|not found|schema cache|relation.*does not exist|400/i.test(manufacturerError.message || '')) {
+                            const funcResult = await supabaseClient.rpc('get_device_makes', { p_category_id: null });
+                            if (funcResult.data && !funcResult.error) {
+                                manufacturers = funcResult.data;
+                                manufacturerError = null;
+                                console.log('Successfully loaded manufacturers via function');
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('Function fallback for manufacturers failed:', e);
+                    }
+                    
+                    try {
+                        if (modelError && /does not exist|not found|schema cache|relation.*does not exist|400/i.test(modelError.message || '')) {
+                            const funcResult = await supabaseClient.rpc('get_device_models', { p_make_id: null });
+                            if (funcResult.data && !funcResult.error) {
+                                models = funcResult.data;
+                                modelError = null;
+                                console.log('Successfully loaded models via function');
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('Function fallback for models failed:', e);
+                    }
                 }
-                if (categoryError) throw categoryError;
-                if (manufacturerError) throw manufacturerError;
-                if (modelError) throw modelError;
+                
+                // Use data even if there were some errors (graceful degradation)
                 referenceData = {
                     categories: categories || [],
                     manufacturers: manufacturers || [],
                     models: models || []
                 };
+                
                 buildReferenceMaps();
                 refreshReferenceLookups();
                 updateReferenceActionState();
+                
+                // Show warning if we had to use fallback or if there are still errors
+                if (hasSchemaErrors && (categories || manufacturers || models)) {
+                    console.log('Loaded data using function fallback - PostgREST schema cache may need time to refresh');
+                }
+                
+                // Only throw if we got no data at all and there were real errors
+                if (!categories && !manufacturers && !models && (categoryError || manufacturerError || modelError)) {
+                    const nonCacheErrors = [categoryError, manufacturerError, modelError].filter(
+                        error => error && !/does not exist|not found|schema cache|relation.*does not exist|400/i.test(error.message || '')
+                    );
+                    if (nonCacheErrors.length) {
+                        throw nonCacheErrors[0];
+                    } else {
+                        console.error('All queries failed:', { categoryError, manufacturerError, modelError });
+                        showToast('Unable to load device catalog data. Please check your database connection.', 'error');
+                    }
+                }
             } catch (error) {
                 console.error('Error loading reference data:', error);
                 showToast(`Failed to load reference data: ${error.message}`, 'error');
             }
         }
 
+        async function loadPMFrequencies() {
+            try {
+                const { data, error } = await retryQuery(() => 
+                    supabaseClient.from('pm_frequencies')
+                        .select('*')
+                        .eq('is_active', true)
+                        .order('sort_order', { ascending: true })
+                , 2, 500);
+
+                if (error && !/does not exist|not found|schema cache|relation.*does not exist|400/i.test(error.message || '')) {
+                    throw error;
+                }
+
+                referenceData.pmFrequencies = data || [];
+                referenceMaps.pmFrequenciesByCode = new Map(
+                    referenceData.pmFrequencies.map(freq => [freq.code, freq])
+                );
+                // Update window reference
+                window.referenceMaps = referenceMaps;
+
+                // Update PM schedule dropdowns
+                updatePMScheduleDropdowns();
+            } catch (error) {
+                console.error('Error loading PM frequencies:', error);
+                // Use default frequencies if table doesn't exist
+                referenceData.pmFrequencies = [
+                    { code: 'daily', name: 'Daily', days: 1 },
+                    { code: 'weekly', name: 'Weekly', days: 7 },
+                    { code: 'biweekly', name: 'Bi-Weekly', days: 14 },
+                    { code: 'monthly', name: 'Monthly', days: 30 },
+                    { code: 'quarterly', name: 'Quarterly', days: 90 },
+                    { code: 'semiannually', name: 'Semi-Annually', days: 180 },
+                    { code: 'annually', name: 'Annually', days: 365 }
+                ];
+                updatePMScheduleDropdowns();
+            }
+        }
+
+        function updatePMScheduleDropdowns() {
+            const dropdowns = ['pm-schedule-type', 'pm-schedule-type-edit'];
+            dropdowns.forEach(dropdownId => {
+                const dropdown = document.getElementById(dropdownId);
+                if (dropdown) {
+                    const currentValue = dropdown.value;
+                    dropdown.innerHTML = '<option value="">No PM Schedule</option>' +
+                        referenceData.pmFrequencies.map(freq => 
+                            `<option value="${freq.code}">${freq.name} (Every ${freq.days} ${freq.days === 1 ? 'day' : 'days'})</option>`
+                        ).join('') +
+                        '<option value="custom">Custom Interval</option>';
+                    if (currentValue) {
+                        dropdown.value = currentValue;
+                    }
+                }
+            });
+        }
+
         function buildReferenceMaps() {
             referenceMaps.categoriesById = new Map(referenceData.categories.map(category => [category.id, category]));
             referenceMaps.manufacturersById = new Map(referenceData.manufacturers.map(manufacturer => [manufacturer.id, manufacturer]));
             referenceMaps.modelsById = new Map(referenceData.models.map(model => [model.id, model]));
+            // Update window reference
+            window.referenceMaps = referenceMaps;
         }
 
         async function loadAssets() {
@@ -845,39 +1127,51 @@
         }
 
         function refreshReferenceLookups() {
-            updateCategoryFilterOptions();
-            updateCategorySelectOptions();
+            if (typeof updateCategoryFilterOptions === 'function') {
+                updateCategoryFilterOptions();
+            }
+            if (typeof updateCategorySelectOptions === 'function') {
+                updateCategorySelectOptions();
+            }
         }
 
         function updateCategoryFilterOptions() {
             const select = document.getElementById('category-filter');
+            if (!select) return;
             const current = select.value;
             select.innerHTML = '<option value="">All Categories</option>';
-            referenceData.categories.forEach(category => {
-                const option = document.createElement('option');
-                option.value = category.id;
-                option.textContent = category.name;
-                select.appendChild(option);
-            });
-            if (referenceMaps.categoriesById.has(current)) {
+            if (referenceData && referenceData.categories) {
+                referenceData.categories.forEach(category => {
+                    const option = document.createElement('option');
+                    option.value = category.id;
+                    option.textContent = category.name;
+                    select.appendChild(option);
+                });
+            }
+            if (referenceMaps && referenceMaps.categoriesById && referenceMaps.categoriesById.has(current)) {
                 select.value = current;
             }
         }
 
         function updateCategorySelectOptions() {
             const select = document.getElementById('category-select');
+            if (!select) return; // Element doesn't exist (likely using MMD form)
             const current = select.value;
             select.innerHTML = '<option value="">Select Category</option>';
-            referenceData.categories.forEach(category => {
-                const option = document.createElement('option');
-                option.value = category.id;
-                option.textContent = category.name;
-                select.appendChild(option);
-            });
-            if (referenceMaps.categoriesById.has(current)) {
+            if (referenceData && referenceData.categories) {
+                referenceData.categories.forEach(category => {
+                    const option = document.createElement('option');
+                    option.value = category.id;
+                    option.textContent = category.name;
+                    select.appendChild(option);
+                });
+            }
+            if (referenceMaps && referenceMaps.categoriesById && referenceMaps.categoriesById.has(current)) {
                 select.value = current;
             }
-            updateManufacturerOptions(select.value);
+            if (typeof updateManufacturerOptions === 'function') {
+                updateManufacturerOptions(select.value);
+            }
         }
 
         function updateManufacturerOptions(categoryId, selectedManufacturerId = '') {
@@ -1015,24 +1309,37 @@
                     return;
                 }
                 
-                // First, check if the table exists by attempting a simple select
-                const tableCheck = await supabaseClient
+                // Helper function to retry with exponential backoff for schema cache issues
+                const retryWithBackoff = async (fn, maxRetries = 3, delay = 1000) => {
+                    for (let i = 0; i < maxRetries; i++) {
+                        try {
+                            const result = await fn();
+                            if (!result.error || !/does not exist|not found|schema cache|relation.*does not exist/i.test(result.error.message || '')) {
+                                return result;
+                            }
+                            if (i < maxRetries - 1) {
+                                await new Promise(resolve => setTimeout(resolve, delay * (i + 1)));
+                            }
+                        } catch (err) {
+                            if (i === maxRetries - 1) throw err;
+                            await new Promise(resolve => setTimeout(resolve, delay * (i + 1)));
+                        }
+                    }
+                    return await fn(); // Final attempt
+                };
+                
+                // Try to check table existence with retry (for schema cache issues)
+                const tableCheck = await retryWithBackoff(async () => {
+                    return await supabaseClient
                     .from(table)
                     .select('id')
                     .limit(1);
+                });
                 
+                // Only show error if it's definitely not a schema cache issue after retries
                 if (tableCheck.error && /does not exist|not found|schema cache|relation.*does not exist/i.test(tableCheck.error.message || '')) {
-                    const errorMsg = `The ${tableDisplayName} table does not exist in your Supabase database.\n\n` +
-                                   `To fix this:\n` +
-                                   `1. Open your Supabase Dashboard\n` +
-                                   `2. Go to SQL Editor\n` +
-                                   `3. Open the file: device_catalog_schema.sql\n` +
-                                   `4. Copy and paste the entire contents\n` +
-                                   `5. Click "Run" to execute\n\n` +
-                                   `This will create the required tables: device_categories, device_makes, and device_models.`;
-                    showToast(errorMsg, 'error');
-                    closeLookupModal();
-                    return;
+                    console.warn('Table check failed, but proceeding anyway - may be schema cache issue:', tableCheck.error);
+                    // Don't block - proceed with insert attempt as tables exist in database
                 }
                 
                 // Generate IDs for all lookup types
@@ -1059,48 +1366,147 @@
                     }
                 }
                 
-                // Check for duplicate name
-                const duplicateCheck = await supabaseClient
+                // Check for duplicate name with retry
+                // For manufacturers and models, also check parent relationship
+                let duplicateQuery = supabaseClient
                     .from(table)
-                    .select('id, name')
-                    .eq('name', value);
+                    .select('id, name');
+                
+                if (lookupContext.type === 'manufacturers' && lookupContext.parentId) {
+                    duplicateQuery = duplicateQuery.eq('category_id', lookupContext.parentId);
+                } else if (lookupContext.type === 'models' && lookupContext.parentId) {
+                    duplicateQuery = duplicateQuery.eq('make_id', lookupContext.parentId);
+                }
+                
+                const duplicateCheck = await retryWithBackoff(async () => {
+                    return await duplicateQuery.eq('name', value);
+                }, 2, 500);
                 
                 if (duplicateCheck.data && duplicateCheck.data.length > 0) {
                     showToast(`A ${lookupContext.label.toLowerCase()} with this name already exists.`, 'warning');
                     return;
                 }
                 
-                const { data, error } = await supabaseClient
+                // Use RPC functions (they're more reliable and avoid ambiguous column issues)
+                let data = null;
+                let error = null;
+                
+                try {
+                    if (lookupContext.type === 'categories') {
+                        const { data: funcData, error: funcError } = await supabaseClient.rpc('insert_device_category', {
+                            p_id: payload.id,
+                            p_name: payload.name,
+                            p_description: payload.description || null
+                        });
+                        if (funcError) {
+                            error = funcError;
+                            console.error('RPC insert_device_category error:', funcError);
+                        } else if (funcData) {
+                            // RPC functions returning TABLE return array
+                            data = Array.isArray(funcData) ? funcData[0] : funcData;
+                            console.log('Successfully inserted category via RPC');
+                        }
+                    } else if (lookupContext.type === 'manufacturers') {
+                        const { data: funcData, error: funcError } = await supabaseClient.rpc('insert_device_make', {
+                            p_id: payload.id,
+                            p_name: payload.name,
+                            p_category_id: payload.category_id,
+                            p_description: payload.description || null
+                        });
+                        if (funcError) {
+                            error = funcError;
+                            console.error('RPC insert_device_make error:', funcError);
+                        } else if (funcData) {
+                            data = Array.isArray(funcData) ? funcData[0] : funcData;
+                            console.log('Successfully inserted manufacturer via RPC');
+                        }
+                    } else if (lookupContext.type === 'models') {
+                        const { data: funcData, error: funcError } = await supabaseClient.rpc('insert_device_model', {
+                            p_id: payload.id,
+                            p_name: payload.name,
+                            p_make_id: payload.make_id,
+                            p_description: payload.description || null
+                        });
+                        if (funcError) {
+                            error = funcError;
+                            console.error('RPC insert_device_model error:', funcError);
+                        } else if (funcData) {
+                            data = Array.isArray(funcData) ? funcData[0] : funcData;
+                            console.log('Successfully inserted model via RPC');
+                        }
+                    }
+                } catch (funcError) {
+                    console.error('RPC function exception:', funcError);
+                    error = funcError;
+                }
+                
+                // If RPC failed, try direct insert as fallback (without select to avoid ambiguous column)
+                if (error && !data) {
+                    console.log('RPC failed, trying direct insert as fallback...');
+                    try {
+                        // Insert without select first
+                        const { error: insertError } = await supabaseClient
                     .from(table)
-                    .insert([payload])
-                    .select('id, name, category_id, make_id')
+                            .insert([payload]);
+                        
+                        if (insertError) {
+                            error = insertError;
+                        } else {
+                            // If insert succeeded, fetch the record
+                            const { data: fetchData, error: fetchError } = await supabaseClient
+                                .from(table)
+                                .select('id, name')
+                                .eq('id', payload.id)
                     .single();
                 
-                // If table doesn't exist, provide helpful error message
-                if (error && /does not exist|not found|schema cache|relation.*does not exist/i.test(error.message || '')) {
-                    const errorMsg = `The ${tableDisplayName} table does not exist in your Supabase database.\n\n` +
-                                   `To fix this:\n` +
-                                   `1. Open your Supabase Dashboard\n` +
-                                   `2. Go to SQL Editor\n` +
-                                   `3. Open the file: device_catalog_schema.sql\n` +
-                                   `4. Copy and paste the entire contents\n` +
-                                   `5. Click "Run" to execute\n\n` +
-                                   `This will create the required tables: device_categories, device_makes, and device_models.`;
-                    showToast(errorMsg, 'error', 10000);
+                            if (fetchError) {
+                                error = fetchError;
+                            } else if (fetchData) {
+                                data = fetchData;
+                                error = null;
+                                console.log('Successfully inserted via direct insert fallback');
+                            }
+                        }
+                    } catch (fallbackError) {
+                        console.error('Direct insert fallback failed:', fallbackError);
+                        error = fallbackError;
+                    }
+                }
+                
+                // Handle errors - show user-friendly messages
+                if (error && !data) {
+                    console.error('Final error inserting into', table, ':', error);
+                    
+                    // Handle schema cache errors with helpful message
+                    if (/does not exist|not found|schema cache|relation.*does not exist|400/i.test(error.message || '')) {
+                        console.error('Schema cache error detected:', error);
+                        const errorMsg = `PostgREST schema cache issue detected. The ${tableDisplayName} table exists but may not be visible yet.\n\n` +
+                                       `Please try:\n` +
+                                       `1. Wait 30-60 seconds and try again\n` +
+                                       `2. Hard refresh your browser (Ctrl+F5 or Cmd+Shift+R)\n` +
+                                       `3. Check Supabase dashboard to verify tables exist`;
+                        showToast(errorMsg, 'warning', 15000);
                     closeLookupModal();
                     return;
                 }
                 
-                if (error) {
-                    console.error('Error inserting into', table, ':', error);
                     // Check for specific error types
-                    if (error.message && error.message.includes('duplicate key') || error.message.includes('unique constraint')) {
-                        showToast(`A ${lookupContext.label.toLowerCase()} with this name or ID already exists.`, 'error');
-                    } else if (error.message && error.message.includes('foreign key')) {
-                        showToast(`Invalid parent reference. Please ensure the parent ${lookupContext.type === 'manufacturers' ? 'category' : 'manufacturer'} exists.`, 'error');
+                    let errorMessage = `Failed to add ${lookupContext.label.toLowerCase()}`;
+                    
+                    if (error.message) {
+                        if (error.message.includes('duplicate key') || error.message.includes('unique constraint')) {
+                            errorMessage = `A ${lookupContext.label.toLowerCase()} with this name or ID already exists.`;
+                        } else if (error.message.includes('foreign key')) {
+                            errorMessage = `Invalid parent reference. Please ensure the parent ${lookupContext.type === 'manufacturers' ? 'category' : 'manufacturer'} exists.`;
+                        } else if (error.message.includes('ambiguous')) {
+                            errorMessage = `Database error: ${error.message}. Please try again.`;
                     } else {
-                        showToast(`Failed to add ${lookupContext.label.toLowerCase()}: ${error.message || 'Unknown error'}`, 'error');
+                            errorMessage = `${errorMessage}: ${error.message}`;
                     }
+                    }
+                    
+                    showToast(errorMessage, 'error');
+                    closeLookupModal();
                     return;
                 }
                 if (lookupContext.type === 'categories') {
@@ -1148,7 +1554,7 @@
             document.getElementById('stat-compliant').textContent = compliant + '%';
         }
 
-        let currentView = 'grid';
+        let currentView = 'list';
 
         function switchView(view) {
             currentView = view;
@@ -1169,6 +1575,11 @@
             } else {
                 renderAssetsList();
             }
+        }
+
+        // Initialize view on page load
+        function initializeView() {
+            switchView('list');
         }
 
         function renderAssetsGrid() {
@@ -1321,11 +1732,18 @@
             document.getElementById('submit-btn-text').textContent = 'Save Asset';
             document.getElementById('asset-form').reset();
             document.getElementById('edit-asset-id').value = '';
-            updateCategorySelectOptions();
-            document.getElementById('manufacturer-select').disabled = true;
-            document.getElementById('model-select').disabled = true;
+            
+            // Reset MMD form
+            if (window.MMDAssetFormManager) {
+                window.MMDAssetFormManager.reset();
+            }
+            
+            // Load MMD hierarchy if not already loaded
+            if (window.MMDAssetFormManager && window.MMDAssetFormManager.mmdData.types.length === 0) {
+                window.MMDAssetFormManager.loadMMDHierarchy();
+            }
+            
             document.getElementById('wo-tab-button').style.display = 'none';
-            document.getElementById('pm-tab-button').classList.add('opacity-50', 'pointer-events-none');
             switchTab('details');
             document.getElementById('asset-modal').classList.add('active');
         }
@@ -1349,19 +1767,26 @@
             form.purchase_date.value = asset.purchase_date || '';
             form.purchase_cost.value = asset.purchase_cost || '';
             form.warranty_expiry.value = asset.warranty_expiry || '';
+            // Depreciation fields
+            if (form.depreciation_method) form.depreciation_method.value = asset.depreciation_method || 'none';
+            if (form.useful_life_years) form.useful_life_years.value = asset.useful_life_years || 5;
+            if (form.salvage_value) form.salvage_value.value = asset.salvage_value || 0;
+            if (form.depreciation_start_date) form.depreciation_start_date.value = asset.depreciation_start_date || asset.purchase_date || '';
             if (assetSchema.hasCustomerId) {
                 form.customer_id.value = asset.customer_id || '';
             }
             form.location_id.value = asset.location_id || '';
             form.description.value = asset.description || '';
             document.getElementById('edit-asset-id').value = asset.id;
+            // Update depreciation preview
+            if (asset.purchase_cost) {
+                setTimeout(() => updateDepreciationPreview(), 100);
+            }
             if (assetSchema.hasCustomerId && asset.customer_id) {
                 updateLocationDropdown(asset.customer_id);
             }
             document.getElementById('wo-tab-button').style.display = 'block';
-            document.getElementById('pm-tab-button').classList.remove('opacity-50', 'pointer-events-none');
             await loadAssetWorkOrders(asset.id);
-            loadPMSchedule(asset);
             document.getElementById('asset-modal').classList.add('active');
         }
 
@@ -1494,7 +1919,6 @@
         function closeAssetModal() {
             document.getElementById('asset-modal').classList.remove('active');
             currentAsset = null;
-            document.getElementById('pm-tab-button').classList.remove('opacity-50', 'pointer-events-none');
         }
 
         async function deleteAsset(assetId) {
@@ -1517,21 +1941,32 @@
                 serial_number: formData.get('serial_number'),
                 status: formData.get('status'),
                 purchase_date: formData.get('purchase_date') || null,
-                purchase_cost: formData.get('purchase_cost') || null,
+                purchase_cost: formData.get('purchase_cost') ? parseFloat(formData.get('purchase_cost')) : null,
+                depreciation_method: formData.get('depreciation_method') || 'none',
+                useful_life_years: formData.get('useful_life_years') ? parseInt(formData.get('useful_life_years')) : null,
+                salvage_value: formData.get('salvage_value') ? parseFloat(formData.get('salvage_value')) : 0,
+                depreciation_start_date: formData.get('depreciation_start_date') || formData.get('purchase_date') || null,
                 warranty_expiry: formData.get('warranty_expiry') || null,
                 description: formData.get('description') || null
             };
-            const categoryId = formData.get('category_id');
-            const manufacturerId = formData.get('manufacturer_id');
-            const modelId = formData.get('model_id');
-            if (assetSchema.hasLookupIds) {
-                assetData.category_id = categoryId;
-                assetData[assetSchema.makeField] = manufacturerId;
-                assetData.model_id = modelId;
+            // MMD-based asset creation - model_id is required
+            // Get model_id from MMD form manager (primary) or form field (fallback)
+            let modelId = null;
+            if (window.MMDAssetFormManager && window.MMDAssetFormManager.selectedModel) {
+                modelId = window.MMDAssetFormManager.selectedModel;
             } else {
-                assetData.category = getSelectOptionText('category-select');
-                assetData.manufacturer = getSelectOptionText('manufacturer-select');
-                assetData.model = getSelectOptionText('model-select');
+                modelId = formData.get('model_id');
+            }
+            
+            // For new assets, model_id is mandatory
+            if (!assetId && !modelId) {
+                showToast('Please select a Model from the MMD hierarchy (Type → Make → Model)', 'error');
+                return;
+            }
+            
+            // Set model_id - this enforces MMD relationship
+            if (modelId) {
+                assetData.model_id = modelId;
             }
             
             // Only include location_id if it has a value
@@ -1547,9 +1982,54 @@
                 }
             }
             
+            // Validate MMD selection for new assets
             const assetId = document.getElementById('edit-asset-id').value;
+            if (!assetId) {
+                // New asset - must have MMD selection
+                if (window.MMDAssetFormManager) {
+                    const validation = window.MMDAssetFormManager.validateMMDSelection();
+                    if (!validation.valid) {
+                        showToast(validation.message, 'error');
+                        return;
+                    }
+                    
+                    // Get MMD data and add to assetData
+                    const mmdData = window.MMDAssetFormManager.getSelectedMMDData();
+                    assetData.model_id = mmdData.model_id;
+                    
+                    // Set PM schedule from model's PM frequency if available
+                    if (mmdData.pm_frequency_days) {
+                        assetData.pm_interval_days = mmdData.pm_frequency_days;
+                        // Map PM frequency to schedule type
+                        if (mmdData.pm_frequency_days === 365) {
+                            assetData.pm_schedule_type = 'annually';
+                        } else if (mmdData.pm_frequency_days === 180) {
+                            assetData.pm_schedule_type = 'semiannually';
+                        } else if (mmdData.pm_frequency_days === 90) {
+                            assetData.pm_schedule_type = 'quarterly';
+                        } else if (mmdData.pm_frequency_days === 30) {
+                            assetData.pm_schedule_type = 'monthly';
+                        } else if (mmdData.pm_frequency_days === 7) {
+                            assetData.pm_schedule_type = 'weekly';
+                        } else if (mmdData.pm_frequency_days === 1) {
+                            assetData.pm_schedule_type = 'daily';
+                        } else {
+                            assetData.pm_schedule_type = 'custom';
+                        }
+                    }
+                } else {
+                    showToast('MMD form manager not initialized. Please refresh the page.', 'error');
+                    return;
+                }
+            }
+            
             try {
                 if (assetId) {
+                    // Update existing asset - allow model_id update
+                    if (window.MMDAssetFormManager && window.MMDAssetFormManager.selectedModel) {
+                        const mmdData = window.MMDAssetFormManager.getSelectedMMDData();
+                        assetData.model_id = mmdData.model_id;
+                    }
                     const { error } = await supabaseClient.from('assets').update(assetData).eq('id', assetId);
                     if (error) throw error;
                     showToast('Asset updated successfully', 'success');
@@ -1574,17 +2054,19 @@
             return option.textContent?.trim() || '';
         }
 
-        document.getElementById('pm-schedule-form').addEventListener('submit', async (e) => {
+        const pmScheduleForm = document.getElementById('pm-schedule-form');
+        if (pmScheduleForm) {
+            pmScheduleForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             if (!currentAsset) {
                 showToast('Please save the asset before adding a PM schedule.', 'warning');
                 return;
             }
-            const scheduleType = document.getElementById('pm-schedule-type').value;
-            const intervalDays = document.getElementById('pm-interval-days').value;
-            const lastMaintenance = document.getElementById('last-maintenance').value;
-            const nextMaintenanceInput = document.getElementById('next-maintenance').value;
-            const autoGenerate = document.getElementById('auto-generate-wo').checked;
+            const scheduleType = document.getElementById('pm-schedule-type')?.value;
+            const intervalDays = document.getElementById('pm-interval-days')?.value;
+            const lastMaintenance = document.getElementById('last-maintenance')?.value;
+            const nextMaintenanceInput = document.getElementById('next-maintenance')?.value;
+            const autoGenerate = document.getElementById('auto-generate-wo')?.checked;
 
             const nextMaintenanceDate = calculateNextMaintenanceDate(scheduleType, lastMaintenance, intervalDays);
             const nextMaintenance = nextMaintenanceDate
@@ -1645,7 +2127,8 @@
             } catch (error) {
                 showToast(`Failed to save PM schedule: ${error.message}`, 'error');
             }
-        });
+            });
+        }
 
         function generateAssetId() {
             const today = new Date();
@@ -1663,18 +2146,83 @@
                     renderAssets();
                 }, 300));
             }
-            document.getElementById('category-filter').addEventListener('change', applyFilters);
-            document.getElementById('status-filter').addEventListener('change', applyFilters);
-            document.getElementById('customer-select').addEventListener('change', (e) => updateLocationDropdown(e.target.value));
-            document.getElementById('category-select').addEventListener('change', (e) => {
-                updateManufacturerOptions(e.target.value);
+            const categoryFilter = document.getElementById('category-filter');
+            const statusFilter = document.getElementById('status-filter');
+            const customerSelect = document.getElementById('customer-select');
+            const categorySelect = document.getElementById('category-select');
+            const manufacturerSelect = document.getElementById('manufacturer-select');
+            const pmScheduleType = document.getElementById('pm-schedule-type');
+            const pmIntervalDays = document.getElementById('pm-interval-days');
+            const lastMaintenance = document.getElementById('last-maintenance');
+            
+            if (categoryFilter) categoryFilter.addEventListener('change', applyFilters);
+            if (statusFilter) statusFilter.addEventListener('change', applyFilters);
+            if (customerSelect) customerSelect.addEventListener('change', (e) => updateLocationDropdown(e.target.value));
+            
+            // Only add listeners for old category/manufacturer selects if they exist (for backward compatibility)
+            if (categorySelect) {
+                categorySelect.addEventListener('change', (e) => {
+                    if (typeof updateManufacturerOptions === 'function') {
+                        updateManufacturerOptions(e.target.value);
+                    }
+                });
+            }
+            if (manufacturerSelect) {
+                manufacturerSelect.addEventListener('change', (e) => {
+                    if (typeof updateModelOptions === 'function') {
+                        updateModelOptions(e.target.value);
+                    }
+                });
+            }
+            
+            if (pmScheduleType) {
+                pmScheduleType.addEventListener('change', function() {
+                    const selectedCode = this.value;
+                    const customWrapper = document.getElementById('custom-interval-wrapper');
+                    if (selectedCode === 'custom') {
+                        if (customWrapper) customWrapper.style.display = 'block';
+                    } else {
+                        if (customWrapper) customWrapper.style.display = 'none';
+                        if (selectedCode && window.referenceMaps && window.referenceMaps.pmFrequenciesByCode && window.referenceMaps.pmFrequenciesByCode.has(selectedCode)) {
+                            const freq = window.referenceMaps.pmFrequenciesByCode.get(selectedCode);
+                            const intervalDaysInput = document.getElementById('pm-interval-days');
+                            if (intervalDaysInput) intervalDaysInput.value = freq.days;
+                        }
+                    }
+                    if (typeof updatePMPreview === 'function') updatePMPreview();
+                });
+            }
+            if (pmIntervalDays) pmIntervalDays.addEventListener('input', () => {
+                if (typeof updatePMPreview === 'function') updatePMPreview();
             });
-            document.getElementById('manufacturer-select').addEventListener('change', (e) => {
-                updateModelOptions(e.target.value);
+            if (lastMaintenance) lastMaintenance.addEventListener('change', () => {
+                if (typeof updatePMPreview === 'function') updatePMPreview();
             });
-            document.getElementById('pm-schedule-type').addEventListener('change', updatePMPreview);
-            document.getElementById('pm-interval-days').addEventListener('input', updatePMPreview);
-            document.getElementById('last-maintenance').addEventListener('change', updatePMPreview);
+            
+            // Device configuration selector
+            const configSelect = document.getElementById('device-config-select');
+            if (configSelect) {
+                configSelect.addEventListener('change', function() {
+                    applyDeviceConfiguration(this.value);
+                });
+            }
+            
+            // Same for edit modal
+            const editScheduleType = document.getElementById('pm-schedule-type-edit');
+            if (editScheduleType) {
+                editScheduleType.addEventListener('change', function() {
+                    const selectedCode = this.value;
+                    if (selectedCode === 'custom') {
+                        document.getElementById('pm-interval-days-edit').style.display = 'block';
+                    } else {
+                        document.getElementById('pm-interval-days-edit').style.display = 'none';
+                        if (selectedCode && referenceMaps.pmFrequenciesByCode.has(selectedCode)) {
+                            const freq = referenceMaps.pmFrequenciesByCode.get(selectedCode);
+                            document.getElementById('pm-interval-days-edit').value = freq.days;
+                        }
+                    }
+                });
+            }
         }
 
         function applyFilters() {
@@ -1692,15 +2240,59 @@
         }
 
         function exportToCSV() {
+            if (!filteredAssets || filteredAssets.length === 0) {
+                showToast('No assets to export', 'warning');
+                return;
+            }
+            
+            const formatDate = (date) => {
+                if (!date) return '';
+                try {
+                    return new Date(date).toISOString().split('T')[0];
+                } catch {
+                    return String(date);
+                }
+            };
+            
             const headers = ['Name', 'Category', 'Status', 'Serial Number', 'Manufacturer', 'Model', 'Customer', 'Location', 'Purchase Date', 'Purchase Cost', 'Last PM', 'Next PM'];
-            const rows = filteredAssets.map(a => [a.name, a.category, a.status, a.serial_number, a.manufacturer, a.model, a.customers?.name || '', a.locations?.name || '', a.purchase_date || '', a.purchase_cost || '', a.last_maintenance || '', a.next_maintenance || '']);
-            const csvContent = [headers.join(','), ...rows.map(row => row.map(cell => `"${cell}"`).join(','))].join('\n');
-            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const rows = filteredAssets.map(a => [
+                a.name || '',
+                a.category || '',
+                a.status || '',
+                a.serial_number || '',
+                a.manufacturer || '',
+                a.model || '',
+                a.customers?.name || a.customer_id || '',
+                a.locations?.name || a.location_id || '',
+                formatDate(a.purchase_date),
+                a.purchase_cost || '0',
+                formatDate(a.last_maintenance),
+                formatDate(a.next_maintenance)
+            ]);
+            
+            // Properly escape CSV values
+            const escapeCSV = (value) => {
+                const str = String(value);
+                if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                    return `"${str.replace(/"/g, '""')}"`;
+                }
+                return str;
+            };
+            
+            const csvContent = [
+                headers.join(','),
+                ...rows.map(row => row.map(escapeCSV).join(','))
+            ].join('\n');
+            
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
             a.download = `assets_export_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
             a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
             showToast(`Exported ${filteredAssets.length} assets`, 'success');
         }
 
@@ -1711,7 +2303,277 @@
         function closeBulkImportModal() {
             document.getElementById('bulk-import-modal').classList.remove('active');
             csvData = null;
-            document.getElementById('import-preview').style.display = 'none';
+            csvHeaders = [];
+            csvSampleRow = {};
+            columnMapping = {};
+            document.getElementById('import-step-1').style.display = 'block';
+            document.getElementById('import-step-2').style.display = 'none';
+            document.getElementById('import-step-3').style.display = 'none';
+        }
+
+        function closeAddColumnModal() {
+            document.getElementById('add-column-modal').classList.remove('active');
+            document.getElementById('add-column-form').reset();
+        }
+
+        function showAddColumnModal() {
+            document.getElementById('add-column-modal').classList.add('active');
+        }
+
+        async function handleAddColumn(event) {
+            event.preventDefault();
+            const columnName = document.getElementById('new-column-name').value.trim();
+            const columnType = document.getElementById('new-column-type').value;
+            const defaultValue = document.getElementById('new-column-default').value.trim();
+            const nullable = document.getElementById('new-column-nullable').checked;
+            const description = document.getElementById('new-column-description').value.trim();
+
+            if (!supabaseClient) {
+                showToast('Database not connected', 'error');
+                return;
+            }
+
+            try {
+                // Map JavaScript types to PostgreSQL types
+                const pgTypeMap = {
+                    'text': 'TEXT',
+                    'integer': 'INTEGER',
+                    'numeric': 'NUMERIC',
+                    'date': 'DATE',
+                    'timestamp': 'TIMESTAMP WITHOUT TIME ZONE',
+                    'boolean': 'BOOLEAN'
+                };
+
+                const pgType = pgTypeMap[columnType] || 'TEXT';
+                let sql = `ALTER TABLE public.assets ADD COLUMN IF NOT EXISTS ${columnName} ${pgType}`;
+                
+                if (!nullable) {
+                    sql += ' NOT NULL';
+                }
+                
+                if (defaultValue) {
+                    // Handle different default value types
+                    if (columnType === 'text') {
+                        sql += ` DEFAULT '${defaultValue.replace(/'/g, "''")}'`;
+                    } else if (columnType === 'boolean') {
+                        sql += ` DEFAULT ${defaultValue.toLowerCase() === 'true' ? 'TRUE' : 'FALSE'}`;
+                    } else {
+                        sql += ` DEFAULT ${defaultValue}`;
+                    }
+                }
+
+                // Execute SQL via Supabase RPC or direct SQL
+                const { error } = await supabaseClient.rpc('execute_sql', { sql_query: sql });
+                
+                if (error) {
+                    // If RPC doesn't exist, try direct SQL execution
+                    // Note: This requires proper permissions
+                    throw error;
+                }
+
+                showToast(`Column "${columnName}" added successfully!`, 'success');
+                closeAddColumnModal();
+                
+                // Reload database columns and refresh mapping
+                await loadDatabaseColumns();
+                if (csvHeaders.length > 0) {
+                    renderColumnMapping();
+                }
+            } catch (error) {
+                console.error('Error adding column:', error);
+                // Try alternative method using migration
+                showToast(`Adding column via migration...`, 'info');
+                
+                // Create a migration SQL
+                const migrationSQL = `
+                    ALTER TABLE public.assets 
+                    ADD COLUMN IF NOT EXISTS ${columnName} ${pgTypeMap[columnType] || 'TEXT'}
+                    ${!nullable ? ' NOT NULL' : ''}
+                    ${defaultValue ? ` DEFAULT ${columnType === 'text' ? `'${defaultValue.replace(/'/g, "''")}'` : defaultValue}` : ''};
+                `;
+                
+                // Store migration for user to run manually
+                const migrationBlob = new Blob([migrationSQL], { type: 'text/plain' });
+                const url = URL.createObjectURL(migrationBlob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `add_column_${columnName}.sql`;
+                a.click();
+                URL.revokeObjectURL(url);
+                
+                showToast(`Column migration SQL downloaded. Please run it in Supabase SQL Editor, then refresh.`, 'warning');
+            }
+        }
+
+        async function loadDatabaseColumns() {
+            if (!supabaseClient) return;
+            
+            try {
+                // Get column information from information_schema
+                const { data, error } = await supabaseClient.rpc('get_table_columns', { 
+                    table_name: 'assets',
+                    schema_name: 'public'
+                });
+
+                if (error) {
+                    // Fallback: Use the known columns
+                    databaseColumns = [
+                        { name: 'name', type: 'text', nullable: true },
+                        { name: 'category', type: 'text', nullable: true },
+                        { name: 'manufacturer', type: 'text', nullable: true },
+                        { name: 'model', type: 'text', nullable: true },
+                        { name: 'serial_number', type: 'text', nullable: true },
+                        { name: 'status', type: 'text', nullable: true },
+                        { name: 'location', type: 'text', nullable: true },
+                        { name: 'description', type: 'text', nullable: true },
+                        { name: 'purchase_date', type: 'timestamp', nullable: true },
+                        { name: 'purchase_cost', type: 'numeric', nullable: true },
+                        { name: 'warranty_expiry', type: 'timestamp', nullable: true },
+                        { name: 'customer_id', type: 'text', nullable: true },
+                        { name: 'location_id', type: 'text', nullable: true },
+                        { name: 'depreciation_method', type: 'text', nullable: true },
+                        { name: 'useful_life_years', type: 'integer', nullable: true },
+                        { name: 'salvage_value', type: 'numeric', nullable: true },
+                        { name: 'depreciation_start_date', type: 'date', nullable: true }
+                    ];
+                } else {
+                    databaseColumns = data || [];
+                }
+            } catch (error) {
+                console.error('Error loading database columns:', error);
+                // Use fallback columns
+                databaseColumns = [
+                    { name: 'name', type: 'text', nullable: true },
+                    { name: 'category', type: 'text', nullable: true },
+                    { name: 'manufacturer', type: 'text', nullable: true },
+                    { name: 'model', type: 'text', nullable: true },
+                    { name: 'serial_number', type: 'text', nullable: true },
+                    { name: 'status', type: 'text', nullable: true },
+                    { name: 'location', type: 'text', nullable: true },
+                    { name: 'description', type: 'text', nullable: true },
+                    { name: 'purchase_date', type: 'timestamp', nullable: true },
+                    { name: 'purchase_cost', type: 'numeric', nullable: true },
+                    { name: 'warranty_expiry', type: 'timestamp', nullable: true },
+                    { name: 'customer_id', type: 'text', nullable: true },
+                    { name: 'location_id', type: 'text', nullable: true }
+                ];
+            }
+        }
+
+        function renderColumnMapping() {
+            const tableBody = document.getElementById('column-mapping-table');
+            tableBody.innerHTML = '';
+
+            csvHeaders.forEach(csvHeader => {
+                const row = document.createElement('tr');
+                row.className = 'border-b border-gray-200';
+                
+                // CSV Column
+                const csvCell = document.createElement('td');
+                csvCell.className = 'p-2';
+                csvCell.textContent = csvHeader;
+                row.appendChild(csvCell);
+                
+                // Sample Value
+                const sampleCell = document.createElement('td');
+                sampleCell.className = 'p-2 text-gray-600 text-xs';
+                const sampleValue = csvSampleRow[csvHeader] || '';
+                sampleCell.textContent = sampleValue.length > 30 ? sampleValue.substring(0, 30) + '...' : sampleValue;
+                row.appendChild(sampleCell);
+                
+                // Map To Database Column
+                const mapCell = document.createElement('td');
+                mapCell.className = 'p-2';
+                const select = document.createElement('select');
+                select.className = 'form-input text-sm w-full';
+                select.id = `map-${csvHeader}`;
+                
+                // Add "Skip" option
+                const skipOption = document.createElement('option');
+                skipOption.value = '';
+                skipOption.textContent = '-- Skip Column --';
+                select.appendChild(skipOption);
+                
+                // Add database columns
+                databaseColumns.forEach(dbCol => {
+                    const option = document.createElement('option');
+                    option.value = dbCol.name;
+                    option.textContent = `${dbCol.name} (${dbCol.type})`;
+                    
+                    // Auto-map if names match (case-insensitive)
+                    if (csvHeader.toLowerCase() === dbCol.name.toLowerCase() || 
+                        csvHeader.toLowerCase().replace(/[^a-z0-9]/g, '_') === dbCol.name.toLowerCase()) {
+                        option.selected = true;
+                        columnMapping[csvHeader] = dbCol.name;
+                    }
+                    
+                    select.appendChild(option);
+                });
+                
+                select.addEventListener('change', (e) => {
+                    if (e.target.value) {
+                        columnMapping[csvHeader] = e.target.value;
+                    } else {
+                        delete columnMapping[csvHeader];
+                    }
+                });
+                
+                mapCell.appendChild(select);
+                row.appendChild(mapCell);
+                
+                // Data Type
+                const typeCell = document.createElement('td');
+                typeCell.className = 'p-2 text-xs text-gray-500';
+                const mappedCol = databaseColumns.find(c => c.name === columnMapping[csvHeader]);
+                typeCell.textContent = mappedCol ? mappedCol.type : 'N/A';
+                
+                // Update type when selection changes
+                select.addEventListener('change', () => {
+                    const selectedCol = databaseColumns.find(c => c.name === select.value);
+                    typeCell.textContent = selectedCol ? selectedCol.type : 'N/A';
+                });
+                
+                row.appendChild(typeCell);
+                tableBody.appendChild(row);
+            });
+        }
+
+        function backToStep1() {
+            document.getElementById('import-step-1').style.display = 'block';
+            document.getElementById('import-step-2').style.display = 'none';
+        }
+
+        function proceedToPreview() {
+            // Validate that at least name is mapped
+            if (!columnMapping || Object.keys(columnMapping).length === 0) {
+                showToast('Please map at least one column (name is required)', 'error');
+                return;
+            }
+            
+            // Check if name is mapped
+            const nameMapped = Object.values(columnMapping).includes('name');
+            if (!nameMapped) {
+                showToast('The "name" column must be mapped to import assets', 'error');
+                return;
+            }
+            
+            document.getElementById('import-step-2').style.display = 'none';
+            document.getElementById('import-step-3').style.display = 'block';
+            
+            // Show preview with mapped columns
+            const mappedCount = Object.keys(columnMapping).length;
+            const previewHtml = `
+                <p class="font-semibold mb-2">Found ${csvData.length} assets to import</p>
+                <p class="text-sm text-gray-600 mb-2">${mappedCount} column(s) mapped</p>
+                <div class="text-sm mb-2"><strong>Mapped columns:</strong> ${Object.entries(columnMapping).map(([csv, db]) => `${csv} → ${db}`).join(', ')}</div>
+                <div class="text-sm"><strong>First record:</strong> ${csvData[0] ? Object.entries(columnMapping).map(([csv, db]) => `${db}: ${csvData[0][csv] || 'N/A'}`).join(', ') : 'N/A'}</div>
+            `;
+            document.getElementById('preview-content').innerHTML = previewHtml;
+        }
+
+        function backToStep2() {
+            document.getElementById('import-step-2').style.display = 'block';
+            document.getElementById('import-step-3').style.display = 'none';
         }
 
         function downloadTemplate() {
@@ -1747,33 +2609,85 @@
 
         function handleFile(file) {
             const reader = new FileReader();
-            reader.onload = (e) => {
+            reader.onload = async (e) => {
                 const text = e.target.result;
-                parseCSV(text);
+                await parseCSV(text);
             };
             reader.readAsText(file);
         }
 
-        function parseCSV(text) {
-            const lines = text.split('\n');
-            const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+        async function parseCSV(text) {
+            // Handle CSV with proper quote handling
+            const lines = text.split('\n').filter(line => line.trim());
+            if (lines.length < 2) {
+                showToast('CSV file must have at least a header row and one data row', 'error');
+                return;
+            }
+            
+            // Parse header row (handle quoted values)
+            const parseCSVLine = (line) => {
+                const result = [];
+                let current = '';
+                let inQuotes = false;
+                for (let i = 0; i < line.length; i++) {
+                    const char = line[i];
+                    if (char === '"') {
+                        inQuotes = !inQuotes;
+                    } else if (char === ',' && !inQuotes) {
+                        result.push(current.trim());
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+                result.push(current.trim());
+                return result;
+            };
+            
+            const headers = parseCSVLine(lines[0]).map(h => h.trim().replace(/^"|"$/g, ''));
             const rows = lines.slice(1).filter(line => line.trim()).map(line => {
-                const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
+                const values = parseCSVLine(line).map(v => v.trim().replace(/^"|"$/g, ''));
                 const obj = {};
-                headers.forEach((header, i) => { obj[header] = values[i] || ''; });
+                headers.forEach((header, i) => { 
+                    obj[header] = values[i] || ''; 
+                });
                 return obj;
             });
+            
             csvData = rows;
-            document.getElementById('preview-content').innerHTML = `
-                <p class="font-semibold mb-2">Found ${rows.length} assets to import</p>
-                <div class="text-sm"><strong>First record:</strong> ${rows[0]?.name || 'N/A'}</div>
-            `;
-            document.getElementById('import-preview').style.display = 'block';
+            csvHeaders = headers;
+            csvSampleRow = rows[0] || {};
+            columnMapping = {};
+            
+            // Load database columns and show mapping interface
+            await loadDatabaseColumns();
+            
+            // Auto-map common column names
+            headers.forEach(header => {
+                const normalized = header.toLowerCase().replace(/[^a-z0-9]/g, '_');
+                const match = databaseColumns.find(col => 
+                    col.name.toLowerCase() === normalized ||
+                    col.name.toLowerCase() === header.toLowerCase()
+                );
+                if (match) {
+                    columnMapping[header] = match.name;
+                }
+            });
+            
+            // Show step 2 (column mapping)
+            document.getElementById('import-step-1').style.display = 'none';
+            document.getElementById('import-step-2').style.display = 'block';
+            renderColumnMapping();
         }
 
         function cancelImport() {
             csvData = null;
-            document.getElementById('import-preview').style.display = 'none';
+            csvHeaders = [];
+            csvSampleRow = {};
+            columnMapping = {};
+            document.getElementById('import-step-1').style.display = 'block';
+            document.getElementById('import-step-2').style.display = 'none';
+            document.getElementById('import-step-3').style.display = 'none';
         }
 
         async function confirmImport() {
@@ -1781,27 +2695,281 @@
                 showToast('No data to import', 'error');
                 return;
             }
+            if (!supabaseClient) {
+                showToast('Database not connected', 'error');
+                return;
+            }
+            
             try {
-                const { error } = await supabaseClient.from('assets').insert(csvData);
-                if (error) throw error;
-                showToast(`Successfully imported ${csvData.length} assets`, 'success');
+                showToast('Processing import...', 'info');
+                
+                // Load reference data for lookups
+                const { data: categories } = await supabaseClient.from('device_categories').select('id, name');
+                const { data: makes } = await supabaseClient.from('device_makes').select('id, name, category_id');
+                const { data: models } = await supabaseClient.from('device_models').select('id, name, make_id');
+                const { data: customers } = await supabaseClient.from('customers').select('id, name');
+                const { data: locations } = await supabaseClient.from('locations').select('id, name');
+                
+                const categoryMap = new Map(categories?.map(c => [c.name.toLowerCase(), c.id]) || []);
+                const makeMap = new Map(makes?.map(m => [`${m.category_id}_${m.name.toLowerCase()}`, m.id]) || []);
+                const modelMap = new Map(models?.map(m => [`${m.make_id}_${m.name.toLowerCase()}`, m.id]) || []);
+                const customerMap = new Map(customers?.map(c => [c.name.toLowerCase(), c.id]) || []);
+                const locationMap = new Map(locations?.map(l => [l.name.toLowerCase(), l.id]) || []);
+                
+                // Helper function to get value from row with multiple possible keys
+                const getValue = (row, ...keys) => {
+                    for (const key of keys) {
+                        if (row[key] !== undefined && row[key] !== null && row[key] !== '') {
+                            return row[key];
+                        }
+                    }
+                    return '';
+                };
+                
+                // Transform CSV data using column mapping
+                const transformedData = csvData.map((row, index) => {
+                    const asset = {};
+                    
+                    // Use column mapping to transform data
+                    Object.entries(columnMapping).forEach(([csvCol, dbCol]) => {
+                        const value = row[csvCol];
+                        if (value !== undefined && value !== null && value !== '') {
+                            // Handle different data types
+                            const dbColumn = databaseColumns.find(c => c.name === dbCol);
+                            if (dbColumn) {
+                                if (dbColumn.type === 'integer' || dbColumn.type === 'numeric') {
+                                    const numValue = parseFloat(value);
+                                    asset[dbCol] = isNaN(numValue) ? null : numValue;
+                                } else if (dbColumn.type === 'date' || dbColumn.type === 'timestamp') {
+                                    try {
+                                        const date = new Date(value);
+                                        if (!isNaN(date.getTime())) {
+                                            asset[dbCol] = dbColumn.type === 'date' 
+                                                ? date.toISOString().split('T')[0]
+                                                : date.toISOString();
+                                        }
+                                    } catch (e) {
+                                        // Invalid date, skip
+                                    }
+                                } else if (dbColumn.type === 'boolean') {
+                                    asset[dbCol] = value.toLowerCase() === 'true' || value === '1' || value.toLowerCase() === 'yes';
+                                } else {
+                                    asset[dbCol] = value;
+                                }
+                            } else {
+                                asset[dbCol] = value;
+                            }
+                        }
+                    });
+                    
+                    // Skip if no name
+                    if (!asset.name) {
+                        return null;
+                    }
+                    
+                    // Map customer name to ID if customer_id is mapped
+                    if (asset.customer_id && !asset.customer_id.match(/^[A-Z0-9-]+$/)) {
+                        // Looks like a name, try to map it
+                        const customerName = asset.customer_id.toLowerCase();
+                        asset.customer_id = customerMap.get(customerName) || asset.customer_id;
+                    }
+                    
+                    // Map location name to ID if location_id is mapped
+                    if (asset.location_id && !asset.location_id.match(/^[A-Z0-9-]+$/)) {
+                        // Looks like a name, try to map it
+                        const locationName = asset.location_id.toLowerCase();
+                        asset.location_id = locationMap.get(locationName) || asset.location_id;
+                    }
+                    
+                    return asset;
+                }).filter(asset => asset && asset.name); // Filter out null/empty rows
+                
+                if (transformedData.length === 0) {
+                    showToast('No valid data to import', 'error');
+                    return;
+                }
+                
+                // Insert in batches to avoid timeout
+                const batchSize = 50;
+                let imported = 0;
+                let errors = [];
+                
+                for (let i = 0; i < transformedData.length; i += batchSize) {
+                    const batch = transformedData.slice(i, i + batchSize);
+                    const { error } = await supabaseClient.from('assets').insert(batch);
+                    if (error) {
+                        errors.push(`Batch ${Math.floor(i/batchSize) + 1}: ${error.message}`);
+                    } else {
+                        imported += batch.length;
+                    }
+                }
+                
+                if (errors.length > 0) {
+                    showToast(`Import completed with errors: ${imported} imported, ${errors.length} batch(es) failed`, 'warning');
+                    console.error('Import errors:', errors);
+                } else {
+                    showToast(`Successfully imported ${imported} assets`, 'success');
+                }
+                
                 closeBulkImportModal();
                 await loadAssets();
             } catch (error) {
+                console.error('Import error:', error);
                 showToast(`Import failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Device Configuration Functions
+        let deviceConfigurations = [];
+
+        async function loadDeviceConfigurations() {
+            try {
+                // Initialize empty array if not already set
+                if (!deviceConfigurations) {
+                    deviceConfigurations = [];
+                }
+                
+                const { data, error } = await supabaseClient
+                    .from('device_configurations')
+                    .select(`
+                        *,
+                        device_categories:category_id(id, name),
+                        device_makes:make_id(id, name),
+                        device_models:model_id(id, name),
+                        pm_frequencies:pm_frequency_id(id, name, code, days)
+                    `)
+                    .eq('is_active', true)
+                    .order('name');
+
+                if (error) {
+                    console.warn('Error loading device configurations:', error);
+                    deviceConfigurations = [];
+                    return;
+                }
+                
+                deviceConfigurations = data || [];
+
+                const select = document.getElementById('device-config-select');
+                if (select) {
+                    select.innerHTML = '<option value="">Select a Device Configuration (or fill manually below)</option>' +
+                        deviceConfigurations.map(config => {
+                            const type = config.device_categories?.name || '';
+                            const make = config.device_makes?.name || '';
+                            const model = config.device_models?.name || '';
+                            const freq = config.pm_frequencies ? ` - ${config.pm_frequencies.name} PM` : '';
+                            return `<option value="${config.id}">${config.name || `${make} ${model} ${type}${freq}`}</option>`;
+                        }).join('');
+                }
+            } catch (error) {
+                console.error('Error loading device configurations:', error);
+                deviceConfigurations = [];
+            }
+        }
+
+        function applyDeviceConfiguration(configId) {
+            if (!configId || !deviceConfigurations || deviceConfigurations.length === 0) return;
+
+            const config = deviceConfigurations.find(c => c.id === configId);
+            if (!config) return;
+
+            // Apply to MMD form if available
+            if (window.MMDAssetFormManager) {
+                // Set MMD selections
+                const typeSelect = document.getElementById('equipment-type-select');
+                const makeSelect = document.getElementById('equipment-make-select');
+                const modelSelect = document.getElementById('equipment-model-select');
+                
+                if (config.category_id && typeSelect) {
+                    typeSelect.value = config.category_id;
+                    if (window.MMDAssetFormManager.updateMakeDropdown) {
+                        window.MMDAssetFormManager.updateMakeDropdown(config.category_id);
+                    }
+                    
+                    if (config.make_id && makeSelect) {
+                        setTimeout(() => {
+                            makeSelect.value = config.make_id;
+                            if (window.MMDAssetFormManager.updateModelDropdown) {
+                                window.MMDAssetFormManager.updateModelDropdown(config.make_id);
+                            }
+                            
+                            if (config.model_id && modelSelect) {
+                                setTimeout(() => {
+                                    modelSelect.value = config.model_id;
+                                    if (window.MMDAssetFormManager.updatePMFrequencyDisplay) {
+                                        window.MMDAssetFormManager.updatePMFrequencyDisplay(config.model_id);
+                                    }
+                                }, 200);
+                            }
+                        }, 100);
+                    }
+                }
+            }
+            
+            // Legacy support for old form fields (if they exist)
+            const categorySelect = document.getElementById('category-select');
+            const manufacturerSelect = document.getElementById('manufacturer-select');
+            const modelSelect = document.getElementById('model-select');
+            
+            if (config.category_id && categorySelect) {
+                categorySelect.value = config.category_id;
+                if (typeof updateManufacturerOptions === 'function') {
+                    updateManufacturerOptions(config.category_id);
+                }
+            }
+
+            if (config.make_id && manufacturerSelect) {
+                setTimeout(() => {
+                    manufacturerSelect.value = config.make_id;
+                    if (typeof updateModelOptions === 'function') {
+                        updateModelOptions(config.make_id);
+                    }
+                }, 100);
+            }
+
+            if (config.model_id && modelSelect) {
+                setTimeout(() => {
+                    modelSelect.value = config.model_id;
+                }, 200);
+            }
+
+            // Apply PM frequency if available
+            if (config.pm_frequency_id && config.pm_frequencies) {
+                const freq = config.pm_frequencies;
+                const pmSelect = document.getElementById('pm-schedule-type');
+                if (pmSelect) {
+                    // Find matching PM frequency code or use custom
+                    const matchingOption = Array.from(pmSelect.options).find(opt => {
+                        const optFreq = referenceMaps.pmFrequenciesByCode.get(opt.value);
+                        return optFreq && optFreq.days === freq.days;
+                    });
+
+                    if (matchingOption) {
+                        pmSelect.value = matchingOption.value;
+                    } else {
+                        pmSelect.value = 'custom';
+                        document.getElementById('custom-interval-wrapper').style.display = 'block';
+                        document.getElementById('pm-interval-days').value = freq.days;
+                    }
+                    updatePMPreview();
+                }
+            }
+
+            // Show success message
+            if (typeof showToast === 'function') {
+                showToast('Device configuration applied successfully', 'success');
             }
         }
 
         function switchTab(tab) {
             const button = document.querySelector(`.tab-button[onclick*="${tab}"]`);
-            if (button?.classList.contains('pointer-events-none')) {
-                showToast('Please save the asset before editing the PM schedule.', 'warning');
-                return;
-            }
+            if (!button) return; // Tab doesn't exist
             document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
             button.classList.add('active');
-            document.getElementById(`${tab}-tab`).classList.add('active');
+            const tabContent = document.getElementById(`${tab}-tab`);
+            if (tabContent) {
+                tabContent.classList.add('active');
+            }
         }
 
         function showLoading(show) {

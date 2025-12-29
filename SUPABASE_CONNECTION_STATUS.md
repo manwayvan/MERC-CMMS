@@ -161,3 +161,4 @@ Once MCP is connected, I can:
 
 If you encounter any issues, share the error messages and I can help troubleshoot!
 
+

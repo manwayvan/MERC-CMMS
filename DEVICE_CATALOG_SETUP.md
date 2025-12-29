@@ -114,3 +114,4 @@ If you continue to experience issues:
 3. Check that your Supabase project has the correct API keys
 4. Ensure you're using the correct Supabase project (check the URL in `config.js`)
 
+

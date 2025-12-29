@@ -58,3 +58,4 @@ CREATE TRIGGER update_work_order_tasks_updated_at
     FOR EACH ROW 
     EXECUTE FUNCTION update_updated_at_column();
 
+

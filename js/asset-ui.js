@@ -1,6 +1,6 @@
 // Asset UI - Rendering and UI Components
 
-let currentView = 'grid';
+let currentView = 'list';
 let currentFilters = {};
 let currentSearchTerm = '';
 

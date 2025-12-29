@@ -221,16 +221,20 @@
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
         .view-toggle-btn {
+            background: white;
             color: #64748b;
+            border: 1px solid #cbd5e1;
             font-weight: 500;
             cursor: pointer;
-            border: none;
-            background: transparent;
+            transition: all 0.2s ease;
+        }
+        .view-toggle-btn:hover {
+            background: #f8fafc;
         }
         .view-toggle-btn.active {
-            background: white;
-            color: #2563eb;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            background: #2563eb;
+            color: white;
+            border-color: #2563eb;
         }
         .list-view-table {
             width: 100%;
@@ -297,6 +301,7 @@
                     <a href="customers.html" class="text-white font-semibold border-b-2 border-blue-300 pb-1">Customers</a>
                     <a href="assets.html" class="text-blue-200 hover:text-white transition-colors">Assets</a>
                     <a href="work-orders.html" class="text-blue-200 hover:text-white transition-colors">Work Orders</a>
+                    <a href="inventory.html" class="text-blue-200 hover:text-white transition-colors">Inventory</a>
                     <a href="compliance.html" class="text-blue-200 hover:text-white transition-colors">Compliance</a>
                 </div>
                 <div class="flex items-center gap-3 flex-shrink-0">
@@ -336,6 +341,7 @@
             <a href="customers.html" class="block text-white font-semibold">Customers</a>
             <a href="assets.html" class="block text-blue-200 hover:text-white transition-colors">Assets</a>
             <a href="work-orders.html" class="block text-blue-200 hover:text-white transition-colors">Work Orders</a>
+            <a href="inventory.html" class="block text-blue-200 hover:text-white transition-colors">Inventory</a>
             <a href="compliance.html" class="block text-blue-200 hover:text-white transition-colors">Compliance</a>
         </div>
     </div>
@@ -430,14 +436,14 @@
                     <div class="flex items-center space-x-4">
                         <!-- View Toggle -->
                         <div class="flex bg-slate-100 rounded-lg p-1">
-                            <button id="grid-view-btn" class="view-toggle-btn active px-4 py-2 rounded-md transition-all" onclick="switchView('grid')" data-testid="grid-view-btn">
-                                <i class="fas fa-th-large mr-2"></i>
-                                <span class="hidden sm:inline">Grid</span>
-                            </button>
-                            <button id="list-view-btn" class="view-toggle-btn px-4 py-2 rounded-md transition-all" onclick="switchView('list')" data-testid="list-view-btn">
-                                <i class="fas fa-list mr-2"></i>
-                                <span class="hidden sm:inline">List</span>
-                            </button>
+                            <div class="flex gap-2 border border-slate-300 rounded-lg overflow-hidden">
+                                <button id="grid-view-btn" class="view-toggle-btn px-4 py-2 text-sm font-medium" onclick="switchView('grid')" data-testid="grid-view-btn">
+                                    <i class="fas fa-th-large mr-2"></i>Grid View
+                                </button>
+                                <button id="list-view-btn" class="view-toggle-btn active px-4 py-2 text-sm font-medium" onclick="switchView('list')" data-testid="list-view-btn">
+                                    <i class="fas fa-list mr-2"></i>List View
+                                </button>
+                            </div>
                         </div>
                         <!-- Add Customer Button -->
                         <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2" onclick="showAddCustomerModal()" data-testid="add-customer-btn">
@@ -447,11 +453,11 @@
                     </div>
                 </div>
                 <!-- Grid View -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="customer-grid">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 hidden" id="customer-grid">
                     <!-- Customer cards will be populated by JavaScript -->
                 </div>
                 <!-- List View -->
-                <div class="hidden" id="customer-list">
+                <div id="customer-list">
                     <!-- Customer list will be populated by JavaScript -->
                 </div>
             </div>
@@ -1079,7 +1085,7 @@
         }
 
         // Switch between grid and list view
-        let currentView = 'grid';
+        let currentView = 'list';
         
         function switchView(view) {
             currentView = view;
@@ -1102,6 +1108,27 @@
             
             // Re-render in current view
             filterAndRenderCustomers();
+        }
+        
+        // Initialize to list view on page load
+        function initializeCustomerView() {
+            const gridView = document.getElementById('customer-grid');
+            const listView = document.getElementById('customer-list');
+            const gridBtn = document.getElementById('grid-view-btn');
+            const listBtn = document.getElementById('list-view-btn');
+            
+            if (gridView) gridView.classList.add('hidden');
+            if (listView) listView.classList.remove('hidden');
+            if (gridBtn) gridBtn.classList.remove('active');
+            if (listBtn) listBtn.classList.add('active');
+            
+            currentView = 'list';
+        }
+        
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeCustomerView);
+        } else {
+            initializeCustomerView();
         }
         
         // Render customers in list view
