@@ -197,7 +197,6 @@ async function fetchWorkOrderTypes() {
 
     if (error) {
         console.error('Error loading work order types:', error);
-        showToast('Unable to load work order types from database.', 'warning');
         return null;
     }
 
@@ -900,7 +899,6 @@ const WorkOrderManager = {
         if (error) {
             console.error('Error loading assets:', error);
             AppState.assets = MockData.generateAssets();
-            showToast('Unable to load assets from database, using demo data.', 'warning');
             return;
         }
 
@@ -925,7 +923,6 @@ const WorkOrderManager = {
 
         if (error) {
             console.error('Error loading technicians:', error);
-            showToast('Unable to load technicians from database.', 'warning');
             AppState.technicians = [];
             return;
         }
@@ -974,7 +971,6 @@ const WorkOrderManager = {
         if (error) {
             console.error('Error loading work orders:', error);
             AppState.workOrders = MockData.generateWorkOrders();
-            showToast('Unable to load work orders from database, using demo data.', 'warning');
             return;
         }
 
@@ -1132,7 +1128,7 @@ const WorkOrderManager = {
         const descriptionInput = document.getElementById('workorder-description');
 
         const assetId = assetSelect?.value || '';
-        const type = typeSelect?.value || '';
+        const type = WorkOrderManager.toDatabaseWorkOrderType(typeSelect?.value || '');
         const priority = prioritySelect?.value || 'medium';
         const technicianId = technicianSelect?.value || null;
         const dueDate = dueDateInput?.value || '';
@@ -1303,7 +1299,14 @@ const WorkOrderManager = {
             { value: 'repair', label: 'Repair' }
         ];
 
-        const typeSet = new Map(baseTypes.map(type => [type.value, type]));
+        const dbTypes = supabaseClient ? await fetchWorkOrderTypes() : null;
+        const normalizedDbTypes = (dbTypes || []).map(type => ({
+            value: type.code,
+            label: type.label
+        }));
+        const primaryTypes = normalizedDbTypes.length ? normalizedDbTypes : baseTypes;
+
+        const typeSet = new Map(primaryTypes.map(type => [type.value, type]));
         AppState.workOrders.forEach(order => {
             if (order.type && !typeSet.has(order.type)) {
                 typeSet.set(order.type, { value: order.type, label: WorkOrderManager.formatWorkOrderType(order.type) });
@@ -1448,7 +1451,6 @@ const SettingsManager = {
             SettingsManager.renderTechnicians(data || []);
         } catch (error) {
             console.error('Error loading technicians:', error);
-            showToast('Unable to load technicians from database.', 'warning');
             SettingsManager.renderTechnicians([]);
         }
     },
