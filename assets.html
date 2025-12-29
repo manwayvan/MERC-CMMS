@@ -646,6 +646,10 @@
                 if (error) throw error;
                 canManageReferenceData = Boolean(data?.user);
             } catch (error) {
+                if (error?.name === 'AuthSessionMissingError' || /auth session missing/i.test(error?.message || '')) {
+                    canManageReferenceData = false;
+                    return;
+                }
                 console.warn('Unable to detect reference access.', error);
                 canManageReferenceData = false;
             }
@@ -666,7 +670,6 @@
                     buildReferenceMaps();
                     refreshReferenceLookups();
                     updateReferenceActionState();
-                    showToast('Reference data tables are not available. Using asset text fields instead.', 'warning');
                     return;
                 }
                 if (categoryError) throw categoryError;
