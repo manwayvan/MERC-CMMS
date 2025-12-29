@@ -962,6 +962,9 @@ const WorkOrderManager = {
             'completed_date',
             'estimated_hours',
             'actual_hours',
+            'cost',
+            'parts_used',
+            'completion_notes',
             'description'
         ];
 
@@ -1133,6 +1136,10 @@ const WorkOrderManager = {
         const technicianSelect = document.getElementById('workorder-technician-select');
         const dueDateInput = document.getElementById('workorder-due-date');
         const estimatedHoursInput = document.getElementById('workorder-estimated-hours');
+        const laborHoursInput = document.getElementById('workorder-labor-hours');
+        const partsCostInput = document.getElementById('workorder-parts-cost');
+        const laborNotesInput = document.getElementById('workorder-labor-notes');
+        const partsUsedInput = document.getElementById('workorder-parts-used');
         const descriptionInput = document.getElementById('workorder-description');
 
         const assetId = assetSelect?.value || '';
@@ -1141,12 +1148,29 @@ const WorkOrderManager = {
         const technicianId = technicianSelect?.value || null;
         const dueDate = dueDateInput?.value || '';
         const estimatedHours = estimatedHoursInput?.value ? Number(estimatedHoursInput.value) : null;
+        const laborHours = laborHoursInput?.value ? Number(laborHoursInput.value) : null;
+        const partsCost = partsCostInput?.value ? Number(partsCostInput.value) : null;
+        const laborNotes = laborNotesInput?.value?.trim() || '';
+        const partsUsed = partsUsedInput?.value?.trim() || '';
         const description = descriptionInput?.value?.trim() || '';
 
         if (!assetId || !type || !dueDate || !description) {
             showToast('Please complete asset, type, due date, and description.', 'warning');
             return;
         }
+
+        const detailLines = [];
+        if (laborHours !== null) detailLines.push(`Labor Hours: ${laborHours}`);
+        if (partsCost !== null) detailLines.push(`Parts Cost: $${partsCost.toFixed(2)}`);
+        if (laborNotes) detailLines.push(`Labor Notes: ${laborNotes}`);
+        if (partsUsed) detailLines.push(`Parts Used: ${partsUsed}`);
+
+        const detailedDescription = detailLines.length
+            ? `${description}\n\nLabor & Parts\n${detailLines.join('\n')}`
+            : description;
+        const partsUsedList = partsUsed
+            ? partsUsed.split(/[\n,]+/).map(part => part.trim()).filter(Boolean)
+            : [];
 
         if (!supabaseClient) {
             const newWorkOrder = {
@@ -1161,8 +1185,11 @@ const WorkOrderManager = {
                 created_date: new Date().toISOString(),
                 completed_date: null,
                 estimated_hours: estimatedHours,
-                actual_hours: null,
-                description
+                actual_hours: laborHours,
+                cost: partsCost,
+                parts_used: partsUsedList.length ? partsUsedList : null,
+                completion_notes: laborNotes || null,
+                description: detailedDescription
             };
             AppState.workOrders = [newWorkOrder, ...AppState.workOrders];
             WorkOrderManager.renderWorkOrders();
@@ -1180,8 +1207,24 @@ const WorkOrderManager = {
             status: 'open',
             due_date: new Date(dueDate).toISOString(),
             estimated_hours: estimatedHours,
-            description
+            actual_hours: laborHours,
+            cost: partsCost,
+            parts_used: partsUsedList.length ? partsUsedList : null,
+            completion_notes: laborNotes || null,
+            description: detailedDescription
         };
+
+        if (supabaseClient?.auth?.getSession) {
+            try {
+                const { data } = await supabaseClient.auth.getSession();
+                const userId = data?.session?.user?.id;
+                if (userId) {
+                    payload.created_by = userId;
+                }
+            } catch (error) {
+                console.warn('Unable to read auth session for work order creation.', error);
+            }
+        }
 
         if (WorkOrderManager.supportsAssignedTechnicianId) {
             payload.assigned_technician_id = technicianId || null;
@@ -1198,6 +1241,9 @@ const WorkOrderManager = {
             'completed_date',
             'estimated_hours',
             'actual_hours',
+            'cost',
+            'parts_used',
+            'completion_notes',
             'description'
         ];
 
@@ -1213,7 +1259,10 @@ const WorkOrderManager = {
 
         if (error) {
             console.error('Error creating work order:', error);
-            showToast('Failed to create work order.', 'error');
+            const message = /row-level security|permission|jwt/i.test(error.message || '')
+                ? 'Failed to create work order. Please sign in again.'
+                : 'Failed to create work order.';
+            showToast(message, 'error');
             return;
         }
 
@@ -1724,6 +1773,8 @@ async function initApp() {
     AppState.currentPage = normalizePageName(pageName);
     ChartManager.initializeCharts();
     setupMobileMenu();
+
+    await loadSupabaseClient();
 
     if (AppState.currentPage === 'assets') {
         assetManager.loadAssets();
