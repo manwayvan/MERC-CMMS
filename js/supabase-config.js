@@ -1,7 +1,7 @@
 // Supabase Configuration
 const SUPABASE_CONFIG = {
-    url: 'https://wxfyhuhsbhvtyfjzxakb.supabase.co',
-    key: 'sb_publishable_Hgl9W9c6KNUA2sL9i3PE4g_03X6m5Dh'
+    url: 'https://hmdemsbqiqlqcggwblvl.supabase.co',
+    key: 'sb_publishable_Z9oNxTGDCCz3EZnh6NqySg_QzF6amCN'
 };
 
 let supabaseClient = null;

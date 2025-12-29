@@ -1,8 +1,8 @@
 // Shared authentication utilities for static pages
 
 (function () {
-    const defaultUrl = 'https://wxfyhuhsbhvtyfjzxakb.supabase.co';
-    const defaultKey = 'sb_publishable_Hgl9W9c6KNUA2sL9i3PE4g_03X6m5Dh';
+    const defaultUrl = 'https://hmdemsbqiqlqcggwblvl.supabase.co';
+    const defaultKey = 'sb_publishable_Z9oNxTGDCCz3EZnh6NqySg_QzF6amCN';
 
     const supabaseUrl = typeof CONFIG !== 'undefined' && CONFIG.SUPABASE_URL
         ? CONFIG.SUPABASE_URL
