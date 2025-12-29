@@ -307,19 +307,6 @@
         </section>
     </main>
 
-    <script>
-        const mobileMenuButton = document.getElementById('mobile-menu-button');
-        const mobileMenu = document.getElementById('mobile-menu');
-
-        if (mobileMenuButton && mobileMenu) {
-            mobileMenuButton.addEventListener('click', () => {
-                const isExpanded = mobileMenuButton.getAttribute('aria-expanded') === 'true';
-                mobileMenuButton.setAttribute('aria-expanded', String(!isExpanded));
-                mobileMenu.classList.toggle('hidden');
-            });
-        }
-    </script>
-
     <!-- Footer -->
     <footer class="bg-slate-800 text-white py-8">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
