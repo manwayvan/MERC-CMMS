@@ -64,7 +64,7 @@
     <!-- Header -->
     <nav class="fixed top-0 left-0 right-0 z-50 medical-gradient shadow-lg">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex flex-wrap justify-between items-center gap-3 py-2 min-h-[4rem]">
+            <div class="flex flex-nowrap justify-between items-center gap-3 py-2 min-h-[4rem]">
                 <a href="index.html" class="flex items-center space-x-4 min-w-0">
                     <img src="/resources/Logo_without%20name.png" alt="MERC-CMMS logo" class="w-10 h-10 rounded-full bg-white object-contain p-1">
                     <div class="min-w-0">
@@ -203,7 +203,7 @@
                         <div class="flex-1 min-w-[300px]">
                             <div class="relative">
                                 <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-                                <input type="text" id="search-input" placeholder="Search by name, ID, serial number..." class="form-input pl-12">
+                                <input type="text" id="search-input" placeholder="Search by name or serial number..." class="form-input pl-12">
                             </div>
                         </div>
                         <select id="category-filter" class="form-input max-w-[200px]">
@@ -646,6 +646,10 @@
                 if (error) throw error;
                 canManageReferenceData = Boolean(data?.user);
             } catch (error) {
+                if (error?.name === 'AuthSessionMissingError' || /auth session missing/i.test(error?.message || '')) {
+                    canManageReferenceData = false;
+                    return;
+                }
                 console.warn('Unable to detect reference access.', error);
                 canManageReferenceData = false;
             }
@@ -659,6 +663,15 @@
                     supabaseClient.from('manufacturers').select('id, name, category_id').order('name'),
                     supabaseClient.from('models').select('id, name, manufacturer_id').order('name')
                 ]);
+                const missingTableErrors = [categoryError, manufacturerError, modelError].filter(error => error && /does not exist|not found|schema cache/i.test(error.message || ''));
+                if (missingTableErrors.length) {
+                    referenceData = { categories: [], manufacturers: [], models: [] };
+                    assetSchema.hasLookupIds = false;
+                    buildReferenceMaps();
+                    refreshReferenceLookups();
+                    updateReferenceActionState();
+                    return;
+                }
                 if (categoryError) throw categoryError;
                 if (manufacturerError) throw manufacturerError;
                 if (modelError) throw modelError;
@@ -1024,7 +1037,6 @@
                     <div class="flex justify-between items-start mb-4">
                         <div class="flex-1">
                             <h3 class="text-xl font-bold text-gray-900 mb-1">${escapeHtml(asset.name)}</h3>
-                            <p class="text-sm text-gray-500">${asset.id}</p>
                         </div>
                         <span class="text-xs px-3 py-1 rounded-full ${statusColors[asset.status] || 'bg-gray-100 text-gray-800'}">
                             ${asset.status}
@@ -1091,7 +1103,7 @@
         async function viewAsset(asset) {
             currentAsset = asset;
             document.getElementById('modal-title').textContent = asset.name;
-            document.getElementById('modal-subtitle').textContent = asset.id;
+            document.getElementById('modal-subtitle').textContent = asset.name || 'Asset details';
             const form = document.getElementById('asset-form');
             form.name.value = asset.name || '';
             const categoryId = asset.category_id || resolveCategoryIdByName(asset.category);
@@ -1411,7 +1423,7 @@
             if (searchInput) {
                 searchInput.addEventListener('input', debounce((e) => {
                     const term = e.target.value.toLowerCase();
-                    filteredAssets = allAssets.filter(a => a.name?.toLowerCase().includes(term) || a.id?.toLowerCase().includes(term) || a.serial_number?.toLowerCase().includes(term));
+                    filteredAssets = allAssets.filter(a => a.name?.toLowerCase().includes(term) || a.serial_number?.toLowerCase().includes(term));
                     renderAssets();
                 }, 300));
             }
@@ -1435,7 +1447,7 @@
             const status = document.getElementById('status-filter').value;
             const selectedCategoryName = category ? referenceMaps.categoriesById.get(category)?.name : '';
             filteredAssets = allAssets.filter(a => {
-                const matchesTerm = !term || a.name?.toLowerCase().includes(term) || a.id?.toLowerCase().includes(term);
+                const matchesTerm = !term || a.name?.toLowerCase().includes(term);
                 const matchesCat = !category || a.category_id === category || (selectedCategoryName && a.category === selectedCategoryName);
                 const matchesStat = !status || a.status === status;
                 return matchesTerm && matchesCat && matchesStat;
@@ -1444,8 +1456,8 @@
         }
 
         function exportToCSV() {
-            const headers = ['Asset ID', 'Name', 'Category', 'Status', 'Serial Number', 'Manufacturer', 'Model', 'Customer', 'Location', 'Purchase Date', 'Purchase Cost', 'Last PM', 'Next PM'];
-            const rows = filteredAssets.map(a => [a.id, a.name, a.category, a.status, a.serial_number, a.manufacturer, a.model, a.customers?.name || '', a.locations?.name || '', a.purchase_date || '', a.purchase_cost || '', a.last_maintenance || '', a.next_maintenance || '']);
+            const headers = ['Name', 'Category', 'Status', 'Serial Number', 'Manufacturer', 'Model', 'Customer', 'Location', 'Purchase Date', 'Purchase Cost', 'Last PM', 'Next PM'];
+            const rows = filteredAssets.map(a => [a.name, a.category, a.status, a.serial_number, a.manufacturer, a.model, a.customers?.name || '', a.locations?.name || '', a.purchase_date || '', a.purchase_cost || '', a.last_maintenance || '', a.next_maintenance || '']);
             const csvContent = [headers.join(','), ...rows.map(row => row.map(cell => `"${cell}"`).join(','))].join('\n');
             const blob = new Blob([csvContent], { type: 'text/csv' });
             const url = URL.createObjectURL(blob);
