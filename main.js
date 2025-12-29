@@ -7,7 +7,7 @@ const supabaseUrl = typeof CONFIG !== 'undefined' && CONFIG.SUPABASE_URL
     : 'https://wxfyhuhsbhvtyfjzxakb.supabase.co';
 const supabaseKey = typeof CONFIG !== 'undefined' && CONFIG.SUPABASE_ANON_KEY
     ? CONFIG.SUPABASE_ANON_KEY
-    : 'sb_publishable_Z9oNxTGDCCz3EZnh6NqySg_QzF6amCN';
+    : 'sb_publishable_Hgl9W9c6KNUA2sL9i3PE4g_03X6m5Dh';
 let supabaseClient = null;
 let supabaseInitPromise = null;
 
