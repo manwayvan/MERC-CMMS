@@ -11,6 +11,12 @@ const supabaseKey = typeof CONFIG !== 'undefined' && CONFIG.SUPABASE_ANON_KEY
 let supabaseClient = null;
 let supabaseInitPromise = null;
 
+const MOCK_DATA_ENABLED = typeof CONFIG !== 'undefined' && CONFIG.ENABLE_MOCK_DATA === true;
+
+function shouldUseMockData() {
+    return MOCK_DATA_ENABLED;
+}
+
 function loadSupabaseClient() {
     if (supabaseClient) {
         return Promise.resolve(supabaseClient);
@@ -861,15 +867,6 @@ const WorkOrderManager = {
         await WorkOrderManager.loadWorkOrderAssets();
     },
 
-    formatWorkOrderType: (type) => {
-        if (!type) return '';
-        return type
-            .replace(/_/g, ' ')
-            .split(' ')
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(' ');
-    },
-
     getTechnicianLabel: (technicianId) => {
         if (!technicianId) return 'Unassigned';
         const label = WorkOrderManager.technicianMap?.get(technicianId);
@@ -886,7 +883,12 @@ const WorkOrderManager = {
 
     loadAssets: async () => {
         if (!supabaseClient) {
-            AppState.assets = MockData.generateAssets();
+            if (shouldUseMockData()) {
+                AppState.assets = MockData.generateAssets();
+            } else {
+                AppState.assets = [];
+                showToast('Supabase is not connected. Assets could not be loaded.', 'warning');
+            }
             return;
         }
 
@@ -897,7 +899,12 @@ const WorkOrderManager = {
 
         if (error) {
             console.error('Error loading assets:', error);
-            AppState.assets = MockData.generateAssets();
+            if (shouldUseMockData()) {
+                AppState.assets = MockData.generateAssets();
+            } else {
+                AppState.assets = [];
+                showToast('Unable to load assets from Supabase. Check RLS/policies and credentials.', 'warning');
+            }
             return;
         }
 
@@ -906,11 +913,16 @@ const WorkOrderManager = {
 
     loadTechnicians: async () => {
         if (!supabaseClient) {
-            const mockTechnicians = ['John Smith', 'Sarah Johnson', 'Mike Davis', 'Lisa Wilson', 'Robert Brown'];
-            AppState.technicians = mockTechnicians.map((name, index) => ({
-                id: `demo-tech-${index + 1}`,
-                full_name: name
-            }));
+            if (shouldUseMockData()) {
+                const mockTechnicians = ['John Smith', 'Sarah Johnson', 'Mike Davis', 'Lisa Wilson', 'Robert Brown'];
+                AppState.technicians = mockTechnicians.map((name, index) => ({
+                    id: `demo-tech-${index + 1}`,
+                    full_name: name
+                }));
+            } else {
+                AppState.technicians = [];
+                showToast('Supabase is not connected. Technicians could not be loaded.', 'warning');
+            }
             return;
         }
 
@@ -923,6 +935,7 @@ const WorkOrderManager = {
         if (error) {
             console.error('Error loading technicians:', error);
             AppState.technicians = [];
+            showToast('Unable to load technicians from Supabase. Check RLS/policies and credentials.', 'warning');
             return;
         }
 
@@ -931,7 +944,12 @@ const WorkOrderManager = {
 
     loadWorkOrders: async () => {
         if (!supabaseClient) {
-            AppState.workOrders = MockData.generateWorkOrders();
+            if (shouldUseMockData()) {
+                AppState.workOrders = MockData.generateWorkOrders();
+            } else {
+                AppState.workOrders = [];
+                showToast('Supabase is not connected. Work orders could not be loaded.', 'warning');
+            }
             return;
         }
 
@@ -969,7 +987,12 @@ const WorkOrderManager = {
 
         if (error) {
             console.error('Error loading work orders:', error);
-            AppState.workOrders = MockData.generateWorkOrders();
+            if (shouldUseMockData()) {
+                AppState.workOrders = MockData.generateWorkOrders();
+            } else {
+                AppState.workOrders = [];
+                showToast('Unable to load work orders from Supabase. Check RLS/policies and credentials.', 'warning');
+            }
             return;
         }
 
@@ -1289,34 +1312,30 @@ const WorkOrderManager = {
     },
 
     loadWorkOrderTypes: async () => {
-        const baseTypes = [
-            { value: 'preventive_maintenance', label: 'Preventive Maintenance' },
-            { value: 'corrective_maintenance', label: 'Corrective Maintenance' },
-            { value: 'inspection', label: 'Inspection' },
-            { value: 'calibration', label: 'Calibration' },
-            { value: 'installation', label: 'Installation' },
-            { value: 'repair', label: 'Repair' }
-        ];
-
         const dbTypes = supabaseClient ? await fetchWorkOrderTypes() : null;
-        const normalizedDbTypes = (dbTypes || []).map(type => ({
-            value: type.code,
-            label: type.label
-        }));
-        const primaryTypes = normalizedDbTypes.length ? normalizedDbTypes : baseTypes;
+        const normalizedDbTypes = (dbTypes || [])
+            .filter(type => type?.code && type?.label)
+            .map(type => ({
+                value: type.code,
+                label: type.label
+            }));
 
-        const typeSet = new Map(primaryTypes.map(type => [type.value, type]));
-        AppState.workOrders.forEach(order => {
-            const normalizedType = WorkOrderManager.toDatabaseWorkOrderType(order.type);
-            if (normalizedType && !typeSet.has(normalizedType)) {
-                typeSet.set(normalizedType, {
-                    value: normalizedType,
-                    label: WorkOrderManager.formatWorkOrderType(normalizedType)
-                });
+        if (normalizedDbTypes.length) {
+            AppState.workOrderTypes = normalizedDbTypes;
+        } else if (shouldUseMockData()) {
+            AppState.workOrderTypes = (DefaultWorkOrderTypes || []).map(type => ({
+                value: type.code,
+                label: type.label
+            }));
+        } else {
+            AppState.workOrderTypes = [];
+            if (supabaseClient) {
+                showToast('No work order types found (or unable to read them). Check Supabase table + RLS.', 'warning');
+            } else {
+                showToast('Supabase is not connected. Work order types could not be loaded.', 'warning');
             }
-        });
+        }
 
-        AppState.workOrderTypes = Array.from(typeSet.values());
         WorkOrderManager.populateAssetOptions();
         WorkOrderManager.populateTechnicianOptions();
         WorkOrderManager.populateWorkOrderTypes();
@@ -1368,16 +1387,11 @@ const WorkOrderManager = {
     },
 
     formatWorkOrderType: (type) => {
-        if (!type) return 'General';
-        const labelMap = {
-            preventive_maintenance: 'Preventive Maintenance',
-            corrective_maintenance: 'Corrective Maintenance',
-            inspection: 'Inspection',
-            calibration: 'Calibration',
-            installation: 'Installation',
-            repair: 'Repair'
-        };
-        return labelMap[type] || type.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
+        const normalized = WorkOrderManager.toDatabaseWorkOrderType(type);
+        if (!normalized) return 'General';
+        const match = AppState.workOrderTypes.find(entry => entry.value === normalized);
+        if (match?.label) return match.label;
+        return normalized.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
     },
 
     formatDate: (dateValue) => {
@@ -1527,14 +1541,18 @@ const SettingsManager = {
         if (!supabaseClient) {
             showToast('Supabase is not connected. Unable to manage work order types.', 'warning');
             SettingsManager.setWorkOrderTypeFormEnabled(false);
-            SettingsManager.renderWorkOrderTypes(DefaultWorkOrderTypes.map(type => ({
-                id: type.code,
-                code: type.code,
-                label: type.label,
-                description: type.description,
-                is_active: true,
-                sort_order: type.sort_order
-            })));
+            if (shouldUseMockData()) {
+                SettingsManager.renderWorkOrderTypes(DefaultWorkOrderTypes.map(type => ({
+                    id: type.code,
+                    code: type.code,
+                    label: type.label,
+                    description: type.description,
+                    is_active: true,
+                    sort_order: type.sort_order
+                })));
+            } else {
+                SettingsManager.renderWorkOrderTypes([]);
+            }
             return;
         }
 
