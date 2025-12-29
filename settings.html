@@ -393,6 +393,9 @@
                         <button class="tab-button" data-tab="technicians" onclick="switchTab('technicians')">
                             <i class="fas fa-users"></i>Technicians
                         </button>
+                        <button class="tab-button" data-tab="work-order-types" onclick="switchTab('work-order-types')">
+                            <i class="fas fa-clipboard-list"></i>Work Order Types
+                        </button>
                         <button class="tab-button" data-tab="system" onclick="switchTab('system')">
                             <i class="fas fa-sliders-h"></i>System
                         </button>
@@ -831,7 +834,7 @@
                             <h3 class="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
                                 <i class="fas fa-users text-blue-600"></i>Technician Directory
                             </h3>
-                            <p class="text-sm text-slate-600 mb-4">Add technicians to assign work orders from live Supabase data.</p>
+                            <p class="text-sm text-slate-600 mb-4">Add technicians to assign work orders across the system.</p>
                             <form id="technician-form" class="space-y-4 bg-slate-50 rounded-lg p-4 border border-slate-200">
                                 <div>
                                     <label class="text-sm font-medium text-slate-700">Full Name</label>
@@ -874,14 +877,74 @@
                     <!-- System Tab -->
                     <div id="system" class="tab-content p-8" style="display: none;">
                         <h2 class="text-2xl font-bold text-slate-800 mb-6">System Configuration</h2>
+                        <div class="settings-section">
+                            <p class="text-sm text-slate-600">Manage catalogs, automations, and other system-level configurations.</p>
+                            <p class="text-sm text-slate-500 mt-2">Work order types have moved to their own tab for easier access.</p>
+                        </div>
+                        <div class="settings-section">
+                            <div class="flex items-center justify-between mb-4">
+                                <div>
+                                    <h3 class="text-lg font-semibold text-slate-800">Supabase Connectivity</h3>
+                                    <p class="text-sm text-slate-500">Review database connectivity for each module.</p>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="supabase-connectivity-grid">
+                                <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm font-semibold text-slate-800">Assets</p>
+                                        <p class="text-xs text-slate-500">Assets catalog and lifecycle data</p>
+                                    </div>
+                                    <span class="text-xs font-semibold uppercase tracking-wide" data-connection-status="assets">Checking...</span>
+                                </div>
+                                <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm font-semibold text-slate-800">Work Orders</p>
+                                        <p class="text-xs text-slate-500">Work order records and updates</p>
+                                    </div>
+                                    <span class="text-xs font-semibold uppercase tracking-wide" data-connection-status="work-orders">Checking...</span>
+                                </div>
+                                <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm font-semibold text-slate-800">Work Order Types</p>
+                                        <p class="text-xs text-slate-500">Type catalog and labels</p>
+                                    </div>
+                                    <span class="text-xs font-semibold uppercase tracking-wide" data-connection-status="work-order-types">Checking...</span>
+                                </div>
+                                <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm font-semibold text-slate-800">Technicians</p>
+                                        <p class="text-xs text-slate-500">Technician directory and assignment data</p>
+                                    </div>
+                                    <span class="text-xs font-semibold uppercase tracking-wide" data-connection-status="technicians">Checking...</span>
+                                </div>
+                                <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm font-semibold text-slate-800">Customers</p>
+                                        <p class="text-xs text-slate-500">Customer profiles and locations</p>
+                                    </div>
+                                    <span class="text-xs font-semibold uppercase tracking-wide" data-connection-status="customers">Checking...</span>
+                                </div>
+                                <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm font-semibold text-slate-800">Compliance</p>
+                                        <p class="text-xs text-slate-500">Compliance standards and records</p>
+                                    </div>
+                                    <span class="text-xs font-semibold uppercase tracking-wide" data-connection-status="compliance">Checking...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Work Order Types Tab -->
+                    <div id="work-order-types" class="tab-content p-8" style="display: none;">
+                        <h2 class="text-2xl font-bold text-slate-800 mb-6">Work Order Types</h2>
 
                         <div class="settings-section">
                             <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
                                 <div>
-                                    <h3 class="text-lg font-semibold text-slate-800">Work Order Types</h3>
+                                    <h3 class="text-lg font-semibold text-slate-800">Type Catalog</h3>
                                     <p class="text-sm text-slate-500">Manage the list of work order types used across the system.</p>
                                 </div>
-                                <span class="text-xs uppercase tracking-widest text-emerald-600 font-semibold">Supabase Ready</span>
                             </div>
 
                             <form id="work-order-type-form" class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 rounded-lg p-4 border border-slate-200">

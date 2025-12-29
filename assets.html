@@ -140,63 +140,35 @@
         <!-- Statistics Dashboard -->
         <section class="py-8 bg-white">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800">Asset Summary</h2>
+                        <p class="text-sm text-slate-500">Counts update automatically from the latest asset data.</p>
+                    </div>
+                    <div class="text-sm text-slate-500">Last refreshed: <span id="assets-last-refresh">--</span></div>
+                </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-            <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500 hover:shadow-lg transition-shadow">
-                <div class="flex justify-between items-center">
-                    <div>
-                        <p class="text-sm text-gray-600 font-medium">Total Assets</p>
-                        <p class="text-3xl font-bold text-gray-900 mt-1" id="stat-total">0</p>
+                    <div class="bg-slate-50 rounded-lg p-4 text-center">
+                        <div id="stat-total" class="text-2xl font-bold text-blue-600">0</div>
+                        <div class="text-slate-600 text-sm">Total Assets</div>
                     </div>
-                    <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-boxes text-blue-600 text-xl"></i>
+                    <div class="bg-slate-50 rounded-lg p-4 text-center">
+                        <div id="stat-active" class="text-2xl font-bold text-green-600">0</div>
+                        <div class="text-slate-600 text-sm">Active</div>
                     </div>
-                </div>
-            </div>
-            <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-green-500 hover:shadow-lg transition-shadow">
-                <div class="flex justify-between items-center">
-                    <div>
-                        <p class="text-sm text-gray-600 font-medium">Active</p>
-                        <p class="text-3xl font-bold text-green-600 mt-1" id="stat-active">0</p>
+                    <div class="bg-slate-50 rounded-lg p-4 text-center">
+                        <div id="stat-maintenance" class="text-2xl font-bold text-amber-600">0</div>
+                        <div class="text-slate-600 text-sm">In Maintenance</div>
                     </div>
-                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-check-circle text-green-600 text-xl"></i>
+                    <div class="bg-slate-50 rounded-lg p-4 text-center">
+                        <div id="stat-overdue" class="text-2xl font-bold text-red-600">0</div>
+                        <div class="text-slate-600 text-sm">Overdue PM</div>
                     </div>
-                </div>
-            </div>
-            <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-yellow-500 hover:shadow-lg transition-shadow">
-                <div class="flex justify-between items-center">
-                    <div>
-                        <p class="text-sm text-gray-600 font-medium">Maintenance</p>
-                        <p class="text-3xl font-bold text-yellow-600 mt-1" id="stat-maintenance">0</p>
-                    </div>
-                    <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-wrench text-yellow-600 text-xl"></i>
+                    <div class="bg-slate-50 rounded-lg p-4 text-center">
+                        <div id="stat-compliant" class="text-2xl font-bold text-purple-600">0%</div>
+                        <div class="text-slate-600 text-sm">Compliant</div>
                     </div>
                 </div>
-            </div>
-            <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-red-500 hover:shadow-lg transition-shadow">
-                <div class="flex justify-between items-center">
-                    <div>
-                        <p class="text-sm text-gray-600 font-medium">Overdue PM</p>
-                        <p class="text-3xl font-bold text-red-600 mt-1" id="stat-overdue">0</p>
-                    </div>
-                    <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
-                    </div>
-                </div>
-            </div>
-            <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-purple-500 hover:shadow-lg transition-shadow">
-                <div class="flex justify-between items-center">
-                    <div>
-                        <p class="text-sm text-gray-600 font-medium">Compliant</p>
-                        <p class="text-3xl font-bold text-purple-600 mt-1" id="stat-compliant">0%</p>
-                    </div>
-                    <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-shield-alt text-purple-600 text-xl"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
             </div>
         </section>
 
@@ -359,13 +331,13 @@
                         </div>
                         <div>
                             <div class="flex items-center justify-between mb-2">
-                                <label class="block text-sm font-semibold text-gray-700">Manufacturer *</label>
-                                <button type="button" id="add-manufacturer-btn" class="text-sm font-semibold text-blue-600 hover:text-blue-700" onclick="addNewLookup('manufacturers', 'Manufacturer')">
+                                <label class="block text-sm font-semibold text-gray-700">Make *</label>
+                                <button type="button" id="add-manufacturer-btn" class="text-sm font-semibold text-blue-600 hover:text-blue-700" onclick="addNewLookup('manufacturers', 'Make')">
                                     <i class="fas fa-plus mr-1"></i>Add
                                 </button>
                             </div>
                             <select name="manufacturer_id" id="manufacturer-select" required class="form-input" disabled>
-                                <option value="">Select Manufacturer</option>
+                                <option value="">Select Make</option>
                             </select>
                         </div>
                         <div>
@@ -586,7 +558,7 @@
         let locations = [];
         let currentAsset = null;
         let csvData = null;
-        let assetSchema = { hasCustomerId: true, hasLookupIds: true };
+        let assetSchema = { hasCustomerId: true, hasLookupIds: true, makeField: 'manufacturer_id' };
         let referenceData = { categories: [], manufacturers: [], models: [] };
         let referenceMaps = {
             categoriesById: new Map(),
@@ -618,7 +590,7 @@
         });
 
         async function detectAssetSchema() {
-            assetSchema = { hasCustomerId: true, hasLookupIds: true };
+            assetSchema = { hasCustomerId: true, hasLookupIds: true, makeField: 'manufacturer_id' };
             try {
                 const { error } = await supabaseClient
                     .from('assets')
@@ -627,11 +599,33 @@
                 if (error && /customer_id|column/i.test(error.message)) {
                     assetSchema.hasCustomerId = false;
                 }
-                const { error: lookupError } = await supabaseClient
+                const { error: categoryError } = await supabaseClient
                     .from('assets')
-                    .select('category_id, manufacturer_id, model_id')
+                    .select('category_id')
                     .limit(1);
-                if (lookupError && /category_id|manufacturer_id|model_id|column/i.test(lookupError.message)) {
+                if (categoryError && /category_id|column/i.test(categoryError.message)) {
+                    assetSchema.hasLookupIds = false;
+                }
+                const { error: makeError } = await supabaseClient
+                    .from('assets')
+                    .select('manufacturer_id')
+                    .limit(1);
+                if (makeError && /manufacturer_id|column/i.test(makeError.message)) {
+                    const { error: altMakeError } = await supabaseClient
+                        .from('assets')
+                        .select('make_id')
+                        .limit(1);
+                    if (altMakeError && /make_id|column/i.test(altMakeError.message)) {
+                        assetSchema.hasLookupIds = false;
+                    } else {
+                        assetSchema.makeField = 'make_id';
+                    }
+                }
+                const { error: modelError } = await supabaseClient
+                    .from('assets')
+                    .select('model_id')
+                    .limit(1);
+                if (modelError && /model_id|column/i.test(modelError.message)) {
                     assetSchema.hasLookupIds = false;
                 }
             } catch (error) {
@@ -664,9 +658,9 @@
             try {
                 await detectReferenceAccess();
                 const [{ data: categories, error: categoryError }, { data: manufacturers, error: manufacturerError }, { data: models, error: modelError }] = await Promise.all([
-                    supabaseClient.from('asset_categories').select('id, name').order('name'),
-                    supabaseClient.from('manufacturers').select('id, name, category_id').order('name'),
-                    supabaseClient.from('models').select('id, name, manufacturer_id').order('name')
+                    supabaseClient.from('device_categories').select('id, name').order('name'),
+                    supabaseClient.from('device_makes').select('id, name, category_id').order('name'),
+                    supabaseClient.from('device_models').select('id, name, make_id').order('name')
                 ]);
                 const missingTableErrors = [categoryError, manufacturerError, modelError].filter(error => error && /does not exist|not found|schema cache/i.test(error.message || ''));
                 if (missingTableErrors.length) {
@@ -728,7 +722,8 @@
                         locationName = location?.name;
                     }
                     const categoryName = referenceMaps.categoriesById.get(asset.category_id)?.name || asset.category;
-                    const manufacturerName = referenceMaps.manufacturersById.get(asset.manufacturer_id)?.name || asset.manufacturer;
+                    const manufacturerKey = asset.manufacturer_id || asset.make_id;
+                    const manufacturerName = referenceMaps.manufacturersById.get(manufacturerKey)?.name || asset.manufacturer;
                     const modelName = referenceMaps.modelsById.get(asset.model_id)?.name || asset.model;
                     return {
                         ...asset,
@@ -744,6 +739,10 @@
                 filteredAssets = [...allAssets];
                 updateStatistics();
                 renderAssets();
+                const lastRefresh = document.getElementById('assets-last-refresh');
+                if (lastRefresh) {
+                    lastRefresh.textContent = new Date().toLocaleString();
+                }
                 showToast(`Loaded ${allAssets.length} assets successfully`, 'success');
             } catch (error) {
                 console.error('Error loading assets:', error);
@@ -851,7 +850,7 @@
 
         function updateManufacturerOptions(categoryId, selectedManufacturerId = '') {
             const select = document.getElementById('manufacturer-select');
-            select.innerHTML = '<option value="">Select Manufacturer</option>';
+            select.innerHTML = '<option value="">Select Make</option>';
             if (!categoryId) {
                 select.disabled = true;
                 updateModelOptions('', '');
@@ -878,7 +877,7 @@
                 select.disabled = true;
                 return;
             }
-            const models = referenceData.models.filter(model => model.manufacturer_id === manufacturerId);
+            const models = referenceData.models.filter(model => model.make_id === manufacturerId);
             models.forEach(model => {
                 const option = document.createElement('option');
                 option.value = model.id;
@@ -953,13 +952,13 @@
                 const payload = { name: value };
                 let table = '';
                 if (lookupContext.type === 'categories') {
-                    table = 'asset_categories';
+                    table = 'device_categories';
                 } else if (lookupContext.type === 'manufacturers') {
-                    table = 'manufacturers';
+                    table = 'device_makes';
                     payload.category_id = lookupContext.parentId;
                 } else if (lookupContext.type === 'models') {
-                    table = 'models';
-                    payload.manufacturer_id = lookupContext.parentId;
+                    table = 'device_models';
+                    payload.make_id = lookupContext.parentId;
                 }
                 if (!table) {
                     showToast('Unknown reference type.', 'error');
@@ -968,7 +967,7 @@
                 const { data, error } = await supabaseClient
                     .from(table)
                     .insert([payload])
-                    .select('id, name, category_id, manufacturer_id')
+                    .select('id, name, category_id, make_id')
                     .single();
                 if (error) throw error;
                 if (lookupContext.type === 'categories') {
@@ -986,7 +985,7 @@
                     updateManufacturerOptions(categoryId, data.id);
                     document.getElementById('manufacturer-select').value = data.id;
                 } else if (lookupContext.type === 'models') {
-                    referenceData.models.push({ id: data.id, name: data.name, manufacturer_id: data.manufacturer_id });
+                    referenceData.models.push({ id: data.id, name: data.name, make_id: data.make_id });
                     referenceData.models.sort((a, b) => a.name.localeCompare(b.name));
                     buildReferenceMaps();
                     const manufacturerId = lookupContext.parentId;
@@ -1112,7 +1111,7 @@
             const form = document.getElementById('asset-form');
             form.name.value = asset.name || '';
             const categoryId = asset.category_id || resolveCategoryIdByName(asset.category);
-            const manufacturerId = asset.manufacturer_id || resolveManufacturerIdByName(asset.manufacturer, categoryId);
+            const manufacturerId = asset.manufacturer_id || asset.make_id || resolveManufacturerIdByName(asset.manufacturer, categoryId);
             const modelId = asset.model_id || resolveModelIdByName(asset.model, manufacturerId);
             form.category_id.value = categoryId || '';
             updateManufacturerOptions(categoryId, manufacturerId);
@@ -1159,7 +1158,7 @@
             if (!name) return '';
             return referenceData.models.find(model => {
                 const matchesName = model.name.toLowerCase() === name.toLowerCase();
-                const matchesManufacturer = !manufacturerId || model.manufacturer_id === manufacturerId;
+                const matchesManufacturer = !manufacturerId || model.make_id === manufacturerId;
                 return matchesName && matchesManufacturer;
             })?.id || '';
         }
@@ -1287,14 +1286,8 @@
         document.getElementById('asset-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new FormData(e.target);
-            const categoryId = formData.get('category_id');
-            const manufacturerId = formData.get('manufacturer_id');
-            const modelId = formData.get('model_id');
             const assetData = {
                 name: formData.get('name'),
-                category_id: formData.get('category_id'),
-                manufacturer_id: formData.get('manufacturer_id'),
-                model_id: formData.get('model_id'),
                 serial_number: formData.get('serial_number'),
                 status: formData.get('status'),
                 purchase_date: formData.get('purchase_date') || null,
@@ -1302,6 +1295,18 @@
                 warranty_expiry: formData.get('warranty_expiry') || null,
                 description: formData.get('description') || null
             };
+            const categoryId = formData.get('category_id');
+            const manufacturerId = formData.get('manufacturer_id');
+            const modelId = formData.get('model_id');
+            if (assetSchema.hasLookupIds) {
+                assetData.category_id = categoryId;
+                assetData[assetSchema.makeField] = manufacturerId;
+                assetData.model_id = modelId;
+            } else {
+                assetData.category = getSelectOptionText('category-select');
+                assetData.manufacturer = getSelectOptionText('manufacturer-select');
+                assetData.model = getSelectOptionText('model-select');
+            }
             
             // Only include location_id if it has a value
             const locationId = formData.get('location_id');
