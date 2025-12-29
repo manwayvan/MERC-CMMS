@@ -1443,6 +1443,7 @@ const WorkOrderManager = {
         const typeSelect = document.getElementById('workorder-type-select');
         const prioritySelect = document.getElementById('workorder-priority-select');
         const technicianSelect = document.getElementById('workorder-technician-select');
+        const checklistSelect = document.getElementById('workorder-checklist-select');
         const dueDateInput = document.getElementById('workorder-due-date');
         const estimatedHoursInput = document.getElementById('workorder-estimated-hours');
         const descriptionInput = document.getElementById('workorder-description');
@@ -1451,6 +1452,7 @@ const WorkOrderManager = {
         const type = WorkOrderManager.toDatabaseWorkOrderType(typeSelect?.value || '');
         const priority = prioritySelect?.value || 'medium';
         const technicianId = technicianSelect?.value || null;
+        const checklistId = checklistSelect?.value || null;
         const dueDate = dueDateInput?.value || '';
         const estimatedHours = estimatedHoursInput?.value ? Number(estimatedHoursInput.value) : null;
         const description = descriptionInput?.value?.trim() || '';
@@ -1589,6 +1591,25 @@ const WorkOrderManager = {
             technician: technicianName || 'Unassigned'
         };
         AppState.workOrders = [newOrder, ...AppState.workOrders];
+        // Link checklist if selected
+        if (checklistId && data && data.id) {
+            try {
+                const { error: linkError } = await supabaseClient
+                    .from('work_order_checklists')
+                    .insert({
+                        work_order_id: data.id,
+                        checklist_id: checklistId
+                    });
+                
+                if (linkError) {
+                    console.warn('Failed to link checklist to work order:', linkError);
+                    // Don't fail the whole operation if checklist linking fails
+                }
+            } catch (err) {
+                console.warn('Error linking checklist:', err);
+            }
+        }
+
         WorkOrderManager.renderWorkOrders();
         WorkOrderManager.renderRecentWorkOrders();
         WorkOrderManager.updateSummaryCounts();
@@ -1914,6 +1935,7 @@ const WorkOrderManager = {
         WorkOrderManager.populateAssetOptions();
         WorkOrderManager.populateTechnicianOptions();
         WorkOrderManager.populateWorkOrderTypes();
+        await WorkOrderManager.populateChecklistOptions();
     },
 
     populateAssetOptions: () => {
@@ -1968,6 +1990,39 @@ const WorkOrderManager = {
             option.textContent = type.label;
             typeSelect.appendChild(option);
         });
+    },
+
+    populateChecklistOptions: async () => {
+        const checklistSelect = document.getElementById('workorder-checklist-select');
+        if (!checklistSelect) return;
+
+        checklistSelect.innerHTML = '<option value="">No checklist</option>';
+
+        if (!supabaseClient) return;
+
+        try {
+            const { data: checklists, error } = await supabaseClient
+                .from('checklists')
+                .select('id, name, category')
+                .eq('is_active', true)
+                .order('name', { ascending: true });
+
+            if (error) throw error;
+
+            if (checklists && checklists.length > 0) {
+                checklists.forEach(checklist => {
+                    const option = document.createElement('option');
+                    option.value = checklist.id;
+                    const displayName = checklist.category 
+                        ? `${checklist.name} [${checklist.category}]`
+                        : checklist.name;
+                    option.textContent = displayName;
+                    checklistSelect.appendChild(option);
+                });
+            }
+        } catch (error) {
+            console.error('Error loading checklists:', error);
+        }
     },
 
     formatWorkOrderType: (type) => {
@@ -2551,6 +2606,385 @@ function normalizePageName(pageName) {
     return pageName;
 }
 
+// Checklist Management System
+const ChecklistManager = {
+    currentChecklistId: null,
+    currentItems: [],
+    currentTab: 'edit',
+
+    init: async () => {
+        ChecklistManager.bindEvents();
+        await ChecklistManager.loadChecklists();
+    },
+
+    bindEvents: () => {
+        const form = document.getElementById('checklist-form');
+        if (form) {
+            form.addEventListener('submit', ChecklistManager.handleSubmit);
+        }
+    },
+
+    switchTab: (tab) => {
+        ChecklistManager.currentTab = tab;
+        const editTab = document.getElementById('checklist-edit-tab');
+        const previewTab = document.getElementById('checklist-preview-tab');
+        
+        if (tab === 'edit') {
+            if (editTab) {
+                editTab.classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
+                editTab.classList.remove('text-slate-500');
+            }
+            if (previewTab) {
+                previewTab.classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
+                previewTab.classList.add('text-slate-500');
+            }
+            const form = document.getElementById('checklist-form');
+            if (form) form.style.display = 'block';
+        } else {
+            if (previewTab) {
+                previewTab.classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
+                previewTab.classList.remove('text-slate-500');
+            }
+            if (editTab) {
+                editTab.classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
+                editTab.classList.add('text-slate-500');
+            }
+            const form = document.getElementById('checklist-form');
+            if (form) form.style.display = 'none';
+            ChecklistManager.renderPreview();
+        }
+    },
+
+    showCreateModal: () => {
+        ChecklistManager.currentChecklistId = null;
+        ChecklistManager.currentItems = [];
+        const title = document.getElementById('checklist-modal-title');
+        if (title) title.textContent = 'Create Checklist';
+        const form = document.getElementById('checklist-form');
+        if (form) form.reset();
+        const idInput = document.getElementById('checklist-id');
+        if (idInput) idInput.value = '';
+        const container = document.getElementById('checklist-items-container');
+        if (container) container.innerHTML = '';
+        ChecklistManager.switchTab('edit');
+        openModal('checklist-modal');
+    },
+
+    showEditModal: async (checklistId) => {
+        ChecklistManager.currentChecklistId = checklistId;
+        const title = document.getElementById('checklist-modal-title');
+        if (title) title.textContent = 'Edit Checklist';
+        
+        if (!supabaseClient) {
+            showToast('Supabase is not connected.', 'error');
+            return;
+        }
+
+        const { data: checklist, error } = await supabaseClient
+            .from('checklists')
+            .select('*')
+            .eq('id', checklistId)
+            .single();
+
+        if (error || !checklist) {
+            showToast('Failed to load checklist.', 'error');
+            return;
+        }
+
+        const idInput = document.getElementById('checklist-id');
+        if (idInput) idInput.value = checklist.id;
+        const nameInput = document.getElementById('checklist-name');
+        if (nameInput) nameInput.value = checklist.name || '';
+        const descInput = document.getElementById('checklist-description');
+        if (descInput) descInput.value = checklist.description || '';
+        const catInput = document.getElementById('checklist-category');
+        if (catInput) catInput.value = checklist.category || '';
+
+        const { data: items } = await supabaseClient
+            .from('checklist_items')
+            .select('*')
+            .eq('checklist_id', checklistId)
+            .order('sort_order', { ascending: true });
+
+        ChecklistManager.currentItems = items || [];
+        ChecklistManager.renderItems();
+        ChecklistManager.switchTab('edit');
+        openModal('checklist-modal');
+    },
+
+    hideModal: () => {
+        closeModal('checklist-modal');
+        ChecklistManager.currentChecklistId = null;
+        ChecklistManager.currentItems = [];
+    },
+
+    addChecklistItem: () => {
+        const itemId = 'item-' + Date.now();
+        ChecklistManager.currentItems.push({
+            id: itemId,
+            task_name: '',
+            task_description: '',
+            task_type: 'checkbox',
+            sort_order: ChecklistManager.currentItems.length,
+            is_required: false
+        });
+        ChecklistManager.renderItems();
+    },
+
+    removeChecklistItem: (index) => {
+        ChecklistManager.currentItems.splice(index, 1);
+        ChecklistManager.renderItems();
+    },
+
+    updateChecklistItem: (index, field, value) => {
+        if (ChecklistManager.currentItems[index]) {
+            ChecklistManager.currentItems[index][field] = value;
+        }
+    },
+
+    renderItems: () => {
+        const container = document.getElementById('checklist-items-container');
+        if (!container) return;
+
+        if (ChecklistManager.currentItems.length === 0) {
+            container.innerHTML = '<p class="text-sm text-slate-500 text-center py-4">No items yet. Click "+ Task" to add items.</p>';
+            return;
+        }
+
+        container.innerHTML = ChecklistManager.currentItems.map((item, index) => `
+            <div class="bg-slate-50 rounded-lg p-4 border border-slate-200" data-index="${index}">
+                <div class="flex items-start gap-3">
+                    <div class="flex items-center gap-2 mt-2">
+                        <i class="fas fa-grip-vertical text-slate-400 cursor-move"></i>
+                    </div>
+                    <div class="flex-1 space-y-3">
+                        <div>
+                            <input type="text" 
+                                   value="${(item.task_name || '').replace(/"/g, '&quot;')}" 
+                                   placeholder="Task name"
+                                   onchange="ChecklistManager.updateChecklistItem(${index}, 'task_name', this.value)"
+                                   class="form-input">
+                        </div>
+                        <div>
+                            <textarea 
+                                placeholder="Task description (optional)"
+                                onchange="ChecklistManager.updateChecklistItem(${index}, 'task_description', this.value)"
+                                class="form-input" rows="2">${(item.task_description || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <div class="flex-1">
+                                <label class="text-xs text-slate-600 mb-1 block">Task Type</label>
+                                <select onchange="ChecklistManager.updateChecklistItem(${index}, 'task_type', this.value)" class="form-input text-sm">
+                                    <option value="checkbox" ${item.task_type === 'checkbox' ? 'selected' : ''}>Checkbox</option>
+                                    <option value="text" ${item.task_type === 'text' ? 'selected' : ''}>Text Field</option>
+                                    <option value="number" ${item.task_type === 'number' ? 'selected' : ''}>Number Field</option>
+                                    <option value="inspection" ${item.task_type === 'inspection' ? 'selected' : ''}>Inspection Check</option>
+                                    <option value="multiple_choice" ${item.task_type === 'multiple_choice' ? 'selected' : ''}>Multiple Choices</option>
+                                    <option value="meter_reading" ${item.task_type === 'meter_reading' ? 'selected' : ''}>Meter Reading</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center gap-2 pt-6">
+                                <input type="checkbox" 
+                                       ${item.is_required ? 'checked' : ''}
+                                       onchange="ChecklistManager.updateChecklistItem(${index}, 'is_required', this.checked)"
+                                       class="rounded border-slate-300">
+                                <label class="text-xs text-slate-600">Required</label>
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="ChecklistManager.removeChecklistItem(${index})" class="text-red-500 hover:text-red-700 mt-2">
+                        <i class="fas fa-minus-circle"></i>
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    },
+
+    renderPreview: () => {
+        const container = document.getElementById('checklist-items-container');
+        if (!container) return;
+        container.innerHTML = '<p class="text-sm text-slate-500 text-center py-4">Preview functionality coming soon</p>';
+    },
+
+    handleSubmit: async (event) => {
+        event.preventDefault();
+        
+        const nameInput = document.getElementById('checklist-name');
+        if (!nameInput) return;
+        const name = nameInput.value.trim();
+        if (!name) {
+            const errorEl = document.getElementById('checklist-name-error');
+            if (errorEl) errorEl.classList.remove('hidden');
+            return;
+        }
+        const errorEl = document.getElementById('checklist-name-error');
+        if (errorEl) errorEl.classList.add('hidden');
+
+        if (!supabaseClient) {
+            showToast('Supabase is not connected.', 'error');
+            return;
+        }
+
+        if (ChecklistManager.currentItems.length === 0) {
+            showToast('Please add at least one checklist item.', 'warning');
+            return;
+        }
+
+        try {
+            const descInput = document.getElementById('checklist-description');
+            const catInput = document.getElementById('checklist-category');
+            const checklistPayload = {
+                name,
+                description: descInput?.value.trim() || null,
+                category: catInput?.value || null,
+                is_active: true
+            };
+
+            let checklistId = ChecklistManager.currentChecklistId;
+
+            if (checklistId) {
+                const { error } = await supabaseClient
+                    .from('checklists')
+                    .update(checklistPayload)
+                    .eq('id', checklistId);
+                if (error) throw error;
+            } else {
+                const { data, error } = await supabaseClient
+                    .from('checklists')
+                    .insert(checklistPayload)
+                    .select('id')
+                    .single();
+                if (error) throw error;
+                checklistId = data.id;
+            }
+
+            if (ChecklistManager.currentChecklistId) {
+                await supabaseClient
+                    .from('checklist_items')
+                    .delete()
+                    .eq('checklist_id', checklistId);
+            }
+
+            const itemsToSave = ChecklistManager.currentItems
+                .filter(item => item.task_name.trim())
+                .map((item, index) => ({
+                    checklist_id: checklistId,
+                    task_name: item.task_name.trim(),
+                    task_description: item.task_description?.trim() || null,
+                    task_type: item.task_type || 'checkbox',
+                    sort_order: index,
+                    is_required: item.is_required || false
+                }));
+
+            if (itemsToSave.length > 0) {
+                const { error } = await supabaseClient
+                    .from('checklist_items')
+                    .insert(itemsToSave);
+                if (error) throw error;
+            }
+
+            showToast('Checklist saved successfully.', 'success');
+            ChecklistManager.hideModal();
+            await ChecklistManager.loadChecklists();
+        } catch (error) {
+            console.error('Error saving checklist:', error);
+            showToast('Failed to save checklist. ' + (error.message || ''), 'error');
+        }
+    },
+
+    loadChecklists: async () => {
+        const tbody = document.getElementById('checklists-table-body');
+        if (!tbody) return;
+
+        if (!supabaseClient) {
+            tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-slate-500">Supabase not connected</td></tr>';
+            return;
+        }
+
+        try {
+            const { data: checklists, error } = await supabaseClient
+                .from('checklists')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+
+            if (!checklists || checklists.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="px-6 py-8 text-center text-slate-500">
+                            <i class="fas fa-clipboard-list text-4xl mb-4 text-slate-300"></i>
+                            <p>No checklists found. Create your first checklist!</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            const checklistIds = checklists.map(c => c.id);
+            const { data: itemCounts } = await supabaseClient
+                .from('checklist_items')
+                .select('checklist_id')
+                .in('checklist_id', checklistIds);
+
+            const countMap = new Map();
+            itemCounts?.forEach(item => {
+                countMap.set(item.checklist_id, (countMap.get(item.checklist_id) || 0) + 1);
+            });
+
+            tbody.innerHTML = checklists.map(checklist => `
+                <tr class="hover:bg-slate-50">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">${checklist.name}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">${checklist.category || 'N/A'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">${countMap.get(checklist.id) || 0} items</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="text-xs px-2 py-1 rounded-full ${checklist.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
+                            ${checklist.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                        <button onclick="ChecklistManager.showEditModal('${checklist.id}')" class="text-blue-600 hover:text-blue-900 mr-3">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="ChecklistManager.deleteChecklist('${checklist.id}')" class="text-red-600 hover:text-red-900">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        } catch (error) {
+            console.error('Error loading checklists:', error);
+            tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-red-500">Error loading checklists</td></tr>';
+        }
+    },
+
+    deleteChecklist: async (checklistId) => {
+        if (!confirm('Are you sure you want to delete this checklist? This cannot be undone.')) {
+            return;
+        }
+
+        if (!supabaseClient) {
+            showToast('Supabase is not connected.', 'error');
+            return;
+        }
+
+        try {
+            const { error } = await supabaseClient
+                .from('checklists')
+                .delete()
+                .eq('id', checklistId);
+
+            if (error) throw error;
+
+            showToast('Checklist deleted successfully.', 'success');
+            await ChecklistManager.loadChecklists();
+        } catch (error) {
+            console.error('Error deleting checklist:', error);
+            showToast('Failed to delete checklist.', 'error');
+        }
+    }
+};
+
 async function requireAuth() {
     if (AppState.currentPage === 'login') {
         return true;
@@ -2608,6 +3042,7 @@ async function initApp() {
         await WorkOrderManager.init();
     } else if (AppState.currentPage === 'settings') {
         await SettingsManager.init();
+        await ChecklistManager.init();
     } else if (AppState.currentPage === 'customers') {
         initCustomerPage();
     }
