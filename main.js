@@ -16,6 +16,11 @@ function loadSupabaseClient() {
         return Promise.resolve(supabaseClient);
     }
 
+    if (window.sharedSupabaseClient) {
+        supabaseClient = window.sharedSupabaseClient;
+        return Promise.resolve(supabaseClient);
+    }
+
     if (supabaseInitPromise) {
         return supabaseInitPromise;
     }
