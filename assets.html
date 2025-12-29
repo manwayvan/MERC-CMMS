@@ -980,34 +980,94 @@
                 showToast('Please enter a value to add.', 'warning');
                 return;
             }
+            
+            if (!supabaseClient) {
+                showToast('Supabase is not connected. Please check your configuration.', 'error');
+                return;
+            }
+            
             try {
                 const payload = { name: value };
                 let table = '';
+                let tableDisplayName = '';
                 if (lookupContext.type === 'categories') {
                     table = 'device_categories';
+                    tableDisplayName = 'device_categories';
                 } else if (lookupContext.type === 'manufacturers') {
                     table = 'device_makes';
+                    tableDisplayName = 'device_makes';
                     payload.category_id = lookupContext.parentId;
+                    if (!lookupContext.parentId) {
+                        showToast('Please select a category first.', 'warning');
+                        return;
+                    }
                 } else if (lookupContext.type === 'models') {
                     table = 'device_models';
+                    tableDisplayName = 'device_models';
                     payload.make_id = lookupContext.parentId;
+                    if (!lookupContext.parentId) {
+                        showToast('Please select a manufacturer first.', 'warning');
+                        return;
+                    }
                 }
                 if (!table) {
                     showToast('Unknown reference type.', 'error');
                     return;
                 }
+                
+                // First, check if the table exists by attempting a simple select
+                const tableCheck = await supabaseClient
+                    .from(table)
+                    .select('id')
+                    .limit(1);
+                
+                if (tableCheck.error && /does not exist|not found|schema cache|relation.*does not exist/i.test(tableCheck.error.message || '')) {
+                    const errorMsg = `The ${tableDisplayName} table does not exist in your Supabase database.\n\n` +
+                                   `To fix this:\n` +
+                                   `1. Open your Supabase Dashboard\n` +
+                                   `2. Go to SQL Editor\n` +
+                                   `3. Open the file: device_catalog_schema.sql\n` +
+                                   `4. Copy and paste the entire contents\n` +
+                                   `5. Click "Run" to execute\n\n` +
+                                   `This will create the required tables: device_categories, device_makes, and device_models.`;
+                    showToast(errorMsg, 'error');
+                    closeLookupModal();
+                    return;
+                }
+                
                 // Generate IDs for all lookup types
                 if (lookupContext.type === 'categories') {
                     // Generate ID from name (lowercase, replace spaces with underscores)
                     payload.id = value.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '').substring(0, 50);
+                    // Ensure ID is not empty
+                    if (!payload.id) {
+                        payload.id = 'category_' + Date.now();
+                    }
                 } else if (lookupContext.type === 'manufacturers') {
                     // Generate ID from category_id and name
                     const nameSlug = value.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '').substring(0, 30);
                     payload.id = `${lookupContext.parentId}_${nameSlug}`;
+                    if (!payload.id || payload.id.length < 2) {
+                        payload.id = `${lookupContext.parentId}_make_${Date.now()}`;
+                    }
                 } else if (lookupContext.type === 'models') {
                     // Generate ID from make_id and name
                     const nameSlug = value.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '').substring(0, 30);
                     payload.id = `${lookupContext.parentId}_${nameSlug}`;
+                    if (!payload.id || payload.id.length < 2) {
+                        payload.id = `${lookupContext.parentId}_model_${Date.now()}`;
+                    }
+                }
+                
+                // Check for duplicate name
+                const duplicateCheck = await supabaseClient
+                    .from(table)
+                    .select('id, name')
+                    .eq('name', value);
+                
+                if (duplicateCheck.data && duplicateCheck.data.length > 0) {
+                    showToast(`A ${lookupContext.label.toLowerCase()} with this name already exists.`, 'warning');
+                    return;
                 }
                 
                 const { data, error } = await supabaseClient
@@ -1017,13 +1077,32 @@
                     .single();
                 
                 // If table doesn't exist, provide helpful error message
-                if (error && /does not exist|not found|schema cache/i.test(error.message || '')) {
-                    showToast(`The ${table} table does not exist. Please run the device_catalog_schema.sql file in your Supabase SQL Editor to create it.`, 'error');
+                if (error && /does not exist|not found|schema cache|relation.*does not exist/i.test(error.message || '')) {
+                    const errorMsg = `The ${tableDisplayName} table does not exist in your Supabase database.\n\n` +
+                                   `To fix this:\n` +
+                                   `1. Open your Supabase Dashboard\n` +
+                                   `2. Go to SQL Editor\n` +
+                                   `3. Open the file: device_catalog_schema.sql\n` +
+                                   `4. Copy and paste the entire contents\n` +
+                                   `5. Click "Run" to execute\n\n` +
+                                   `This will create the required tables: device_categories, device_makes, and device_models.`;
+                    showToast(errorMsg, 'error', 10000);
                     closeLookupModal();
                     return;
                 }
                 
-                if (error) throw error;
+                if (error) {
+                    console.error('Error inserting into', table, ':', error);
+                    // Check for specific error types
+                    if (error.message && error.message.includes('duplicate key') || error.message.includes('unique constraint')) {
+                        showToast(`A ${lookupContext.label.toLowerCase()} with this name or ID already exists.`, 'error');
+                    } else if (error.message && error.message.includes('foreign key')) {
+                        showToast(`Invalid parent reference. Please ensure the parent ${lookupContext.type === 'manufacturers' ? 'category' : 'manufacturer'} exists.`, 'error');
+                    } else {
+                        showToast(`Failed to add ${lookupContext.label.toLowerCase()}: ${error.message || 'Unknown error'}`, 'error');
+                    }
+                    return;
+                }
                 if (lookupContext.type === 'categories') {
                     referenceData.categories.push({ id: data.id, name: data.name });
                     referenceData.categories.sort((a, b) => a.name.localeCompare(b.name));
