@@ -1168,9 +1168,6 @@ const WorkOrderManager = {
         const detailedDescription = detailLines.length
             ? `${description}\n\nLabor & Parts\n${detailLines.join('\n')}`
             : description;
-        const partsUsedList = partsUsed
-            ? partsUsed.split(/[\n,]+/).map(part => part.trim()).filter(Boolean)
-            : [];
 
         if (!supabaseClient) {
             const newWorkOrder = {
@@ -1185,10 +1182,7 @@ const WorkOrderManager = {
                 created_date: new Date().toISOString(),
                 completed_date: null,
                 estimated_hours: estimatedHours,
-                actual_hours: laborHours,
-                cost: partsCost,
-                parts_used: partsUsedList.length ? partsUsedList : null,
-                completion_notes: laborNotes || null,
+                actual_hours: null,
                 description: detailedDescription
             };
             AppState.workOrders = [newWorkOrder, ...AppState.workOrders];
@@ -1207,10 +1201,6 @@ const WorkOrderManager = {
             status: 'open',
             due_date: new Date(dueDate).toISOString(),
             estimated_hours: estimatedHours,
-            actual_hours: laborHours,
-            cost: partsCost,
-            parts_used: partsUsedList.length ? partsUsedList : null,
-            completion_notes: laborNotes || null,
             description: detailedDescription
         };
 
