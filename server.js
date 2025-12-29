@@ -27,19 +27,36 @@ const server = http.createServer((req, res) => {
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
     
-    let filePath = '.' + req.url;
-    if (filePath === './') {
-        filePath = './index.html';
+    const rootDir = path.resolve('.');
+    let requestPath = req.url;
+
+    if (requestPath.indexOf('?') !== -1) {
+        requestPath = requestPath.split('?')[0];
     }
-    
-    if (filePath.indexOf('?') !== -1) {
-        filePath = filePath.split('?')[0];
+
+    try {
+        requestPath = decodeURIComponent(requestPath);
+    } catch (error) {
+        res.writeHead(400, { 'Content-Type': 'text/plain' });
+        res.end('Bad Request', 'utf-8');
+        return;
     }
-    
-    const extname = String(path.extname(filePath)).toLowerCase();
+
+    if (requestPath === '/') {
+        requestPath = '/index.html';
+    }
+
+    const resolvedPath = path.resolve(rootDir, `.${requestPath}`);
+    if (!resolvedPath.startsWith(rootDir)) {
+        res.writeHead(403, { 'Content-Type': 'text/plain' });
+        res.end('Forbidden', 'utf-8');
+        return;
+    }
+
+    const extname = String(path.extname(resolvedPath)).toLowerCase();
     const contentType = mimeTypes[extname] || 'application/octet-stream';
     
-    fs.readFile(filePath, (error, content) => {
+    fs.readFile(resolvedPath, (error, content) => {
         if (error) {
             if (error.code === 'ENOENT') {
                 if (!extname || extname === '.html') {
