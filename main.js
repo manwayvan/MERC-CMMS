@@ -893,7 +893,7 @@ const WorkOrderManager = {
 
         const { data, error } = await supabaseClient
             .from('assets')
-            .select('id, name')
+            .select('id, name, category')
             .order('name', { ascending: true });
 
         if (error) {
@@ -1129,10 +1129,6 @@ const WorkOrderManager = {
         const technicianSelect = document.getElementById('workorder-technician-select');
         const dueDateInput = document.getElementById('workorder-due-date');
         const estimatedHoursInput = document.getElementById('workorder-estimated-hours');
-        const laborHoursInput = document.getElementById('workorder-labor-hours');
-        const partsCostInput = document.getElementById('workorder-parts-cost');
-        const laborNotesInput = document.getElementById('workorder-labor-notes');
-        const partsUsedInput = document.getElementById('workorder-parts-used');
         const descriptionInput = document.getElementById('workorder-description');
 
         const assetId = assetSelect?.value || '';
@@ -1141,26 +1137,12 @@ const WorkOrderManager = {
         const technicianId = technicianSelect?.value || null;
         const dueDate = dueDateInput?.value || '';
         const estimatedHours = estimatedHoursInput?.value ? Number(estimatedHoursInput.value) : null;
-        const laborHours = laborHoursInput?.value ? Number(laborHoursInput.value) : null;
-        const partsCost = partsCostInput?.value ? Number(partsCostInput.value) : null;
-        const laborNotes = laborNotesInput?.value?.trim() || '';
-        const partsUsed = partsUsedInput?.value?.trim() || '';
         const description = descriptionInput?.value?.trim() || '';
 
         if (!assetId || !type || !dueDate || !description) {
             showToast('Please complete asset, type, due date, and description.', 'warning');
             return;
         }
-
-        const detailLines = [];
-        if (laborHours !== null) detailLines.push(`Labor Hours: ${laborHours}`);
-        if (partsCost !== null) detailLines.push(`Parts Cost: $${partsCost.toFixed(2)}`);
-        if (laborNotes) detailLines.push(`Labor Notes: ${laborNotes}`);
-        if (partsUsed) detailLines.push(`Parts Used: ${partsUsed}`);
-
-        const detailedDescription = detailLines.length
-            ? `${description}\n\nLabor & Parts\n${detailLines.join('\n')}`
-            : description;
 
         if (!supabaseClient) {
             const newWorkOrder = {
@@ -1176,7 +1158,7 @@ const WorkOrderManager = {
                 completed_date: null,
                 estimated_hours: estimatedHours,
                 actual_hours: null,
-                description: detailedDescription
+                description: description
             };
             AppState.workOrders = [newWorkOrder, ...AppState.workOrders];
             WorkOrderManager.renderWorkOrders();
@@ -1194,7 +1176,7 @@ const WorkOrderManager = {
             status: 'open',
             due_date: new Date(dueDate).toISOString(),
             estimated_hours: estimatedHours,
-            description: detailedDescription
+            description: description
         };
 
         const technicianName = WorkOrderManager.resolveTechnicianName(technicianId);
@@ -1251,9 +1233,18 @@ const WorkOrderManager = {
 
         if (error) {
             console.error('Error creating work order:', error);
-            const message = /row-level security|permission|jwt/i.test(error.message || '')
-                ? 'Failed to create work order. Please sign in again.'
-                : 'Failed to create work order.';
+            let message = 'Failed to create work order.';
+            
+            if (/row-level security|permission|jwt|unauthorized/i.test(error.message || '')) {
+                message = 'Failed to create work order. Please sign in again.';
+            } else if (/foreign key|asset_id|constraint/i.test(error.message || '')) {
+                message = 'Invalid asset selected. Please choose a valid asset.';
+            } else if (/null value|required/i.test(error.message || '')) {
+                message = 'Missing required fields. Please check all fields are filled.';
+            } else {
+                message = `Failed to create work order: ${error.message || 'Unknown error'}`;
+            }
+            
             showToast(message, 'error');
             return;
         }
@@ -1348,7 +1339,13 @@ const WorkOrderManager = {
         AppState.assets.forEach(asset => {
             const option = document.createElement('option');
             option.value = asset.id;
-            option.textContent = `${asset.id} - ${asset.name || 'Asset'}`;
+            // Format: Asset ID - [Category] - Asset Name
+            const assetId = asset.id || 'N/A';
+            const category = asset.category 
+                ? `[${asset.category.charAt(0).toUpperCase() + asset.category.slice(1)}]` 
+                : '';
+            const assetName = asset.name || 'Unnamed Asset';
+            option.textContent = `${assetId} ${category} ${assetName}`.trim();
             assetSelect.appendChild(option);
         });
     },
@@ -1859,7 +1856,9 @@ function showCreateWorkOrderModal() {
 
 function hideCreateWorkOrderModal() {
     closeModal('create-workorder-modal');
-    WorkOrderManager.resetPartsUsedItems();
+    // Reset form if needed
+    const form = document.getElementById('create-workorder-form');
+    if (form) form.reset();
 }
 
 function showCustomReportModal() {
