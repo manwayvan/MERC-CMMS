@@ -159,6 +159,32 @@ CREATE TABLE IF NOT EXISTS public.assets (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Asset Maintenance History
+CREATE TABLE IF NOT EXISTS public.asset_maintenance_history (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    asset_id TEXT NOT NULL REFERENCES assets(id) ON DELETE CASCADE,
+    maintenance_date TIMESTAMPTZ NOT NULL,
+    maintenance_type TEXT NOT NULL CHECK (maintenance_type IN ('preventive', 'corrective', 'inspection', 'calibration')),
+    performed_by UUID REFERENCES auth.users(id),
+    description TEXT,
+    cost DECIMAL(10, 2),
+    next_due_date TIMESTAMPTZ,
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Asset Documents
+CREATE TABLE IF NOT EXISTS public.asset_documents (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    asset_id TEXT NOT NULL REFERENCES assets(id) ON DELETE CASCADE,
+    document_name TEXT NOT NULL,
+    document_type TEXT NOT NULL CHECK (document_type IN ('manual', 'certificate', 'warranty', 'invoice', 'photo', 'other')),
+    document_url TEXT NOT NULL,
+    file_size BIGINT,
+    uploaded_by UUID REFERENCES auth.users(id),
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- ==============================================
 -- WORK ORDER TYPES
 -- ==============================================
@@ -402,6 +428,93 @@ BEGIN
 END $$;
 
 -- ==============================================
+-- COMPLIANCE & AUDITS
+-- ==============================================
+
+CREATE TABLE IF NOT EXISTS public.compliance_standards (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name TEXT NOT NULL UNIQUE,
+    code TEXT NOT NULL,
+    description TEXT,
+    requirements JSONB,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.compliance_records (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    asset_id TEXT REFERENCES assets(id) ON DELETE CASCADE,
+    standard_id UUID REFERENCES compliance_standards(id),
+    compliance_status TEXT NOT NULL CHECK (compliance_status IN ('compliant', 'needs-attention', 'non-compliant')),
+    percentage DECIMAL(5, 2),
+    last_audit_date TIMESTAMPTZ,
+    next_audit_date TIMESTAMPTZ,
+    auditor_name TEXT,
+    findings TEXT,
+    corrective_actions TEXT,
+    evidence_urls JSONB,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.audit_trail (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES auth.users(id),
+    action TEXT NOT NULL,
+    entity_type TEXT NOT NULL,
+    entity_id TEXT NOT NULL,
+    old_values JSONB,
+    new_values JSONB,
+    ip_address TEXT,
+    user_agent TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ==============================================
+-- NOTIFICATIONS
+-- ==============================================
+
+CREATE TABLE IF NOT EXISTS public.notifications (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES auth.users(id),
+    type TEXT NOT NULL CHECK (type IN ('maintenance_due', 'work_order_assigned', 'compliance_alert', 'system_alert', 'report_ready')),
+    title TEXT NOT NULL,
+    message TEXT NOT NULL,
+    related_entity_type TEXT,
+    related_entity_id TEXT,
+    is_read BOOLEAN DEFAULT false,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ==============================================
+-- REPORTS
+-- ==============================================
+
+CREATE TABLE IF NOT EXISTS public.reports (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name TEXT NOT NULL,
+    type TEXT NOT NULL CHECK (type IN ('compliance', 'asset', 'work_order', 'financial', 'maintenance', 'custom')),
+    parameters JSONB,
+    file_url TEXT,
+    generated_by UUID REFERENCES auth.users(id),
+    generated_at TIMESTAMPTZ DEFAULT NOW(),
+    status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'generating', 'completed', 'failed'))
+);
+
+-- ==============================================
+-- SYSTEM SETTINGS
+-- ==============================================
+
+CREATE TABLE IF NOT EXISTS public.system_settings (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    key TEXT NOT NULL UNIQUE,
+    value JSONB NOT NULL,
+    description TEXT,
+    updated_by UUID REFERENCES auth.users(id),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ==============================================
 -- ENABLE ROW LEVEL SECURITY
 -- ==============================================
 
@@ -413,6 +526,8 @@ ALTER TABLE public.device_categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.device_makes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.device_models ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.assets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.asset_maintenance_history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.asset_documents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.work_order_types ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.work_orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.work_order_comments ENABLE ROW LEVEL SECURITY;
@@ -423,6 +538,12 @@ ALTER TABLE public.checklists ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.checklist_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.work_order_checklists ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.work_order_checklist_responses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.compliance_standards ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.compliance_records ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.audit_trail ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.reports ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.system_settings ENABLE ROW LEVEL SECURITY;
 
 -- ==============================================
 -- CREATE RLS POLICIES
@@ -480,6 +601,22 @@ DROP POLICY IF EXISTS "Allow authenticated read access to work_order_checklists"
 DROP POLICY IF EXISTS "Allow authenticated write access to work_order_checklists" ON public.work_order_checklists;
 DROP POLICY IF EXISTS "Allow authenticated read access to work_order_checklist_responses" ON public.work_order_checklist_responses;
 DROP POLICY IF EXISTS "Allow authenticated write access to work_order_checklist_responses" ON public.work_order_checklist_responses;
+DROP POLICY IF EXISTS "Allow authenticated read access to asset_maintenance_history" ON public.asset_maintenance_history;
+DROP POLICY IF EXISTS "Allow authenticated write access to asset_maintenance_history" ON public.asset_maintenance_history;
+DROP POLICY IF EXISTS "Allow authenticated read access to asset_documents" ON public.asset_documents;
+DROP POLICY IF EXISTS "Allow authenticated write access to asset_documents" ON public.asset_documents;
+DROP POLICY IF EXISTS "Allow authenticated read access to compliance_standards" ON public.compliance_standards;
+DROP POLICY IF EXISTS "Allow authenticated write access to compliance_standards" ON public.compliance_standards;
+DROP POLICY IF EXISTS "Allow authenticated read access to compliance_records" ON public.compliance_records;
+DROP POLICY IF EXISTS "Allow authenticated write access to compliance_records" ON public.compliance_records;
+DROP POLICY IF EXISTS "Allow authenticated read access to audit_trail" ON public.audit_trail;
+DROP POLICY IF EXISTS "Allow authenticated write access to audit_trail" ON public.audit_trail;
+DROP POLICY IF EXISTS "Allow authenticated read access to notifications" ON public.notifications;
+DROP POLICY IF EXISTS "Allow authenticated write access to notifications" ON public.notifications;
+DROP POLICY IF EXISTS "Allow authenticated read access to reports" ON public.reports;
+DROP POLICY IF EXISTS "Allow authenticated write access to reports" ON public.reports;
+DROP POLICY IF EXISTS "Allow authenticated read access to system_settings" ON public.system_settings;
+DROP POLICY IF EXISTS "Allow authenticated write access to system_settings" ON public.system_settings;
 
 -- Create RLS Policies
 CREATE POLICY "Allow authenticated read access to user_profiles" 
@@ -615,6 +752,70 @@ CREATE POLICY "Allow authenticated write access to work_order_checklist_response
     ON public.work_order_checklist_responses FOR ALL 
     USING (auth.role() = 'authenticated');
 
+CREATE POLICY "Allow authenticated read access to asset_maintenance_history" 
+    ON public.asset_maintenance_history FOR SELECT 
+    USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Allow authenticated write access to asset_maintenance_history" 
+    ON public.asset_maintenance_history FOR ALL 
+    USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Allow authenticated read access to asset_documents" 
+    ON public.asset_documents FOR SELECT 
+    USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Allow authenticated write access to asset_documents" 
+    ON public.asset_documents FOR ALL 
+    USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Allow authenticated read access to compliance_standards" 
+    ON public.compliance_standards FOR SELECT 
+    USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Allow authenticated write access to compliance_standards" 
+    ON public.compliance_standards FOR ALL 
+    USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Allow authenticated read access to compliance_records" 
+    ON public.compliance_records FOR SELECT 
+    USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Allow authenticated write access to compliance_records" 
+    ON public.compliance_records FOR ALL 
+    USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Allow authenticated read access to audit_trail" 
+    ON public.audit_trail FOR SELECT 
+    USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Allow authenticated write access to audit_trail" 
+    ON public.audit_trail FOR ALL 
+    USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Allow authenticated read access to notifications" 
+    ON public.notifications FOR SELECT 
+    USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Allow authenticated write access to notifications" 
+    ON public.notifications FOR ALL 
+    USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Allow authenticated read access to reports" 
+    ON public.reports FOR SELECT 
+    USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Allow authenticated write access to reports" 
+    ON public.reports FOR ALL 
+    USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Allow authenticated read access to system_settings" 
+    ON public.system_settings FOR SELECT 
+    USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Allow authenticated write access to system_settings" 
+    ON public.system_settings FOR ALL 
+    USING (auth.role() = 'authenticated');
+
 -- ==============================================
 -- CREATE TRIGGERS FOR updated_at
 -- ==============================================
@@ -634,6 +835,9 @@ DROP TRIGGER IF EXISTS update_work_order_tasks_updated_at ON public.work_order_t
 DROP TRIGGER IF EXISTS update_checklists_updated_at ON public.checklists;
 DROP TRIGGER IF EXISTS update_checklist_items_updated_at ON public.checklist_items;
 DROP TRIGGER IF EXISTS update_work_order_checklist_responses_updated_at ON public.work_order_checklist_responses;
+DROP TRIGGER IF EXISTS update_compliance_standards_updated_at ON public.compliance_standards;
+DROP TRIGGER IF EXISTS update_compliance_records_updated_at ON public.compliance_records;
+DROP TRIGGER IF EXISTS update_system_settings_updated_at ON public.system_settings;
 
 -- Create triggers
 CREATE TRIGGER update_user_profiles_updated_at 
@@ -720,6 +924,24 @@ CREATE TRIGGER update_work_order_checklist_responses_updated_at
     WHEN (OLD IS DISTINCT FROM NEW)
     EXECUTE FUNCTION update_updated_at_column();
 
+CREATE TRIGGER update_compliance_standards_updated_at 
+    BEFORE UPDATE ON public.compliance_standards 
+    FOR EACH ROW 
+    WHEN (OLD IS DISTINCT FROM NEW)
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_compliance_records_updated_at 
+    BEFORE UPDATE ON public.compliance_records 
+    FOR EACH ROW 
+    WHEN (OLD IS DISTINCT FROM NEW)
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_system_settings_updated_at 
+    BEFORE UPDATE ON public.system_settings 
+    FOR EACH ROW 
+    WHEN (OLD IS DISTINCT FROM NEW)
+    EXECUTE FUNCTION update_updated_at_column();
+
 -- ==============================================
 -- CREATE INDEXES FOR PERFORMANCE
 -- ==============================================
@@ -755,6 +977,22 @@ CREATE INDEX IF NOT EXISTS idx_work_order_checklists_work_order_id ON public.wor
 CREATE INDEX IF NOT EXISTS idx_work_order_checklists_checklist_id ON public.work_order_checklists(checklist_id);
 CREATE INDEX IF NOT EXISTS idx_work_order_checklist_responses_work_order_id ON public.work_order_checklist_responses(work_order_id);
 CREATE INDEX IF NOT EXISTS idx_work_order_checklist_responses_checklist_item_id ON public.work_order_checklist_responses(checklist_item_id);
+
+-- Asset related indexes
+CREATE INDEX IF NOT EXISTS idx_asset_maintenance_history_asset_id ON public.asset_maintenance_history(asset_id);
+CREATE INDEX IF NOT EXISTS idx_asset_documents_asset_id ON public.asset_documents(asset_id);
+
+-- Compliance indexes
+CREATE INDEX IF NOT EXISTS idx_compliance_records_asset_id ON public.compliance_records(asset_id);
+CREATE INDEX IF NOT EXISTS idx_compliance_records_standard_id ON public.compliance_records(standard_id);
+
+-- Notification indexes
+CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON public.notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON public.notifications(is_read);
+
+-- Report indexes
+CREATE INDEX IF NOT EXISTS idx_reports_type ON public.reports(type);
+CREATE INDEX IF NOT EXISTS idx_reports_status ON public.reports(status);
 
 -- ==============================================
 -- INSERT DEFAULT DATA
