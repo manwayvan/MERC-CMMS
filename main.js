@@ -108,7 +108,7 @@ const MockData = {
 
     // Generate mock work orders data
     generateWorkOrders: () => {
-        const types = ['Preventive Maintenance', 'Corrective Maintenance', 'Inspection', 'Calibration'];
+        const types = ['preventive_maintenance', 'corrective_maintenance', 'inspection', 'calibration'];
         const priorities = ['critical', 'high', 'medium', 'low'];
         const statuses = ['open', 'in-progress', 'completed', 'cancelled'];
         const technicians = ['John Smith', 'Sarah Johnson', 'Mike Davis', 'Lisa Wilson', 'Robert Brown'];
@@ -181,6 +181,15 @@ const DefaultWorkOrderTypes = [
     { code: 'calibration', label: 'Calibration', description: 'Calibration and verification', sort_order: 4 },
     { code: 'installation', label: 'Installation', description: 'New equipment install work', sort_order: 5 },
     { code: 'repair', label: 'Repair', description: 'Component replacement or repair', sort_order: 6 }
+];
+
+const DefaultPartsCatalog = [
+    { name: 'Filter' },
+    { name: 'Fuse' },
+    { name: 'Battery Pack' },
+    { name: 'O-Ring Kit' },
+    { name: 'Sensor Module' },
+    { name: 'Valve Assembly' }
 ];
 
 async function fetchWorkOrderTypes() {
@@ -838,6 +847,7 @@ const assetManager = new AssetManager();
 const WorkOrderManager = {
     pendingAssetId: null,
     supportsAssignedTechnicianId: true,
+    partsUsedItems: [],
     // Initialize work order management
     init: async () => {
         await WorkOrderManager.loadAssets();
@@ -848,7 +858,6 @@ const WorkOrderManager = {
         WorkOrderManager.renderRecentWorkOrders();
         WorkOrderManager.updateSummaryCounts();
         WorkOrderManager.setupEventListeners();
-        await WorkOrderManager.loadWorkOrderTypes();
         await WorkOrderManager.loadWorkOrderAssets();
     },
 
@@ -865,16 +874,6 @@ const WorkOrderManager = {
         if (!technicianId) return 'Unassigned';
         const label = WorkOrderManager.technicianMap?.get(technicianId);
         return label || 'Unassigned';
-    },
-    formatDate: (dateValue) => {
-        if (!dateValue) {
-            return '—';
-        }
-        const date = new Date(dateValue);
-        if (Number.isNaN(date.getTime())) {
-            return '—';
-        }
-        return date.toLocaleDateString();
     },
 
     toDatabaseWorkOrderType: (type) => {
@@ -1308,8 +1307,12 @@ const WorkOrderManager = {
 
         const typeSet = new Map(primaryTypes.map(type => [type.value, type]));
         AppState.workOrders.forEach(order => {
-            if (order.type && !typeSet.has(order.type)) {
-                typeSet.set(order.type, { value: order.type, label: WorkOrderManager.formatWorkOrderType(order.type) });
+            const normalizedType = WorkOrderManager.toDatabaseWorkOrderType(order.type);
+            if (normalizedType && !typeSet.has(normalizedType)) {
+                typeSet.set(normalizedType, {
+                    value: normalizedType,
+                    label: WorkOrderManager.formatWorkOrderType(normalizedType)
+                });
             }
         });
 
@@ -1839,6 +1842,7 @@ function showCreateWorkOrderModal() {
 
 function hideCreateWorkOrderModal() {
     closeModal('create-workorder-modal');
+    WorkOrderManager.resetPartsUsedItems();
 }
 
 function showCustomReportModal() {
