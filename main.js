@@ -576,7 +576,7 @@ class AssetManager {
     // Load and display assets
     async loadAssets() {
         if (!supabaseClient) {
-            console.warn('Supabase client unavailable. Loading demo asset data.');
+            console.warn('Loading demo asset data.');
             this.assets = MockData.generateAssets();
             showToast('Database unavailable, using demo assets', 'warning');
         } else {
@@ -841,7 +841,6 @@ const WorkOrderManager = {
     supportsAssignedTechnicianId: true,
     // Initialize work order management
     init: async () => {
-        WorkOrderManager.updateSupabaseStatus(!!supabaseClient);
         await WorkOrderManager.loadAssets();
         await WorkOrderManager.loadTechnicians();
         await WorkOrderManager.loadWorkOrders();
@@ -852,7 +851,6 @@ const WorkOrderManager = {
         WorkOrderManager.setupEventListeners();
         await WorkOrderManager.loadWorkOrderTypes();
         await WorkOrderManager.loadWorkOrderAssets();
-        WorkOrderManager.updateSupabaseStatus();
     },
 
     formatWorkOrderType: (type) => {
@@ -886,15 +884,6 @@ const WorkOrderManager = {
             .trim()
             .toLowerCase()
             .replace(/\s+/g, '_');
-    },
-
-    updateSupabaseStatus: (isAvailable) => {
-        const statusElement = document.getElementById('supabase-status');
-        if (!statusElement) return;
-
-        statusElement.innerHTML = isAvailable
-            ? 'Supabase status: <span class="font-semibold text-emerald-700">Connected</span>'
-            : 'Supabase status: <span class="font-semibold text-amber-700">Offline (demo mode)</span>';
     },
 
     loadAssets: async () => {
@@ -1444,7 +1433,6 @@ const SettingsManager = {
 
     loadTechnicians: async () => {
         if (!supabaseClient) {
-            showToast('Supabase is not connected. Unable to load technicians.', 'warning');
             SettingsManager.renderTechnicians([]);
             return;
         }
@@ -1718,7 +1706,6 @@ const SettingsManager = {
     handleTechnicianSubmit: async (event) => {
         event.preventDefault();
         if (!supabaseClient) {
-            showToast('Supabase is not connected. Unable to save technician.', 'warning');
             return;
         }
 
