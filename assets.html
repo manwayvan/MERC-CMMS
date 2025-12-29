@@ -964,10 +964,18 @@
                     showToast('Unknown reference type.', 'error');
                     return;
                 }
-                // For categories, generate a simple ID from the name
+                // Generate IDs for all lookup types
                 if (lookupContext.type === 'categories') {
                     // Generate ID from name (lowercase, replace spaces with underscores)
-                    payload.id = value.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+                    payload.id = value.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '').substring(0, 50);
+                } else if (lookupContext.type === 'manufacturers') {
+                    // Generate ID from category_id and name
+                    const nameSlug = value.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '').substring(0, 30);
+                    payload.id = `${lookupContext.parentId}_${nameSlug}`;
+                } else if (lookupContext.type === 'models') {
+                    // Generate ID from make_id and name
+                    const nameSlug = value.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '').substring(0, 30);
+                    payload.id = `${lookupContext.parentId}_${nameSlug}`;
                 }
                 
                 const { data, error } = await supabaseClient
@@ -979,6 +987,7 @@
                 // If table doesn't exist, provide helpful error message
                 if (error && /does not exist|not found|schema cache/i.test(error.message || '')) {
                     showToast(`The ${table} table does not exist. Please run the device_catalog_schema.sql file in your Supabase SQL Editor to create it.`, 'error');
+                    closeLookupModal();
                     return;
                 }
                 
