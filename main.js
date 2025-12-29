@@ -893,7 +893,7 @@ const WorkOrderManager = {
 
         const { data, error } = await supabaseClient
             .from('assets')
-            .select('id, name, category')
+            .select('id, name, category, serial_number, asset_id')
             .order('name', { ascending: true });
 
         if (error) {
@@ -1170,8 +1170,20 @@ const WorkOrderManager = {
             return;
         }
 
-        // Don't include 'id' - let the database generate it with the DEFAULT value
+        // Generate work order ID client-side to match database format
+        // Format: WO-YYYYMMDD-#### (matching the database DEFAULT function)
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const dateStr = `${year}${month}${day}`;
+        
+        // Use timestamp milliseconds for uniqueness (last 4 digits)
+        const seqNum = String(Date.now()).slice(-4).padStart(4, '0');
+        const workOrderId = `WO-${dateStr}-${seqNum}`;
+        
         const payload = {
+            id: workOrderId,
             asset_id: assetId,
             type,
             priority,
@@ -1180,11 +1192,6 @@ const WorkOrderManager = {
             estimated_hours: estimatedHours,
             description: description
         };
-        
-        // Explicitly exclude id to let database DEFAULT handle it
-        if (payload.id !== undefined) {
-            delete payload.id;
-        }
 
         const technicianName = WorkOrderManager.resolveTechnicianName(technicianId);
         if (technicianName && technicianName !== 'Unassigned') {
@@ -1596,22 +1603,41 @@ const WorkOrderManager = {
         AppState.assets.forEach(asset => {
             const option = document.createElement('option');
             option.value = asset.id;
-            // Check if asset.id is a UUID (36 chars with dashes) - if so, use serial_number or name as identifier
+            
+            // Determine the readable asset ID
+            // Check if asset.id is a UUID - if so, look for a readable asset_id field
             const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(asset.id);
-            let displayId = asset.id;
+            let readableAssetId = asset.id;
             
-            // If it's a UUID, try to find a readable identifier
+            // If the id is a UUID, try to find the readable asset ID
             if (isUUID) {
-                // Try asset_id, serial_number, or just use name
-                displayId = asset.asset_id || asset.serial_number || asset.name || 'Asset';
+                // Check for asset_id field first (readable ID like AST-20251227-S502)
+                readableAssetId = asset.asset_id || asset.serial_number || 'N/A';
             }
+            // If id is not a UUID, it's already the readable ID (like AST-20251227-S502)
             
-            // Format: Asset ID - [Category] - Asset Name
+            // Format: [Category] Asset Name (Asset ID: readableAssetId)
+            // User wants: Asset ID, Category, and Name - but NOT the Supabase UUID
             const category = asset.category 
                 ? `[${asset.category.charAt(0).toUpperCase() + asset.category.slice(1)}]` 
                 : '';
             const assetName = asset.name || 'Unnamed Asset';
-            option.textContent = `${displayId} ${category} ${assetName}`.trim();
+            
+            // If id is a UUID, don't show it - show readable ID instead
+            // If id is not a UUID, it's already readable
+            if (isUUID) {
+                // Hide UUID, show readable ID if available
+                if (readableAssetId && readableAssetId !== 'N/A') {
+                    option.textContent = `${readableAssetId} ${category} ${assetName}`.trim();
+                } else {
+                    // No readable ID found, just show category and name
+                    option.textContent = `${category} ${assetName}`.trim();
+                }
+            } else {
+                // id is already readable (like AST-20251227-S502)
+                option.textContent = `${readableAssetId} ${category} ${assetName}`.trim();
+            }
+            
             assetSelect.appendChild(option);
         });
     },
