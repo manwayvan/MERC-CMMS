@@ -946,11 +946,79 @@ CREATE TRIGGER update_system_settings_updated_at
 -- CREATE INDEXES FOR PERFORMANCE
 -- ==============================================
 
+-- Ensure assets table has all required columns (in case table already existed)
+DO $$
+BEGIN
+    -- Add category_id if it doesn't exist
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'assets') THEN
+        IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns 
+            WHERE table_schema = 'public' 
+            AND table_name = 'assets' 
+            AND column_name = 'category_id'
+        ) THEN
+            ALTER TABLE public.assets ADD COLUMN category_id TEXT REFERENCES device_categories(id);
+        END IF;
+        
+        -- Add make_id if it doesn't exist
+        IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns 
+            WHERE table_schema = 'public' 
+            AND table_name = 'assets' 
+            AND column_name = 'make_id'
+        ) THEN
+            ALTER TABLE public.assets ADD COLUMN make_id TEXT REFERENCES device_makes(id);
+        END IF;
+        
+        -- Add model_id if it doesn't exist
+        IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns 
+            WHERE table_schema = 'public' 
+            AND table_name = 'assets' 
+            AND column_name = 'model_id'
+        ) THEN
+            ALTER TABLE public.assets ADD COLUMN model_id TEXT REFERENCES device_models(id);
+        END IF;
+        
+        -- Add asset_name if it doesn't exist (might be called 'name')
+        IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns 
+            WHERE table_schema = 'public' 
+            AND table_name = 'assets' 
+            AND column_name = 'asset_name'
+        ) THEN
+            -- Check if 'name' column exists and rename it
+            IF EXISTS (
+                SELECT 1 FROM information_schema.columns 
+                WHERE table_schema = 'public' 
+                AND table_name = 'assets' 
+                AND column_name = 'name'
+            ) THEN
+                ALTER TABLE public.assets RENAME COLUMN name TO asset_name;
+            ELSE
+                ALTER TABLE public.assets ADD COLUMN asset_name TEXT NOT NULL DEFAULT '';
+            END IF;
+        END IF;
+    END IF;
+END $$;
+
 -- Assets indexes
 CREATE INDEX IF NOT EXISTS idx_assets_location_id ON public.assets(location_id);
 CREATE INDEX IF NOT EXISTS idx_assets_customer_id ON public.assets(customer_id);
 CREATE INDEX IF NOT EXISTS idx_assets_status ON public.assets(status);
-CREATE INDEX IF NOT EXISTS idx_assets_category_id ON public.assets(category_id);
+
+-- Only create category_id index if the column exists
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'assets' 
+        AND column_name = 'category_id'
+    ) THEN
+        CREATE INDEX IF NOT EXISTS idx_assets_category_id ON public.assets(category_id);
+    END IF;
+END $$;
 
 -- Work orders indexes
 CREATE INDEX IF NOT EXISTS idx_work_orders_asset_id ON public.work_orders(asset_id);
