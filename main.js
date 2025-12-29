@@ -1157,9 +1157,6 @@ const WorkOrderManager = {
         const detailedDescription = detailLines.length
             ? `${description}\n\nLabor & Parts\n${detailLines.join('\n')}`
             : description;
-        const partsUsedList = partsUsed
-            ? partsUsed.split(/[\n,]+/).map(part => part.trim()).filter(Boolean)
-            : [];
 
         if (!supabaseClient) {
             const newWorkOrder = {
@@ -1174,10 +1171,7 @@ const WorkOrderManager = {
                 created_date: new Date().toISOString(),
                 completed_date: null,
                 estimated_hours: estimatedHours,
-                actual_hours: laborHours,
-                cost: partsCost,
-                parts_used: partsUsedList.length ? partsUsedList : null,
-                completion_notes: laborNotes || null,
+                actual_hours: null,
                 description: detailedDescription
             };
             AppState.workOrders = [newWorkOrder, ...AppState.workOrders];
@@ -1196,10 +1190,6 @@ const WorkOrderManager = {
             status: 'open',
             due_date: new Date(dueDate).toISOString(),
             estimated_hours: estimatedHours,
-            actual_hours: laborHours,
-            cost: partsCost,
-            parts_used: partsUsedList.length ? partsUsedList : null,
-            completion_notes: laborNotes || null,
             description: detailedDescription
         };
 
@@ -1413,7 +1403,6 @@ const SettingsManager = {
         SettingsManager.bindEvents();
         await SettingsManager.loadTechnicians();
         await SettingsManager.loadWorkOrderTypes();
-        SettingsManager.updateSupabaseConnectivity();
     },
 
     cacheElements: () => {
@@ -1509,18 +1498,6 @@ const SettingsManager = {
         });
     },
 
-    updateSupabaseConnectivity: () => {
-        const badges = document.querySelectorAll('[data-connection-status]');
-        if (!badges.length) return;
-
-        const isConnected = !!supabaseClient;
-        badges.forEach(badge => {
-            badge.textContent = isConnected ? 'Connected' : 'Disconnected';
-            badge.classList.toggle('text-emerald-600', isConnected);
-            badge.classList.toggle('text-amber-600', !isConnected);
-        });
-    },
-
     setWorkOrderTypeFormEnabled: (isEnabled) => {
         const {
             workOrderTypeCode,
@@ -1543,6 +1520,7 @@ const SettingsManager = {
         if (!SettingsManager.elements.workOrderTypeTable) return;
 
         if (!supabaseClient) {
+            showToast('Supabase is not connected. Unable to manage work order types.', 'warning');
             SettingsManager.setWorkOrderTypeFormEnabled(false);
             SettingsManager.renderWorkOrderTypes(DefaultWorkOrderTypes.map(type => ({
                 id: type.code,
@@ -1646,6 +1624,7 @@ const SettingsManager = {
         event.preventDefault();
 
         if (!supabaseClient) {
+            showToast('Supabase is not connected. Unable to save work order types.', 'warning');
             return;
         }
 
@@ -1697,6 +1676,7 @@ const SettingsManager = {
 
     handleWorkOrderTypeDelete: async (typeId) => {
         if (!supabaseClient) {
+            showToast('Supabase is not connected. Unable to delete work order types.', 'warning');
             return;
         }
 
