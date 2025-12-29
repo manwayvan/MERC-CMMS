@@ -952,15 +952,13 @@ const WorkOrderManager = {
             return;
         }
 
-        // Keep this list conservative to avoid 400s when columns differ between Supabase schema versions.
+        // Start with essential fields only - don't include assigned_technician_id initially
         const selectFields = [
             'id',
             'asset_id',
             'type',
             'priority',
             'status',
-            'assigned_technician_id',
-            'assigned_to',
             'due_date',
             'created_date',
             'completed_date',
@@ -977,24 +975,62 @@ const WorkOrderManager = {
 
         if (error) {
             console.error('Error loading work orders:', error);
-            if (shouldUseMockData()) {
-                AppState.workOrders = MockData.generateWorkOrders();
-            } else {
-                AppState.workOrders = [];
-                showToast('Unable to load work orders from Supabase. Check RLS/policies and credentials.', 'warning');
+            // If error is about missing column, try with minimal fields
+            if (/column.*does not exist|42703/i.test(error.message || '')) {
+                const essentialFields = ['id', 'asset_id', 'type', 'priority', 'status', 'due_date', 'created_date', 'description'];
+                ({ data, error } = await supabaseClient
+                    .from('work_orders')
+                    .select(essentialFields.join(', '))
+                    .order('created_date', { ascending: false }));
             }
-            return;
+            
+            if (error) {
+                if (shouldUseMockData()) {
+                    AppState.workOrders = MockData.generateWorkOrders();
+                } else {
+                    AppState.workOrders = [];
+                    showToast('Unable to load work orders from Supabase. Check RLS/policies and credentials.', 'warning');
+                }
+                return;
+            }
+        }
+
+        // Try to get assigned_technician_id separately if column exists
+        // This is optional - if it doesn't exist, we'll just show "Unassigned"
+        let technicianIdMap = new Map();
+        if (data && data.length > 0) {
+            try {
+                const { data: techData, error: techError } = await supabaseClient
+                    .from('work_orders')
+                    .select('id, assigned_technician_id')
+                    .in('id', data.map(wo => wo.id));
+                
+                if (!techError && techData) {
+                    techData.forEach(wo => {
+                        if (wo.assigned_technician_id) {
+                            technicianIdMap.set(wo.id, wo.assigned_technician_id);
+                        }
+                    });
+                }
+            } catch (e) {
+                // Column doesn't exist, that's fine - we'll just not show technician names
+                console.warn('assigned_technician_id column does not exist in work_orders table');
+            }
         }
 
         // Map technician ID to name for display
         const technicianMap = new Map(AppState.technicians.map(tech => [tech.id, tech.full_name]));
         
-        AppState.workOrders = (data || []).map(order => ({
-            ...order,
-            technician: order.assigned_technician_id 
-                ? (technicianMap.get(order.assigned_technician_id) || 'Unassigned')
-                : 'Unassigned'
-        }));
+        AppState.workOrders = (data || []).map(order => {
+            const techId = technicianIdMap.get(order.id);
+            return {
+                ...order,
+                assigned_technician_id: techId || null,
+                technician: techId 
+                    ? (technicianMap.get(techId) || 'Unassigned')
+                    : 'Unassigned'
+            };
+        });
     },
 
     loadWorkOrderAssets: async () => {
@@ -1216,14 +1252,13 @@ const WorkOrderManager = {
             }
         }
 
-        const selectFields = [
+        // Select fields - don't include assigned_technician_id in select if it doesn't exist
+        let selectFields = [
             'id',
             'asset_id',
             'type',
             'priority',
             'status',
-            'assigned_technician_id',
-            'assigned_to',
             'due_date',
             'created_date',
             'completed_date',
@@ -1233,11 +1268,27 @@ const WorkOrderManager = {
             'description'
         ];
 
+        // Try to insert, but handle case where assigned_technician_id column doesn't exist
         let { data, error } = await supabaseClient
             .from('work_orders')
             .insert(payload)
             .select(selectFields.join(', '))
             .single();
+
+        // If error is about assigned_technician_id not existing, retry without it
+        if (error && (/assigned_technician_id.*does not exist|42703|PGRST204/i.test(error.message || '') || 
+                      (error.code && (error.code === '42703' || error.code === 'PGRST204')))) {
+            console.warn('assigned_technician_id column does not exist, retrying without it');
+            // Remove assigned_technician_id from payload and retry
+            const retryPayload = { ...payload };
+            delete retryPayload.assigned_technician_id;
+            
+            ({ data, error } = await supabaseClient
+                .from('work_orders')
+                .insert(retryPayload)
+                .select(selectFields.join(', '))
+                .single());
+        }
 
         if (error) {
             console.error('Error creating work order:', error);
