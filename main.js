@@ -2794,7 +2794,59 @@ const ChecklistManager = {
     renderPreview: () => {
         const container = document.getElementById('checklist-items-container');
         if (!container) return;
-        container.innerHTML = '<p class="text-sm text-slate-500 text-center py-4">Preview functionality coming soon</p>';
+
+        const name = document.getElementById('checklist-name')?.value || 'Untitled Checklist';
+        const description = document.getElementById('checklist-description')?.value || '';
+        const category = document.getElementById('checklist-category')?.value || '';
+
+        if (ChecklistManager.currentItems.length === 0) {
+            container.innerHTML = `
+                <div class="bg-slate-50 rounded-lg p-6 border border-slate-200">
+                    <p class="text-sm text-slate-500 text-center py-4">No items added yet. Add items in the Edit tab.</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = `
+            <div class="bg-white rounded-lg border border-slate-200 p-6">
+                <div class="mb-4">
+                    <h4 class="text-lg font-semibold text-slate-800">${name || 'Untitled Checklist'}</h4>
+                    ${description ? `<p class="text-sm text-slate-600 mt-1">${description}</p>` : ''}
+                    ${category ? `<span class="inline-block mt-2 text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-800">${category}</span>` : ''}
+                </div>
+                <div class="space-y-3">
+                    ${ChecklistManager.currentItems.map((item, index) => {
+                        const taskTypeLabels = {
+                            'checkbox': 'Checkbox',
+                            'text': 'Text Field',
+                            'number': 'Number Field',
+                            'inspection': 'Inspection Check',
+                            'multiple_choice': 'Multiple Choices',
+                            'meter_reading': 'Meter Reading'
+                        };
+                        return `
+                            <div class="flex items-start gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                                <div class="flex-shrink-0 mt-1">
+                                    <span class="text-xs font-semibold text-slate-500">${index + 1}</span>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <h5 class="text-sm font-medium text-slate-800">${item.task_name || 'Untitled Task'}</h5>
+                                        <span class="text-xs px-2 py-1 rounded bg-slate-200 text-slate-700">${taskTypeLabels[item.task_type] || item.task_type}</span>
+                                    </div>
+                                    ${item.task_description ? `<p class="text-xs text-slate-600">${item.task_description}</p>` : ''}
+                                    ${item.is_required ? `<span class="inline-block mt-1 text-xs px-2 py-0.5 rounded bg-red-100 text-red-700">Required</span>` : ''}
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+                <div class="mt-4 pt-4 border-t border-slate-200">
+                    <p class="text-xs text-slate-500">Total Items: ${ChecklistManager.currentItems.length}</p>
+                </div>
+            </div>
+        `;
     },
 
     handleSubmit: async (event) => {
@@ -2845,6 +2897,13 @@ const ChecklistManager = {
                     .insert(checklistPayload)
                     .select('id')
                     .single();
+                
+                // If table doesn't exist, provide helpful error message
+                if (error && /does not exist|not found|schema cache/i.test(error.message || '')) {
+                    showToast('The checklists table does not exist. Please run checklists_schema.sql in your Supabase SQL Editor.', 'error');
+                    return;
+                }
+                
                 if (error) throw error;
                 checklistId = data.id;
             }
@@ -2879,7 +2938,15 @@ const ChecklistManager = {
             await ChecklistManager.loadChecklists();
         } catch (error) {
             console.error('Error saving checklist:', error);
-            showToast('Failed to save checklist. ' + (error.message || ''), 'error');
+            let errorMessage = 'Failed to save checklist.';
+            if (error.message) {
+                if (/does not exist|not found|schema cache/i.test(error.message)) {
+                    errorMessage = 'The checklists table does not exist. Please run checklists_schema.sql in your Supabase SQL Editor.';
+                } else {
+                    errorMessage = 'Failed to save checklist. ' + error.message;
+                }
+            }
+            showToast(errorMessage, 'error');
         }
     },
 
@@ -2897,6 +2964,22 @@ const ChecklistManager = {
                 .from('checklists')
                 .select('*')
                 .order('created_at', { ascending: false });
+
+            // If table doesn't exist, show helpful message
+            if (error && /does not exist|not found|schema cache/i.test(error.message || '')) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="px-6 py-8 text-center">
+                            <div class="flex flex-col items-center gap-3">
+                                <i class="fas fa-exclamation-triangle text-4xl text-amber-500"></i>
+                                <p class="text-slate-700 font-semibold">Checklists table not found</p>
+                                <p class="text-sm text-slate-600 max-w-md text-center">Please run the <code class="bg-slate-100 px-2 py-1 rounded text-xs">checklists_schema.sql</code> file in your Supabase SQL Editor to create the required tables.</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
 
             if (error) throw error;
 
