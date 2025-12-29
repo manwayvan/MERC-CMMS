@@ -859,7 +859,15 @@ const WorkOrderManager = {
         WorkOrderManager.updateSummaryCounts();
         WorkOrderManager.setupEventListeners();
         await WorkOrderManager.loadWorkOrderAssets();
-        WorkOrderManager.setupPartsPicker();
+    },
+
+    formatWorkOrderType: (type) => {
+        if (!type) return '';
+        return type
+            .replace(/_/g, ' ')
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
     },
 
     getTechnicianLabel: (technicianId) => {
@@ -874,108 +882,6 @@ const WorkOrderManager = {
             .trim()
             .toLowerCase()
             .replace(/\s+/g, '_');
-    },
-
-    setupPartsPicker: () => {
-        const partsSelect = document.getElementById('workorder-parts-select');
-        const partsQtyInput = document.getElementById('workorder-parts-qty');
-        const customPartInput = document.getElementById('workorder-parts-custom');
-        const addPartButton = document.getElementById('workorder-add-part');
-
-        if (!partsSelect || !partsQtyInput || !customPartInput || !addPartButton) return;
-
-        if (!partsSelect.dataset.loaded) {
-            partsSelect.innerHTML = '<option value="">Select part</option>';
-            DefaultPartsCatalog.forEach(part => {
-                const option = document.createElement('option');
-                option.value = part.name;
-                option.textContent = part.name;
-                partsSelect.appendChild(option);
-            });
-            partsSelect.dataset.loaded = 'true';
-        }
-
-        const addPart = () => {
-            const selectedPart = partsSelect.value.trim();
-            const customPart = customPartInput.value.trim();
-            const name = customPart || selectedPart;
-            if (!name) {
-                showToast('Select a part or enter a custom part.', 'warning');
-                return;
-            }
-
-            const quantityValue = Number(partsQtyInput.value || 1);
-            const quantity = Number.isNaN(quantityValue) || quantityValue <= 0 ? 1 : quantityValue;
-            const source = customPart ? 'custom' : 'catalog';
-            WorkOrderManager.addPartsUsedItem({ name, quantity, source });
-
-            partsSelect.value = '';
-            customPartInput.value = '';
-            partsQtyInput.value = '1';
-        };
-
-        addPartButton.addEventListener('click', addPart);
-        customPartInput.addEventListener('keydown', (event) => {
-            if (event.key === 'Enter') {
-                event.preventDefault();
-                addPart();
-            }
-        });
-
-        if (!partsQtyInput.value) {
-            partsQtyInput.value = '1';
-        }
-        WorkOrderManager.renderPartsUsedItems();
-    },
-
-    addPartsUsedItem: (item) => {
-        const existing = WorkOrderManager.partsUsedItems.find(entry => entry.name.toLowerCase() === item.name.toLowerCase());
-        if (existing) {
-            existing.quantity += item.quantity;
-        } else {
-            WorkOrderManager.partsUsedItems.push({ ...item });
-        }
-        WorkOrderManager.renderPartsUsedItems();
-    },
-
-    renderPartsUsedItems: () => {
-        const list = document.getElementById('workorder-parts-list');
-        if (!list) return;
-
-        if (!WorkOrderManager.partsUsedItems.length) {
-            list.innerHTML = '<p class="text-xs text-slate-500">No parts added yet.</p>';
-            return;
-        }
-
-        list.innerHTML = WorkOrderManager.partsUsedItems.map((item, index) => `
-            <div class="flex items-center justify-between bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm">
-                <span class="text-slate-700">${item.name} <span class="text-slate-500">x${item.quantity}</span></span>
-                <button type="button" class="text-xs text-red-600 hover:text-red-800" data-remove-part="${index}">Remove</button>
-            </div>
-        `).join('');
-
-        list.querySelectorAll('button[data-remove-part]').forEach(button => {
-            button.addEventListener('click', () => {
-                const index = Number(button.dataset.removePart);
-                if (!Number.isNaN(index)) {
-                    WorkOrderManager.partsUsedItems.splice(index, 1);
-                    WorkOrderManager.renderPartsUsedItems();
-                }
-            });
-        });
-    },
-
-    resetPartsUsedItems: () => {
-        WorkOrderManager.partsUsedItems = [];
-        WorkOrderManager.renderPartsUsedItems();
-    },
-
-    getPartsUsedPayload: () => {
-        return WorkOrderManager.partsUsedItems.map(item => ({
-            name: item.name,
-            quantity: item.quantity,
-            source: item.source
-        }));
     },
 
     loadAssets: async () => {
@@ -1217,6 +1123,7 @@ const WorkOrderManager = {
         const laborHoursInput = document.getElementById('workorder-labor-hours');
         const partsCostInput = document.getElementById('workorder-parts-cost');
         const laborNotesInput = document.getElementById('workorder-labor-notes');
+        const partsUsedInput = document.getElementById('workorder-parts-used');
         const descriptionInput = document.getElementById('workorder-description');
 
         const assetId = assetSelect?.value || '';
@@ -1228,6 +1135,7 @@ const WorkOrderManager = {
         const laborHours = laborHoursInput?.value ? Number(laborHoursInput.value) : null;
         const partsCost = partsCostInput?.value ? Number(partsCostInput.value) : null;
         const laborNotes = laborNotesInput?.value?.trim() || '';
+        const partsUsed = partsUsedInput?.value?.trim() || '';
         const description = descriptionInput?.value?.trim() || '';
 
         if (!assetId || !type || !dueDate || !description) {
@@ -1239,16 +1147,11 @@ const WorkOrderManager = {
         if (laborHours !== null) detailLines.push(`Labor Hours: ${laborHours}`);
         if (partsCost !== null) detailLines.push(`Parts Cost: $${partsCost.toFixed(2)}`);
         if (laborNotes) detailLines.push(`Labor Notes: ${laborNotes}`);
-        const partsUsedEntries = WorkOrderManager.getPartsUsedPayload();
-        if (partsUsedEntries.length) {
-            const partsSummary = partsUsedEntries.map(item => `${item.name} x${item.quantity}`).join(', ');
-            detailLines.push(`Parts Used: ${partsSummary}`);
-        }
+        if (partsUsed) detailLines.push(`Parts Used: ${partsUsed}`);
 
         const detailedDescription = detailLines.length
             ? `${description}\n\nLabor & Parts\n${detailLines.join('\n')}`
             : description;
-        const partsUsedList = partsUsedEntries.length ? partsUsedEntries : [];
 
         if (!supabaseClient) {
             const newWorkOrder = {
@@ -1263,10 +1166,7 @@ const WorkOrderManager = {
                 created_date: new Date().toISOString(),
                 completed_date: null,
                 estimated_hours: estimatedHours,
-                actual_hours: laborHours,
-                cost: partsCost,
-                parts_used: partsUsedList.length ? partsUsedList : null,
-                completion_notes: laborNotes || null,
+                actual_hours: null,
                 description: detailedDescription
             };
             AppState.workOrders = [newWorkOrder, ...AppState.workOrders];
@@ -1285,10 +1185,6 @@ const WorkOrderManager = {
             status: 'open',
             due_date: new Date(dueDate).toISOString(),
             estimated_hours: estimatedHours,
-            actual_hours: laborHours,
-            cost: partsCost,
-            parts_used: partsUsedList.length ? partsUsedList : null,
-            completion_notes: laborNotes || null,
             description: detailedDescription
         };
 
@@ -1513,7 +1409,6 @@ const SettingsManager = {
         SettingsManager.bindEvents();
         await SettingsManager.loadTechnicians();
         await SettingsManager.loadWorkOrderTypes();
-        SettingsManager.updateSupabaseConnectivity();
     },
 
     cacheElements: () => {
@@ -1608,18 +1503,6 @@ const SettingsManager = {
         });
     },
 
-    updateSupabaseConnectivity: () => {
-        const badges = document.querySelectorAll('[data-connection-status]');
-        if (!badges.length) return;
-
-        const isConnected = !!supabaseClient;
-        badges.forEach(badge => {
-            badge.textContent = isConnected ? 'Connected' : 'Disconnected';
-            badge.classList.toggle('text-emerald-600', isConnected);
-            badge.classList.toggle('text-amber-600', !isConnected);
-        });
-    },
-
     setWorkOrderTypeFormEnabled: (isEnabled) => {
         const {
             workOrderTypeCode,
@@ -1642,6 +1525,7 @@ const SettingsManager = {
         if (!SettingsManager.elements.workOrderTypeTable) return;
 
         if (!supabaseClient) {
+            showToast('Supabase is not connected. Unable to manage work order types.', 'warning');
             SettingsManager.setWorkOrderTypeFormEnabled(false);
             SettingsManager.renderWorkOrderTypes(DefaultWorkOrderTypes.map(type => ({
                 id: type.code,
@@ -1664,6 +1548,7 @@ const SettingsManager = {
 
         if (error) {
             console.error('Error loading work order types:', error);
+            showToast('Unable to load work order types from database.', 'warning');
             SettingsManager.renderWorkOrderTypes([]);
             return;
         }
@@ -1744,6 +1629,7 @@ const SettingsManager = {
         event.preventDefault();
 
         if (!supabaseClient) {
+            showToast('Supabase is not connected. Unable to save work order types.', 'warning');
             return;
         }
 
@@ -1795,6 +1681,7 @@ const SettingsManager = {
 
     handleWorkOrderTypeDelete: async (typeId) => {
         if (!supabaseClient) {
+            showToast('Supabase is not connected. Unable to delete work order types.', 'warning');
             return;
         }
 
