@@ -962,6 +962,9 @@ const WorkOrderManager = {
             'completed_date',
             'estimated_hours',
             'actual_hours',
+            'cost',
+            'parts_used',
+            'completion_notes',
             'description'
         ];
 
@@ -1201,6 +1204,18 @@ const WorkOrderManager = {
             description: detailedDescription
         };
 
+        if (supabaseClient?.auth?.getSession) {
+            try {
+                const { data } = await supabaseClient.auth.getSession();
+                const userId = data?.session?.user?.id;
+                if (userId) {
+                    payload.created_by = userId;
+                }
+            } catch (error) {
+                console.warn('Unable to read auth session for work order creation.', error);
+            }
+        }
+
         if (WorkOrderManager.supportsAssignedTechnicianId) {
             payload.assigned_technician_id = technicianId || null;
         }
@@ -1216,6 +1231,9 @@ const WorkOrderManager = {
             'completed_date',
             'estimated_hours',
             'actual_hours',
+            'cost',
+            'parts_used',
+            'completion_notes',
             'description'
         ];
 
@@ -1231,7 +1249,10 @@ const WorkOrderManager = {
 
         if (error) {
             console.error('Error creating work order:', error);
-            showToast('Failed to create work order.', 'error');
+            const message = /row-level security|permission|jwt/i.test(error.message || '')
+                ? 'Failed to create work order. Please sign in again.'
+                : 'Failed to create work order.';
+            showToast(message, 'error');
             return;
         }
 
