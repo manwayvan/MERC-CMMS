@@ -893,7 +893,7 @@ const WorkOrderManager = {
 
         const { data, error } = await supabaseClient
             .from('assets')
-            .select('id, name, category, serial_number, asset_id')
+            .select('id, name, category, serial_number')
             .order('name', { ascending: true });
 
         if (error) {
@@ -959,7 +959,7 @@ const WorkOrderManager = {
             'type',
             'priority',
             'status',
-            'technician',
+            'assigned_technician_id',
             'assigned_to',
             'due_date',
             'created_date',
@@ -986,9 +986,14 @@ const WorkOrderManager = {
             return;
         }
 
+        // Map technician ID to name for display
+        const technicianMap = new Map(AppState.technicians.map(tech => [tech.id, tech.full_name]));
+        
         AppState.workOrders = (data || []).map(order => ({
             ...order,
-            technician: order.technician || 'Unassigned'
+            technician: order.assigned_technician_id 
+                ? (technicianMap.get(order.assigned_technician_id) || 'Unassigned')
+                : 'Unassigned'
         }));
     },
 
@@ -1193,9 +1198,9 @@ const WorkOrderManager = {
             description: description
         };
 
-        const technicianName = WorkOrderManager.resolveTechnicianName(technicianId);
-        if (technicianName && technicianName !== 'Unassigned') {
-            payload.technician = technicianName;
+        // Use assigned_technician_id instead of technician field (which doesn't exist in schema)
+        if (technicianId) {
+            payload.assigned_technician_id = technicianId;
         }
 
         if (supabaseClient?.auth?.getSession) {
@@ -1217,7 +1222,7 @@ const WorkOrderManager = {
             'type',
             'priority',
             'status',
-            'technician',
+            'assigned_technician_id',
             'assigned_to',
             'due_date',
             'created_date',
@@ -1233,17 +1238,6 @@ const WorkOrderManager = {
             .insert(payload)
             .select(selectFields.join(', '))
             .single();
-
-        // Backwards-compatible retry if the target schema doesn't have newer columns.
-        if (error && /column .*technician/i.test(error.message || '')) {
-            const retryPayload = { ...payload };
-            delete retryPayload.technician;
-            ({ data, error } = await supabaseClient
-                .from('work_orders')
-                .insert(retryPayload)
-                .select(selectFields.filter(field => field !== 'technician').join(', '))
-                .single());
-        }
 
         if (error) {
             console.error('Error creating work order:', error);
@@ -1263,9 +1257,11 @@ const WorkOrderManager = {
             return;
         }
 
+        // Resolve technician name for display
+        const technicianName = WorkOrderManager.resolveTechnicianName(data.assigned_technician_id);
         const newOrder = {
             ...data,
-            technician: data.technician || technicianName || 'Unassigned'
+            technician: technicianName || 'Unassigned'
         };
         AppState.workOrders = [newOrder, ...AppState.workOrders];
         WorkOrderManager.renderWorkOrders();
@@ -1604,38 +1600,25 @@ const WorkOrderManager = {
             const option = document.createElement('option');
             option.value = asset.id;
             
-            // Determine the readable asset ID
-            // Check if asset.id is a UUID - if so, look for a readable asset_id field
+            // The asset.id IS the readable asset ID (like AST-20251227-S502)
+            // According to schema: id TEXT PRIMARY KEY with DEFAULT generating readable IDs
+            // Check if it's a UUID (which would mean the schema wasn't applied correctly)
             const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(asset.id);
-            let readableAssetId = asset.id;
             
-            // If the id is a UUID, try to find the readable asset ID
-            if (isUUID) {
-                // Check for asset_id field first (readable ID like AST-20251227-S502)
-                readableAssetId = asset.asset_id || asset.serial_number || 'N/A';
-            }
-            // If id is not a UUID, it's already the readable ID (like AST-20251227-S502)
-            
-            // Format: [Category] Asset Name (Asset ID: readableAssetId)
+            // Format: Asset ID [Category] Asset Name
             // User wants: Asset ID, Category, and Name - but NOT the Supabase UUID
             const category = asset.category 
                 ? `[${asset.category.charAt(0).toUpperCase() + asset.category.slice(1)}]` 
                 : '';
             const assetName = asset.name || 'Unnamed Asset';
             
-            // If id is a UUID, don't show it - show readable ID instead
-            // If id is not a UUID, it's already readable
             if (isUUID) {
-                // Hide UUID, show readable ID if available
-                if (readableAssetId && readableAssetId !== 'N/A') {
-                    option.textContent = `${readableAssetId} ${category} ${assetName}`.trim();
-                } else {
-                    // No readable ID found, just show category and name
-                    option.textContent = `${category} ${assetName}`.trim();
-                }
+                // If id is a UUID (unexpected), use serial_number as fallback identifier
+                const fallbackId = asset.serial_number || 'N/A';
+                option.textContent = `${fallbackId} ${category} ${assetName}`.trim();
             } else {
-                // id is already readable (like AST-20251227-S502)
-                option.textContent = `${readableAssetId} ${category} ${assetName}`.trim();
+                // id is the readable asset ID (like AST-20251227-S502) - show it first
+                option.textContent = `${asset.id} ${category} ${assetName}`.trim();
             }
             
             assetSelect.appendChild(option);
