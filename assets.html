@@ -60,6 +60,9 @@
 .wo-card.priority-high { border-left-color: #d97706; }
 .wo-card.priority-medium { border-left-color: #2563eb; }
 .wo-card.priority-low { border-left-color: #6b7280; }
+.view-toggle-btn { background: white; color: #64748b; border: 1px solid #cbd5e1; }
+.view-toggle-btn:hover { background: #f8fafc; }
+.view-toggle-btn.active { background: #2563eb; color: white; border-color: #2563eb; }
 </style>
 </head>
 <body class="bg-slate-50 text-slate-800">
@@ -193,6 +196,14 @@
                     <option value="inactive">Inactive</option>
                     <option value="retired">Retired</option>
                 </select>
+                <div class="flex gap-2 border border-slate-300 rounded-lg overflow-hidden">
+                    <button id="grid-view-btn" onclick="switchView('grid')" class="view-toggle-btn active px-4 py-2 text-sm font-medium transition-colors">
+                        <i class="fas fa-th-large mr-2"></i>Grid View
+                    </button>
+                    <button id="list-view-btn" onclick="switchView('list')" class="view-toggle-btn px-4 py-2 text-sm font-medium transition-colors">
+                        <i class="fas fa-list mr-2"></i>List View
+                    </button>
+                </div>
                 <button onclick="showBulkImportModal()" class="btn btn-secondary">
                     <i class="fas fa-file-import"></i>
                     Bulk Import
@@ -218,6 +229,27 @@
                     <p class="text-gray-600 font-medium">Loading assets from Supabase...</p>
                 </div>
                 <div id="assets-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 fade-in" style="display:none"></div>
+                <div id="assets-list" class="hidden">
+                    <div class="bg-white rounded-xl shadow-md overflow-hidden">
+                        <table class="min-w-full divide-y divide-slate-200">
+                            <thead class="bg-slate-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Asset ID</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Name</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Category</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Serial Number</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Next PM</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Compliance</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="assets-list-body" class="bg-white divide-y divide-slate-200">
+                                <!-- Assets will be rendered here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
                 <div id="empty-state" class="text-center py-16 bg-slate-50 rounded-xl" style="display:none">
                     <i class="fas fa-box-open text-6xl text-gray-300 mb-4"></i>
                     <h3 class="text-2xl font-bold text-gray-700 mb-2">No Assets Found</h3>
@@ -1037,17 +1069,110 @@
             document.getElementById('stat-compliant').textContent = compliant + '%';
         }
 
+        let currentView = 'grid';
+
+        function switchView(view) {
+            currentView = view;
+            const gridBtn = document.getElementById('grid-view-btn');
+            const listBtn = document.getElementById('list-view-btn');
+            if (gridBtn) {
+                gridBtn.classList.toggle('active', view === 'grid');
+            }
+            if (listBtn) {
+                listBtn.classList.toggle('active', view === 'list');
+            }
+            renderAssets();
+        }
+
         function renderAssets() {
+            if (currentView === 'grid') {
+                renderAssetsGrid();
+            } else {
+                renderAssetsList();
+            }
+        }
+
+        function renderAssetsGrid() {
             const grid = document.getElementById('assets-grid');
+            const list = document.getElementById('assets-list');
             const empty = document.getElementById('empty-state');
+            
+            if (list) list.classList.add('hidden');
+            if (grid) grid.classList.remove('hidden');
+            
             if (filteredAssets.length === 0) {
-                grid.style.display = 'none';
-                empty.style.display = 'block';
+                if (grid) grid.style.display = 'none';
+                if (empty) empty.style.display = 'block';
                 return;
             }
-            grid.style.display = 'grid';
-            empty.style.display = 'none';
-            grid.innerHTML = filteredAssets.map(asset => createAssetCard(asset)).join('');
+            if (grid) grid.style.display = 'grid';
+            if (empty) empty.style.display = 'none';
+            if (grid) grid.innerHTML = filteredAssets.map(asset => createAssetCard(asset)).join('');
+        }
+
+        function renderAssetsList() {
+            const grid = document.getElementById('assets-grid');
+            const list = document.getElementById('assets-list');
+            const listBody = document.getElementById('assets-list-body');
+            const empty = document.getElementById('empty-state');
+            
+            if (grid) grid.style.display = 'none';
+            if (list) list.classList.remove('hidden');
+            if (empty) empty.style.display = 'none';
+            
+            if (!listBody) return;
+            
+            if (filteredAssets.length === 0) {
+                listBody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="px-6 py-12 text-center text-slate-500">
+                            <i class="fas fa-box-open text-4xl mb-4 text-slate-300"></i>
+                            <p class="text-lg font-semibold mb-2">No assets found</p>
+                            <p class="text-sm mb-4">Get started by adding your first medical device asset</p>
+                            <button onclick="showAddAssetModal()" class="btn btn-primary">
+                                <i class="fas fa-plus"></i>Add Your First Asset
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            listBody.innerHTML = filteredAssets.map(asset => {
+                const days = getDaysUntil(asset.next_maintenance);
+                const statusColors = {
+                    active: 'bg-green-100 text-green-800',
+                    maintenance: 'bg-yellow-100 text-yellow-800',
+                    inactive: 'bg-gray-100 text-gray-800',
+                    retired: 'bg-red-100 text-red-800'
+                };
+                const complianceColor = days !== null && days < 0 ? 'text-red-600 font-bold' : days !== null && days <= 7 ? 'text-orange-600 font-semibold' : 'text-green-600';
+                const complianceText = days !== null && days < 0 ? `${Math.abs(days)} days OVERDUE` : days !== null ? `${days} days remaining` : 'N/A';
+                
+                return `
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">${escapeHtml(asset.id || 'N/A')}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900">${escapeHtml(asset.name || 'Unnamed')}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">${escapeHtml(asset.category || 'N/A')}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">${escapeHtml(asset.serial_number || 'N/A')}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 py-1 text-xs font-medium rounded-full ${statusColors[asset.status] || 'bg-gray-100 text-gray-800'}">
+                                ${asset.status ? asset.status.charAt(0).toUpperCase() + asset.status.slice(1) : 'Unknown'}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">${formatDate(asset.next_maintenance)}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm ${complianceColor}">${complianceText}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button onclick='viewAsset(${JSON.stringify(asset).replace(/'/g, "&#39;")})' class="text-blue-600 hover:text-blue-900 mr-3">
+                                <i class="fas fa-eye"></i> View
+                            </button>
+                            <button onclick="deleteAsset('${asset.id}')" class="text-red-600 hover:text-red-900">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
         }
 
         function createAssetCard(asset) {
