@@ -1133,6 +1133,10 @@ const WorkOrderManager = {
         const technicianSelect = document.getElementById('workorder-technician-select');
         const dueDateInput = document.getElementById('workorder-due-date');
         const estimatedHoursInput = document.getElementById('workorder-estimated-hours');
+        const laborHoursInput = document.getElementById('workorder-labor-hours');
+        const partsCostInput = document.getElementById('workorder-parts-cost');
+        const laborNotesInput = document.getElementById('workorder-labor-notes');
+        const partsUsedInput = document.getElementById('workorder-parts-used');
         const descriptionInput = document.getElementById('workorder-description');
 
         const assetId = assetSelect?.value || '';
@@ -1141,12 +1145,26 @@ const WorkOrderManager = {
         const technicianId = technicianSelect?.value || null;
         const dueDate = dueDateInput?.value || '';
         const estimatedHours = estimatedHoursInput?.value ? Number(estimatedHoursInput.value) : null;
+        const laborHours = laborHoursInput?.value ? Number(laborHoursInput.value) : null;
+        const partsCost = partsCostInput?.value ? Number(partsCostInput.value) : null;
+        const laborNotes = laborNotesInput?.value?.trim() || '';
+        const partsUsed = partsUsedInput?.value?.trim() || '';
         const description = descriptionInput?.value?.trim() || '';
 
         if (!assetId || !type || !dueDate || !description) {
             showToast('Please complete asset, type, due date, and description.', 'warning');
             return;
         }
+
+        const detailLines = [];
+        if (laborHours !== null) detailLines.push(`Labor Hours: ${laborHours}`);
+        if (partsCost !== null) detailLines.push(`Parts Cost: $${partsCost.toFixed(2)}`);
+        if (laborNotes) detailLines.push(`Labor Notes: ${laborNotes}`);
+        if (partsUsed) detailLines.push(`Parts Used: ${partsUsed}`);
+
+        const detailedDescription = detailLines.length
+            ? `${description}\n\nLabor & Parts\n${detailLines.join('\n')}`
+            : description;
 
         if (!supabaseClient) {
             const newWorkOrder = {
@@ -1162,7 +1180,7 @@ const WorkOrderManager = {
                 completed_date: null,
                 estimated_hours: estimatedHours,
                 actual_hours: null,
-                description
+                description: detailedDescription
             };
             AppState.workOrders = [newWorkOrder, ...AppState.workOrders];
             WorkOrderManager.renderWorkOrders();
@@ -1180,7 +1198,7 @@ const WorkOrderManager = {
             status: 'open',
             due_date: new Date(dueDate).toISOString(),
             estimated_hours: estimatedHours,
-            description
+            description: detailedDescription
         };
 
         if (WorkOrderManager.supportsAssignedTechnicianId) {
@@ -1724,6 +1742,8 @@ async function initApp() {
     AppState.currentPage = normalizePageName(pageName);
     ChartManager.initializeCharts();
     setupMobileMenu();
+
+    await loadSupabaseClient();
 
     if (AppState.currentPage === 'assets') {
         assetManager.loadAssets();
