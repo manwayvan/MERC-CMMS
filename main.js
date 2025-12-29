@@ -1357,54 +1357,23 @@ const WorkOrderManager = {
 const SettingsManager = {
     elements: {
         technicianForm: null,
-        technicianList: null,
-        technicianSubmitButton: null,
-        technicianPermissionNote: null,
-        supabaseStatusBadge: null,
-        supabaseStatusText: null,
-        supabaseLastChecked: null,
-        supabaseCheckButton: null
+        technicianList: null
     },
 
     init: async () => {
         SettingsManager.cacheElements();
         SettingsManager.bindEvents();
-        SettingsManager.updateSupabaseStatus('idle', 'Run a connectivity check to validate Supabase access.');
         await SettingsManager.loadTechnicians();
     },
 
     cacheElements: () => {
         SettingsManager.elements.technicianForm = document.getElementById('technician-form');
         SettingsManager.elements.technicianList = document.getElementById('technician-list');
-        SettingsManager.elements.technicianSubmitButton = document.querySelector('#technician-form button[type="submit"]');
-        SettingsManager.elements.technicianPermissionNote = document.getElementById('technician-permission-note');
-        SettingsManager.elements.supabaseStatusBadge = document.getElementById('supabase-status-badge');
-        SettingsManager.elements.supabaseStatusText = document.getElementById('supabase-status-text');
-        SettingsManager.elements.supabaseLastChecked = document.getElementById('supabase-last-checked');
-        SettingsManager.elements.supabaseCheckButton = document.getElementById('supabase-check-button');
     },
 
     bindEvents: () => {
         if (SettingsManager.elements.technicianForm) {
             SettingsManager.elements.technicianForm.addEventListener('submit', SettingsManager.handleTechnicianSubmit);
-        }
-        if (SettingsManager.elements.supabaseCheckButton) {
-            SettingsManager.elements.supabaseCheckButton.addEventListener('click', SettingsManager.runSupabaseCheck);
-        }
-    },
-
-    getAuthenticatedUser: async () => {
-        if (!supabaseClient?.auth?.getUser) {
-            return null;
-        }
-
-        try {
-            const { data, error } = await supabaseClient.auth.getUser();
-            if (error) throw error;
-            return data?.user || null;
-        } catch (error) {
-            console.warn('Unable to fetch authenticated user:', error);
-            return null;
         }
     },
 
@@ -1416,14 +1385,6 @@ const SettingsManager = {
         }
 
         try {
-            const user = await SettingsManager.getAuthenticatedUser();
-            if (!user) {
-                SettingsManager.updateTechnicianFormState(false);
-                SettingsManager.renderTechnicians([], 'Sign in to view technicians.');
-                return;
-            }
-
-            SettingsManager.updateTechnicianFormState(true);
             const { data, error } = await supabaseClient
                 .from('technicians')
                 .select('id, full_name, role, email, phone, is_active')
@@ -1435,26 +1396,11 @@ const SettingsManager = {
         } catch (error) {
             console.error('Error loading technicians:', error);
             showToast('Unable to load technicians from database.', 'warning');
-            SettingsManager.renderTechnicians([], 'Unable to load technicians.');
+            SettingsManager.renderTechnicians([]);
         }
     },
 
-    updateTechnicianFormState: (canManage) => {
-        const form = SettingsManager.elements.technicianForm;
-        if (!form) return;
-
-        form.querySelectorAll('input, select, button').forEach((element) => {
-            element.disabled = !canManage;
-        });
-
-        if (SettingsManager.elements.technicianPermissionNote) {
-            SettingsManager.elements.technicianPermissionNote.textContent = canManage
-                ? ''
-                : 'Sign in with an authenticated Supabase user to add or edit technicians.';
-        }
-    },
-
-    renderTechnicians: (technicians, emptyMessage = 'No technicians found.') => {
+    renderTechnicians: (technicians) => {
         const list = SettingsManager.elements.technicianList;
         if (!list) return;
 
@@ -1463,7 +1409,7 @@ const SettingsManager = {
         if (!technicians.length) {
             const emptyItem = document.createElement('li');
             emptyItem.className = 'text-slate-500';
-            emptyItem.textContent = emptyMessage;
+            emptyItem.textContent = 'No technicians found.';
             list.appendChild(emptyItem);
             return;
         }
@@ -1506,12 +1452,6 @@ const SettingsManager = {
             return;
         }
 
-        const user = await SettingsManager.getAuthenticatedUser();
-        if (!user) {
-            showToast('Sign in to add technicians.', 'warning');
-            return;
-        }
-
         const form = event.target;
         const formData = new FormData(form);
         const payload = {
@@ -1542,64 +1482,7 @@ const SettingsManager = {
             await SettingsManager.loadTechnicians();
         } catch (error) {
             console.error('Error adding technician:', error);
-            if (error?.status === 401 || /not authorized|permission|row-level security/i.test(error?.message || '')) {
-                showToast('Permission denied. Ensure your Supabase RLS policy allows technician inserts.', 'error');
-            } else {
-                showToast('Failed to add technician.', 'error');
-            }
-        }
-    },
-
-    updateSupabaseStatus: (status, message) => {
-        const badge = SettingsManager.elements.supabaseStatusBadge;
-        const text = SettingsManager.elements.supabaseStatusText;
-        const lastChecked = SettingsManager.elements.supabaseLastChecked;
-
-        if (badge) {
-            const isConnected = status === 'connected';
-            badge.className = `status-badge ${isConnected ? 'status-active' : 'status-inactive'}`;
-            badge.innerHTML = isConnected ? '<span class="badge-pulse"></span>Connected' : 'Not connected';
-        }
-
-        if (text) {
-            text.textContent = message;
-        }
-
-        if (lastChecked && status !== 'idle') {
-            lastChecked.textContent = new Date().toLocaleString();
-        }
-    },
-
-    runSupabaseCheck: async () => {
-        if (!supabaseClient) {
-            SettingsManager.updateSupabaseStatus('error', 'Supabase client is not initialized.');
-            showToast('Supabase is not connected.', 'warning');
-            return;
-        }
-
-        SettingsManager.updateSupabaseStatus('checking', 'Checking Supabase connectivity...');
-
-        try {
-            const user = await SettingsManager.getAuthenticatedUser();
-            if (!user) {
-                SettingsManager.updateSupabaseStatus('error', 'Sign in required to verify Supabase access.');
-                showToast('Sign in required to verify Supabase access.', 'warning');
-                return;
-            }
-
-            const { error } = await supabaseClient
-                .from('technicians')
-                .select('id')
-                .limit(1);
-
-            if (error) throw error;
-
-            SettingsManager.updateSupabaseStatus('connected', 'Supabase connectivity verified.');
-            showToast('Supabase connectivity verified.', 'success');
-        } catch (error) {
-            console.error('Supabase connectivity check failed:', error);
-            SettingsManager.updateSupabaseStatus('error', 'Unable to reach Supabase. Check credentials or network.');
-            showToast('Supabase connectivity check failed.', 'error');
+            showToast('Failed to add technician.', 'error');
         }
     }
 };
@@ -1841,13 +1724,6 @@ async function initApp() {
     AppState.currentPage = normalizePageName(pageName);
     ChartManager.initializeCharts();
     setupMobileMenu();
-
-    const authed = await requireAuth();
-    if (!authed) {
-        return;
-    }
-
-    setupLogout();
 
     if (AppState.currentPage === 'assets') {
         assetManager.loadAssets();
