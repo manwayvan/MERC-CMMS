@@ -964,11 +964,24 @@
                     showToast('Unknown reference type.', 'error');
                     return;
                 }
+                // For categories, generate a simple ID from the name
+                if (lookupContext.type === 'categories') {
+                    // Generate ID from name (lowercase, replace spaces with underscores)
+                    payload.id = value.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+                }
+                
                 const { data, error } = await supabaseClient
                     .from(table)
                     .insert([payload])
                     .select('id, name, category_id, make_id')
                     .single();
+                
+                // If table doesn't exist, provide helpful error message
+                if (error && /does not exist|not found|schema cache/i.test(error.message || '')) {
+                    showToast(`The ${table} table does not exist. Please run the device_catalog_schema.sql file in your Supabase SQL Editor to create it.`, 'error');
+                    return;
+                }
+                
                 if (error) throw error;
                 if (lookupContext.type === 'categories') {
                     referenceData.categories.push({ id: data.id, name: data.name });
