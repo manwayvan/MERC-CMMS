@@ -833,6 +833,7 @@ const assetManager = new AssetManager();
 // Work Order Management Functions
 const WorkOrderManager = {
     pendingAssetId: null,
+    supportsAssignedTechnicianId: true,
     // Initialize work order management
     init: async () => {
         WorkOrderManager.updateSupabaseStatus(!!supabaseClient);
@@ -847,43 +848,6 @@ const WorkOrderManager = {
         await WorkOrderManager.loadWorkOrderTypes();
         await WorkOrderManager.loadWorkOrderAssets();
         WorkOrderManager.updateSupabaseStatus();
-    },
-
-    loadWorkOrders: async () => {
-        if (!supabaseClient) {
-            AppState.workOrders = [];
-            showToast('Supabase connection required to load work orders.', 'error');
-            WorkOrderManager.updateSupabaseStatus('Supabase not connected.');
-            return;
-        }
-
-        const { data, error } = await supabaseClient
-            .from('work_orders')
-            .select('id, asset_id, type, priority, status, assigned_technician_id, due_date, created_date, completed_date, estimated_hours, actual_hours, description')
-            .order('created_date', { ascending: false });
-
-        if (error) {
-            console.error('Error loading work orders:', error);
-            AppState.workOrders = [];
-            showToast('Unable to load work orders from Supabase.', 'error');
-            WorkOrderManager.updateSupabaseStatus('Failed to load work orders.');
-            return;
-        }
-
-        AppState.workOrders = (data || []).map((row) => ({
-            id: row.id,
-            asset_id: row.asset_id,
-            type: row.type,
-            priority: row.priority,
-            status: row.status,
-            technician: WorkOrderManager.getTechnicianLabel(row.assigned_technician_id),
-            due_date: row.due_date,
-            created_date: row.created_date,
-            completed_date: row.completed_date,
-            estimated_hours: row.estimated_hours ?? 0,
-            actual_hours: row.actual_hours ?? 0,
-            description: row.description ?? ''
-        }));
     },
 
     formatWorkOrderType: (type) => {
@@ -981,10 +945,34 @@ const WorkOrderManager = {
             return;
         }
 
-        const { data, error } = await supabaseClient
+        const selectFields = [
+            'id',
+            'asset_id',
+            'type',
+            'priority',
+            'status',
+            'assigned_technician_id',
+            'due_date',
+            'created_date',
+            'completed_date',
+            'estimated_hours',
+            'actual_hours',
+            'description'
+        ];
+
+        let { data, error } = await supabaseClient
             .from('work_orders')
-            .select('id, asset_id, type, priority, status, assigned_technician_id, due_date, created_date, completed_date, estimated_hours, actual_hours, description')
+            .select(selectFields.join(', '))
             .order('created_date', { ascending: false });
+
+        if (error && /assigned_technician_id/i.test(error.message || '')) {
+            WorkOrderManager.supportsAssignedTechnicianId = false;
+            const fallbackFields = selectFields.filter(field => field !== 'assigned_technician_id');
+            ({ data, error } = await supabaseClient
+                .from('work_orders')
+                .select(fallbackFields.join(', '))
+                .order('created_date', { ascending: false }));
+        }
 
         if (error) {
             console.error('Error loading work orders:', error);
@@ -997,8 +985,14 @@ const WorkOrderManager = {
 
         AppState.workOrders = (data || []).map(order => ({
             ...order,
-            technician: order.assigned_technician_id ? (technicianMap.get(order.assigned_technician_id) || 'Unassigned') : 'Unassigned'
+            technician: order.assigned_technician_id
+                ? (technicianMap.get(order.assigned_technician_id) || 'Unassigned')
+                : 'Unassigned'
         }));
+    },
+
+    loadWorkOrderAssets: async () => {
+        WorkOrderManager.populateAssetOptions();
     },
 
     // Render work orders in kanban board
@@ -1174,19 +1168,42 @@ const WorkOrderManager = {
             return;
         }
 
+        const payload = {
+            asset_id: assetId,
+            type,
+            priority,
+            status: 'open',
+            due_date: new Date(dueDate).toISOString(),
+            estimated_hours: estimatedHours,
+            description
+        };
+
+        if (WorkOrderManager.supportsAssignedTechnicianId) {
+            payload.assigned_technician_id = technicianId || null;
+        }
+
+        const selectFields = [
+            'id',
+            'asset_id',
+            'type',
+            'priority',
+            'status',
+            'due_date',
+            'created_date',
+            'completed_date',
+            'estimated_hours',
+            'actual_hours',
+            'description'
+        ];
+
+        if (WorkOrderManager.supportsAssignedTechnicianId) {
+            selectFields.push('assigned_technician_id');
+        }
+
         const { data, error } = await supabaseClient
             .from('work_orders')
-            .insert({
-                asset_id: assetId,
-                type,
-                priority,
-                status: 'open',
-                assigned_technician_id: technicianId || null,
-                due_date: new Date(dueDate).toISOString(),
-                estimated_hours: estimatedHours,
-                description
-            })
-            .select('id, asset_id, type, priority, status, assigned_technician_id, due_date, created_date, completed_date, estimated_hours, actual_hours, description')
+            .insert(payload)
+            .select(selectFields.join(', '))
             .single();
 
         if (error) {
@@ -1197,7 +1214,9 @@ const WorkOrderManager = {
 
         const newOrder = {
             ...data,
-            technician: WorkOrderManager.resolveTechnicianName(data.assigned_technician_id)
+            technician: WorkOrderManager.supportsAssignedTechnicianId
+                ? WorkOrderManager.resolveTechnicianName(data.assigned_technician_id)
+                : 'Unassigned'
         };
         AppState.workOrders = [newOrder, ...AppState.workOrders];
         WorkOrderManager.renderWorkOrders();
@@ -1327,6 +1346,256 @@ const WorkOrderManager = {
         const parsed = new Date(dateValue);
         if (Number.isNaN(parsed.getTime())) return '--';
         return parsed.toLocaleDateString();
+    }
+};
+
+const SettingsManager = {
+    elements: {
+        technicianForm: null,
+        technicianList: null,
+        technicianSubmitButton: null,
+        technicianPermissionNote: null,
+        supabaseStatusBadge: null,
+        supabaseStatusText: null,
+        supabaseLastChecked: null,
+        supabaseCheckButton: null
+    },
+
+    init: async () => {
+        SettingsManager.cacheElements();
+        SettingsManager.bindEvents();
+        SettingsManager.updateSupabaseStatus('idle', 'Run a connectivity check to validate Supabase access.');
+        await SettingsManager.loadTechnicians();
+    },
+
+    cacheElements: () => {
+        SettingsManager.elements.technicianForm = document.getElementById('technician-form');
+        SettingsManager.elements.technicianList = document.getElementById('technician-list');
+        SettingsManager.elements.technicianSubmitButton = document.querySelector('#technician-form button[type="submit"]');
+        SettingsManager.elements.technicianPermissionNote = document.getElementById('technician-permission-note');
+        SettingsManager.elements.supabaseStatusBadge = document.getElementById('supabase-status-badge');
+        SettingsManager.elements.supabaseStatusText = document.getElementById('supabase-status-text');
+        SettingsManager.elements.supabaseLastChecked = document.getElementById('supabase-last-checked');
+        SettingsManager.elements.supabaseCheckButton = document.getElementById('supabase-check-button');
+    },
+
+    bindEvents: () => {
+        if (SettingsManager.elements.technicianForm) {
+            SettingsManager.elements.technicianForm.addEventListener('submit', SettingsManager.handleTechnicianSubmit);
+        }
+        if (SettingsManager.elements.supabaseCheckButton) {
+            SettingsManager.elements.supabaseCheckButton.addEventListener('click', SettingsManager.runSupabaseCheck);
+        }
+    },
+
+    getAuthenticatedUser: async () => {
+        if (!supabaseClient?.auth?.getUser) {
+            return null;
+        }
+
+        try {
+            const { data, error } = await supabaseClient.auth.getUser();
+            if (error) throw error;
+            return data?.user || null;
+        } catch (error) {
+            console.warn('Unable to fetch authenticated user:', error);
+            return null;
+        }
+    },
+
+    loadTechnicians: async () => {
+        if (!supabaseClient) {
+            showToast('Supabase is not connected. Unable to load technicians.', 'warning');
+            SettingsManager.renderTechnicians([]);
+            return;
+        }
+
+        try {
+            const user = await SettingsManager.getAuthenticatedUser();
+            if (!user) {
+                SettingsManager.updateTechnicianFormState(false);
+                SettingsManager.renderTechnicians([], 'Sign in to view technicians.');
+                return;
+            }
+
+            SettingsManager.updateTechnicianFormState(true);
+            const { data, error } = await supabaseClient
+                .from('technicians')
+                .select('id, full_name, role, email, phone, is_active')
+                .order('full_name', { ascending: true });
+
+            if (error) throw error;
+
+            SettingsManager.renderTechnicians(data || []);
+        } catch (error) {
+            console.error('Error loading technicians:', error);
+            showToast('Unable to load technicians from database.', 'warning');
+            SettingsManager.renderTechnicians([], 'Unable to load technicians.');
+        }
+    },
+
+    updateTechnicianFormState: (canManage) => {
+        const form = SettingsManager.elements.technicianForm;
+        if (!form) return;
+
+        form.querySelectorAll('input, select, button').forEach((element) => {
+            element.disabled = !canManage;
+        });
+
+        if (SettingsManager.elements.technicianPermissionNote) {
+            SettingsManager.elements.technicianPermissionNote.textContent = canManage
+                ? ''
+                : 'Sign in with an authenticated Supabase user to add or edit technicians.';
+        }
+    },
+
+    renderTechnicians: (technicians, emptyMessage = 'No technicians found.') => {
+        const list = SettingsManager.elements.technicianList;
+        if (!list) return;
+
+        list.innerHTML = '';
+
+        if (!technicians.length) {
+            const emptyItem = document.createElement('li');
+            emptyItem.className = 'text-slate-500';
+            emptyItem.textContent = emptyMessage;
+            list.appendChild(emptyItem);
+            return;
+        }
+
+        technicians.forEach(tech => {
+            const item = document.createElement('li');
+            item.className = 'flex items-start justify-between gap-4 bg-slate-50 border border-slate-200 rounded-lg p-3';
+
+            const details = document.createElement('div');
+            const nameRow = document.createElement('div');
+            nameRow.className = 'flex items-center gap-2';
+            nameRow.innerHTML = `
+                <span class="font-medium text-slate-800">${tech.full_name}</span>
+                <span class="text-xs uppercase tracking-wide text-slate-500">${tech.role}</span>
+            `;
+
+            const meta = document.createElement('div');
+            meta.className = 'text-xs text-slate-500 mt-1';
+            const email = tech.email ? `Email: ${tech.email}` : 'Email: —';
+            const phone = tech.phone ? `Phone: ${tech.phone}` : 'Phone: —';
+            meta.textContent = `${email} · ${phone}`;
+
+            details.appendChild(nameRow);
+            details.appendChild(meta);
+
+            const status = document.createElement('span');
+            status.className = `status-badge ${tech.is_active ? 'status-active' : 'status-inactive'}`;
+            status.innerHTML = `${tech.is_active ? '<span class="badge-pulse"></span>Active' : 'Inactive'}`;
+
+            item.appendChild(details);
+            item.appendChild(status);
+            list.appendChild(item);
+        });
+    },
+
+    handleTechnicianSubmit: async (event) => {
+        event.preventDefault();
+        if (!supabaseClient) {
+            showToast('Supabase is not connected. Unable to save technician.', 'warning');
+            return;
+        }
+
+        const user = await SettingsManager.getAuthenticatedUser();
+        if (!user) {
+            showToast('Sign in to add technicians.', 'warning');
+            return;
+        }
+
+        const form = event.target;
+        const formData = new FormData(form);
+        const payload = {
+            full_name: formData.get('full_name')?.toString().trim(),
+            role: formData.get('role') || 'technician',
+            phone: formData.get('phone')?.toString().trim() || null,
+            email: formData.get('email')?.toString().trim() || null,
+            is_active: formData.get('is_active') === 'on'
+        };
+
+        if (!payload.full_name) {
+            showToast('Please provide a technician name.', 'warning');
+            return;
+        }
+
+        try {
+            const { error } = await supabaseClient
+                .from('technicians')
+                .insert([payload]);
+
+            if (error) throw error;
+
+            form.reset();
+            const activeToggle = form.querySelector('input[name="is_active"]');
+            if (activeToggle) activeToggle.checked = true;
+
+            showToast('Technician added successfully.', 'success');
+            await SettingsManager.loadTechnicians();
+        } catch (error) {
+            console.error('Error adding technician:', error);
+            if (error?.status === 401 || /not authorized|permission|row-level security/i.test(error?.message || '')) {
+                showToast('Permission denied. Ensure your Supabase RLS policy allows technician inserts.', 'error');
+            } else {
+                showToast('Failed to add technician.', 'error');
+            }
+        }
+    },
+
+    updateSupabaseStatus: (status, message) => {
+        const badge = SettingsManager.elements.supabaseStatusBadge;
+        const text = SettingsManager.elements.supabaseStatusText;
+        const lastChecked = SettingsManager.elements.supabaseLastChecked;
+
+        if (badge) {
+            const isConnected = status === 'connected';
+            badge.className = `status-badge ${isConnected ? 'status-active' : 'status-inactive'}`;
+            badge.innerHTML = isConnected ? '<span class="badge-pulse"></span>Connected' : 'Not connected';
+        }
+
+        if (text) {
+            text.textContent = message;
+        }
+
+        if (lastChecked && status !== 'idle') {
+            lastChecked.textContent = new Date().toLocaleString();
+        }
+    },
+
+    runSupabaseCheck: async () => {
+        if (!supabaseClient) {
+            SettingsManager.updateSupabaseStatus('error', 'Supabase client is not initialized.');
+            showToast('Supabase is not connected.', 'warning');
+            return;
+        }
+
+        SettingsManager.updateSupabaseStatus('checking', 'Checking Supabase connectivity...');
+
+        try {
+            const user = await SettingsManager.getAuthenticatedUser();
+            if (!user) {
+                SettingsManager.updateSupabaseStatus('error', 'Sign in required to verify Supabase access.');
+                showToast('Sign in required to verify Supabase access.', 'warning');
+                return;
+            }
+
+            const { error } = await supabaseClient
+                .from('technicians')
+                .select('id')
+                .limit(1);
+
+            if (error) throw error;
+
+            SettingsManager.updateSupabaseStatus('connected', 'Supabase connectivity verified.');
+            showToast('Supabase connectivity verified.', 'success');
+        } catch (error) {
+            console.error('Supabase connectivity check failed:', error);
+            SettingsManager.updateSupabaseStatus('error', 'Unable to reach Supabase. Check credentials or network.');
+            showToast('Supabase connectivity check failed.', 'error');
+        }
     }
 };
 
@@ -1487,6 +1756,27 @@ function initCustomerPage() {
     }
 }
 
+function setupMobileMenu() {
+    const button = document.getElementById('mobile-menu-button');
+    const menu = document.getElementById('mobile-menu');
+
+    if (!button || !menu) return;
+
+    const toggleMenu = () => {
+        const isHidden = menu.classList.toggle('hidden');
+        button.setAttribute('aria-expanded', String(!isHidden));
+    };
+
+    button.addEventListener('click', toggleMenu);
+    menu.querySelectorAll('a').forEach(link => {
+        link.addEventListener('click', () => {
+            if (!menu.classList.contains('hidden')) {
+                toggleMenu();
+            }
+        });
+    });
+}
+
 function normalizePageName(pageName) {
     if (!pageName || pageName === 'index') {
         return 'dashboard';
@@ -1504,6 +1794,7 @@ async function initApp() {
     const pageName = window.location.pathname.split('/').pop().replace('.html', '');
     AppState.currentPage = normalizePageName(pageName);
     ChartManager.initializeCharts();
+    setupMobileMenu();
 
     if (AppState.currentPage === 'assets') {
         await loadSupabaseClient();

@@ -298,7 +298,7 @@
     <!-- Header -->
     <nav class="fixed top-0 left-0 right-0 z-50 medical-gradient shadow-lg">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex flex-wrap justify-between items-center gap-3 py-2 min-h-[4rem]">
+            <div class="flex flex-nowrap justify-between items-center gap-3 py-2 min-h-[4rem]">
                 <a href="index.html" class="flex items-center space-x-4 min-w-0">
                     <img src="/resources/Logo_without%20name.png" alt="MERC-CMMS logo" class="w-10 h-10 rounded-full bg-white object-contain p-1">
                     <div class="min-w-0">
@@ -386,6 +386,12 @@
                         </button>
                         <button class="tab-button" data-tab="notifications" onclick="switchTab('notifications')">
                             <i class="fas fa-bell"></i>Notifications
+                        </button>
+                        <button class="tab-button" data-tab="work-order-types" onclick="switchTab('work-order-types')">
+                            <i class="fas fa-clipboard-list"></i>Work Order Types
+                        </button>
+                        <button class="tab-button" data-tab="technicians" onclick="switchTab('technicians')">
+                            <i class="fas fa-users"></i>Technicians
                         </button>
                         <button class="tab-button" data-tab="system" onclick="switchTab('system')">
                             <i class="fas fa-sliders-h"></i>System
@@ -817,9 +823,9 @@
                         </div>
                     </div>
 
-                    <!-- System Tab -->
-                    <div id="system" class="tab-content p-8" style="display: none;">
-                        <h2 class="text-2xl font-bold text-slate-800 mb-6">System Configuration</h2>
+                    <!-- Work Order Types Tab -->
+                    <div id="work-order-types" class="tab-content p-8" style="display: none;">
+                        <h2 class="text-2xl font-bold text-slate-800 mb-6">Work Order Types</h2>
 
                         <div class="settings-section">
                             <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
@@ -883,6 +889,11 @@
                                 </table>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Technicians Tab -->
+                    <div id="technicians" class="tab-content p-8" style="display: none;">
+                        <h2 class="text-2xl font-bold text-slate-800 mb-6">Technician Directory</h2>
 
                         <div class="settings-section">
                             <h3 class="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
@@ -918,12 +929,49 @@
                                     <input type="checkbox" name="is_active" class="rounded border-slate-300" checked>
                                 </div>
                                 <button class="btn btn-primary" type="submit"><i class="fas fa-user-plus"></i>Add Technician</button>
+                                <p id="technician-permission-note" class="text-xs text-slate-500"></p>
                             </form>
                             <div class="mt-6">
                                 <h4 class="text-sm font-semibold text-slate-700 mb-2">Active Technicians</h4>
                                 <ul id="technician-list" class="space-y-2 text-sm text-slate-600">
                                     <li>Loading technicians...</li>
                                 </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- System Tab -->
+                    <div id="system" class="tab-content p-8" style="display: none;">
+                        <h2 class="text-2xl font-bold text-slate-800 mb-6">System Health & Tools</h2>
+
+                        <div class="settings-section">
+                            <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+                                <div>
+                                    <h3 class="text-lg font-semibold text-slate-800">Supabase Connectivity</h3>
+                                    <p class="text-sm text-slate-500">Validate API connectivity and review the latest status.</p>
+                                </div>
+                                <span id="supabase-status-badge" class="status-badge status-inactive">Not checked</span>
+                            </div>
+                            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                                <div>
+                                    <p id="supabase-status-text" class="text-sm text-slate-600">Run a connectivity check to validate Supabase access.</p>
+                                    <p class="text-xs text-slate-400 mt-1">Last checked: <span id="supabase-last-checked">Never</span></p>
+                                </div>
+                                <button id="supabase-check-button" class="btn btn-primary" type="button">
+                                    <i class="fas fa-plug"></i>Run Check
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="settings-section">
+                            <h3 class="text-lg font-semibold text-slate-800 mb-4">Master System Tools</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <button class="btn btn-secondary" type="button" onclick="showToast('Reference data refresh queued.', 'success')">
+                                    <i class="fas fa-sync-alt"></i>Refresh Reference Data
+                                </button>
+                                <button class="btn btn-secondary" type="button" onclick="showToast('System audit queued.', 'info')">
+                                    <i class="fas fa-clipboard-check"></i>Run System Audit
+                                </button>
                             </div>
                         </div>
 
