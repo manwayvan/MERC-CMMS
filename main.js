@@ -1046,12 +1046,15 @@ const WorkOrderManager = {
             const container = document.getElementById(`${status === 'progress' ? 'progress' : status}-workorders`);
             if (!container) return;
 
-            const workOrders = filteredOrders.filter(wo =>
-                (status === 'open' && wo.status === 'open') ||
-                (status === 'progress' && wo.status === 'in-progress') ||
-                (status === 'completed' && wo.status === 'completed') ||
-                (status === 'cancelled' && wo.status === 'cancelled')
-            );
+            const workOrders = filteredOrders.filter(wo => {
+                const woStatus = wo.status === 'completed' ? 'closed' : 
+                                wo.status === 'cancelled' ? 'incomplete' : 
+                                wo.status;
+                return (status === 'open' && (woStatus === 'open' || woStatus === 'in-progress')) ||
+                       (status === 'progress' && wo.status === 'in-progress') ||
+                       (status === 'completed' && (wo.status === 'completed' || woStatus === 'closed')) ||
+                       (status === 'cancelled' && (wo.status === 'cancelled' || woStatus === 'incomplete'));
+            });
 
             container.innerHTML = workOrders.map(wo => `
                 <div class="workorder-card priority-${wo.priority}" onclick="WorkOrderManager.viewWorkOrder('${wo.id}')">
@@ -1115,7 +1118,7 @@ const WorkOrderManager = {
                 <td class="py-3 px-4 text-sm text-slate-600">${WorkOrderManager.formatDate(wo.due_date)}</td>
                 <td class="py-3 px-4">
                     <span class="text-xs px-2 py-1 rounded-full ${WorkOrderManager.getStatusColor(wo.status)}">
-                        ${wo.status.charAt(0).toUpperCase() + wo.status.slice(1)}
+                        ${wo.status === 'completed' ? 'CLOSED' : wo.status === 'cancelled' ? 'INCOMPLETE' : wo.status === 'open' ? 'OPEN' : wo.status.toUpperCase()}
                     </span>
                 </td>
             </tr>
@@ -1128,7 +1131,9 @@ const WorkOrderManager = {
             open: 'bg-blue-100 text-blue-800',
             'in-progress': 'bg-amber-100 text-amber-800',
             completed: 'bg-green-100 text-green-800',
-            cancelled: 'bg-gray-100 text-gray-800'
+            closed: 'bg-green-100 text-green-800',
+            cancelled: 'bg-gray-100 text-gray-800',
+            incomplete: 'bg-red-100 text-red-800'
         };
         return colors[status] || 'bg-gray-100 text-gray-800';
     },
@@ -1152,16 +1157,226 @@ const WorkOrderManager = {
             });
         }
 
+        const viewForm = document.getElementById('view-workorder-form');
+        if (viewForm) {
+            viewForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                await WorkOrderManager.handleUpdateWorkOrder();
+            });
+        }
+
         document.addEventListener('keydown', (event) => {
             if (event.key === 'Escape') {
                 hideCreateWorkOrderModal();
+                hideViewWorkOrderModal();
             }
         });
     },
 
     // View work order
     viewWorkOrder: (workOrderId) => {
-        showToast('Viewing work order details', 'info');
+        const workOrder = AppState.workOrders.find(wo => wo.id === workOrderId);
+        if (!workOrder) {
+            showToast('Work order not found', 'error');
+            return;
+        }
+
+        // Populate the view modal
+        document.getElementById('view-workorder-id').value = workOrder.id;
+        document.getElementById('view-workorder-wo-id').value = workOrder.id;
+        document.getElementById('view-workorder-status').value = workOrder.status === 'completed' ? 'closed' : 
+                                                                  workOrder.status === 'cancelled' ? 'incomplete' : 
+                                                                  workOrder.status || 'open';
+        document.getElementById('view-workorder-asset-select').value = workOrder.asset_id || '';
+        document.getElementById('view-workorder-type-select').value = workOrder.type || '';
+        document.getElementById('view-workorder-priority-select').value = workOrder.priority || 'medium';
+        document.getElementById('view-workorder-technician-select').value = workOrder.assigned_technician_id || '';
+        
+        // Format date for input
+        if (workOrder.due_date) {
+            const dueDate = new Date(workOrder.due_date);
+            const formattedDate = dueDate.toISOString().split('T')[0];
+            document.getElementById('view-workorder-due-date').value = formattedDate;
+        }
+        
+        document.getElementById('view-workorder-estimated-hours').value = workOrder.estimated_hours || '';
+        document.getElementById('view-workorder-description').value = workOrder.description || '';
+
+        // Populate dropdowns
+        WorkOrderManager.populateViewAssetOptions();
+        WorkOrderManager.populateViewTechnicianOptions();
+        WorkOrderManager.populateViewWorkOrderTypes();
+
+        // Show modal
+        const modal = document.getElementById('view-workorder-modal');
+        if (modal) {
+            modal.classList.add('active');
+        }
+    },
+
+    populateViewAssetOptions: () => {
+        const assetSelect = document.getElementById('view-workorder-asset-select');
+        if (!assetSelect) return;
+
+        const currentValue = assetSelect.value;
+        assetSelect.innerHTML = '<option value="">Select Asset</option>';
+        AppState.assets.forEach(asset => {
+            const option = document.createElement('option');
+            option.value = asset.id;
+            
+            // Ensure we don't show UUIDs - use readable asset ID
+            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(asset.id);
+            const category = asset.category 
+                ? `[${asset.category.charAt(0).toUpperCase() + asset.category.slice(1)}]` 
+                : '';
+            const assetName = asset.name || 'Unnamed Asset';
+            
+            if (isUUID) {
+                const fallbackId = asset.serial_number || 'N/A';
+                option.textContent = `${fallbackId} ${category} ${assetName}`.trim();
+            } else {
+                option.textContent = `${asset.id} ${category} ${assetName}`.trim();
+            }
+            
+            assetSelect.appendChild(option);
+        });
+        
+        // Restore selected value
+        if (currentValue) {
+            assetSelect.value = currentValue;
+        }
+    },
+
+    populateViewTechnicianOptions: () => {
+        const techSelect = document.getElementById('view-workorder-technician-select');
+        if (!techSelect) return;
+
+        const currentValue = techSelect.value;
+        techSelect.innerHTML = '<option value="">Select technician</option>';
+        AppState.technicians.forEach(tech => {
+            const option = document.createElement('option');
+            option.value = tech.id;
+            option.textContent = tech.full_name || 'Unnamed Technician';
+            techSelect.appendChild(option);
+        });
+        
+        // Restore selected value
+        if (currentValue) {
+            techSelect.value = currentValue;
+        }
+    },
+
+    populateViewWorkOrderTypes: () => {
+        const typeSelect = document.getElementById('view-workorder-type-select');
+        if (!typeSelect) return;
+
+        const currentValue = typeSelect.value;
+        typeSelect.innerHTML = '<option value="">Select type</option>';
+        AppState.workOrderTypes.forEach(type => {
+            const option = document.createElement('option');
+            option.value = type.code;
+            option.textContent = type.label || type.code;
+            typeSelect.appendChild(option);
+        });
+        
+        // Restore selected value
+        if (currentValue) {
+            typeSelect.value = currentValue;
+        }
+    },
+
+    handleUpdateWorkOrder: async () => {
+        const workOrderId = document.getElementById('view-workorder-id')?.value;
+        if (!workOrderId) {
+            showToast('Work order ID is missing', 'error');
+            return;
+        }
+
+        const assetId = document.getElementById('view-workorder-asset-select')?.value || '';
+        const type = WorkOrderManager.toDatabaseWorkOrderType(document.getElementById('view-workorder-type-select')?.value || '');
+        const priority = document.getElementById('view-workorder-priority-select')?.value || 'medium';
+        const status = document.getElementById('view-workorder-status')?.value || 'open';
+        const technicianId = document.getElementById('view-workorder-technician-select')?.value || null;
+        const dueDate = document.getElementById('view-workorder-due-date')?.value || '';
+        const estimatedHours = document.getElementById('view-workorder-estimated-hours')?.value ? Number(document.getElementById('view-workorder-estimated-hours').value) : null;
+        const description = document.getElementById('view-workorder-description')?.value?.trim() || '';
+
+        if (!assetId || !type || !dueDate || !description) {
+            showToast('Please complete all required fields.', 'warning');
+            return;
+        }
+
+        // Map status back to database values
+        const dbStatus = status === 'closed' ? 'completed' : 
+                        status === 'incomplete' ? 'cancelled' : 
+                        status === 'open' ? 'open' : 'in-progress';
+
+        const updatePayload = {
+            asset_id: assetId,
+            type,
+            priority,
+            status: dbStatus,
+            due_date: new Date(dueDate).toISOString(),
+            estimated_hours: estimatedHours,
+            description: description
+        };
+
+        // Add technician if provided and column exists
+        if (technicianId) {
+            updatePayload.assigned_technician_id = technicianId;
+        }
+
+        if (!supabaseClient) {
+            // Demo mode
+            const workOrderIndex = AppState.workOrders.findIndex(wo => wo.id === workOrderId);
+            if (workOrderIndex !== -1) {
+                AppState.workOrders[workOrderIndex] = {
+                    ...AppState.workOrders[workOrderIndex],
+                    ...updatePayload,
+                    technician: WorkOrderManager.resolveTechnicianName(technicianId)
+                };
+                WorkOrderManager.renderWorkOrders();
+                WorkOrderManager.renderWorkOrdersList();
+                WorkOrderManager.renderRecentWorkOrders();
+                WorkOrderManager.updateSummaryCounts();
+                hideViewWorkOrderModal();
+                showToast('Work order updated (demo mode).', 'success');
+            }
+            return;
+        }
+
+        // Update in Supabase
+        let { data, error } = await supabaseClient
+            .from('work_orders')
+            .update(updatePayload)
+            .eq('id', workOrderId)
+            .select();
+
+        // If error is about assigned_technician_id, retry without it
+        if (error && (/assigned_technician_id.*does not exist|42703|PGRST204/i.test(error.message || '') || 
+                      (error.code && (error.code === '42703' || error.code === 'PGRST204')))) {
+            delete updatePayload.assigned_technician_id;
+            ({ data, error } = await supabaseClient
+                .from('work_orders')
+                .update(updatePayload)
+                .eq('id', workOrderId)
+                .select());
+        }
+
+        if (error) {
+            console.error('Error updating work order:', error);
+            showToast('Failed to update work order. ' + (error.message || ''), 'error');
+            return;
+        }
+
+        // Reload work orders
+        await WorkOrderManager.loadWorkOrders();
+        WorkOrderManager.renderWorkOrders();
+        WorkOrderManager.renderWorkOrdersList();
+        WorkOrderManager.renderRecentWorkOrders();
+        WorkOrderManager.updateSummaryCounts();
+        hideViewWorkOrderModal();
+        showToast('Work order updated successfully.', 'success');
     },
 
     handleCreateWorkOrder: async () => {
@@ -1394,7 +1609,7 @@ const WorkOrderManager = {
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                     <span class="text-xs px-2 py-1 rounded-full ${WorkOrderManager.getStatusColor(wo.status)}">
-                        ${wo.status.charAt(0).toUpperCase() + wo.status.slice(1)}
+                        ${wo.status === 'completed' ? 'CLOSED' : wo.status === 'cancelled' ? 'INCOMPLETE' : wo.status === 'open' ? 'OPEN' : wo.status.toUpperCase()}
                     </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">${wo.technician || 'Unassigned'}</td>
@@ -1651,24 +1866,24 @@ const WorkOrderManager = {
             const option = document.createElement('option');
             option.value = asset.id;
             
-            // The asset.id IS the readable asset ID (like AST-20251227-S502)
-            // According to schema: id TEXT PRIMARY KEY with DEFAULT generating readable IDs
-            // Check if it's a UUID (which would mean the schema wasn't applied correctly)
-            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(asset.id);
-            
             // Format: Asset ID [Category] Asset Name
             // User wants: Asset ID, Category, and Name - but NOT the Supabase UUID
+            // The asset.id should be the readable ID (AST-YYYYMMDD-####)
+            // If it's a UUID, that means the schema default wasn't applied - use serial_number instead
+            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(asset.id);
+            
             const category = asset.category 
                 ? `[${asset.category.charAt(0).toUpperCase() + asset.category.slice(1)}]` 
                 : '';
             const assetName = asset.name || 'Unnamed Asset';
             
             if (isUUID) {
-                // If id is a UUID (unexpected), use serial_number as fallback identifier
-                const fallbackId = asset.serial_number || 'N/A';
-                option.textContent = `${fallbackId} ${category} ${assetName}`.trim();
+                // If id is a UUID, use serial_number as the readable identifier instead
+                const readableId = asset.serial_number || 'N/A';
+                option.textContent = `${readableId} ${category} ${assetName}`.trim();
             } else {
-                // id is the readable asset ID (like AST-20251227-S502) - show it first
+                // id is already the readable asset ID (like AST-20251227-S502)
+                // Show it in format: Asset ID [Category] Asset Name
                 option.textContent = `${asset.id} ${category} ${assetName}`.trim();
             }
             
@@ -2184,6 +2399,13 @@ function hideCreateWorkOrderModal() {
     closeModal('create-workorder-modal');
     // Reset form if needed
     const form = document.getElementById('create-workorder-form');
+    if (form) form.reset();
+}
+
+function hideViewWorkOrderModal() {
+    closeModal('view-workorder-modal');
+    // Reset form if needed
+    const form = document.getElementById('view-workorder-form');
     if (form) form.reset();
 }
 
