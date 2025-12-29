@@ -1371,12 +1371,14 @@ const WorkOrderManager = {
             return;
         }
 
-        // Update in Supabase
+        // Update in Supabase - select only essential fields to avoid trigger issues
+        const selectFields = ['id', 'asset_id', 'type', 'priority', 'status', 'due_date', 'created_date', 'completed_date', 'estimated_hours', 'actual_hours', 'cost', 'description'];
+        
         let { data, error } = await supabaseClient
             .from('work_orders')
             .update(updatePayload)
             .eq('id', workOrderId)
-            .select();
+            .select(selectFields.join(', '));
 
         // If error is about assigned_technician_id, retry without it
         if (error && (/assigned_technician_id.*does not exist|42703|PGRST204/i.test(error.message || '') || 
@@ -1386,12 +1388,43 @@ const WorkOrderManager = {
                 .from('work_orders')
                 .update(updatePayload)
                 .eq('id', workOrderId)
-                .select());
+                .select(selectFields.join(', ')));
+        }
+
+        // If error is about updated_at trigger, try without selecting (trigger will still update it)
+        if (error && /updated_at|42703/i.test(error.message || '')) {
+            console.warn('updated_at trigger issue, retrying without select');
+            ({ error } = await supabaseClient
+                .from('work_orders')
+                .update(updatePayload)
+                .eq('id', workOrderId));
+            
+            // If update succeeded, just reload the data
+            if (!error) {
+                // Update was successful, just reload
+                await WorkOrderManager.loadWorkOrders();
+                WorkOrderManager.renderWorkOrders();
+                WorkOrderManager.renderWorkOrdersList();
+                WorkOrderManager.renderRecentWorkOrders();
+                WorkOrderManager.updateSummaryCounts();
+                hideViewWorkOrderModal();
+                showToast('Work order updated successfully.', 'success');
+                return;
+            }
         }
 
         if (error) {
             console.error('Error updating work order:', error);
-            showToast('Failed to update work order. ' + (error.message || ''), 'error');
+            let errorMessage = 'Failed to update work order.';
+            if (error.message) {
+                // Provide user-friendly error message
+                if (error.message.includes('updated_at')) {
+                    errorMessage = 'Failed to update work order. Database trigger error - please contact administrator.';
+                } else {
+                    errorMessage = 'Failed to update work order. ' + error.message;
+                }
+            }
+            showToast(errorMessage, 'error');
             return;
         }
 
