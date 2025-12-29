@@ -1242,19 +1242,14 @@ const WorkOrderManager = {
             const option = document.createElement('option');
             option.value = asset.id;
             
-            // Ensure we don't show UUIDs - use readable asset ID
-            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(asset.id);
+            // Show only Category and Asset Name - NO Asset ID (since it's read-only in database)
             const category = asset.category 
                 ? `[${asset.category.charAt(0).toUpperCase() + asset.category.slice(1)}]` 
                 : '';
             const assetName = asset.name || 'Unnamed Asset';
             
-            if (isUUID) {
-                const fallbackId = asset.serial_number || 'N/A';
-                option.textContent = `${fallbackId} ${category} ${assetName}`.trim();
-            } else {
-                option.textContent = `${asset.id} ${category} ${assetName}`.trim();
-            }
+            // Format: [Category] Asset Name (no Asset ID)
+            option.textContent = category ? `${category} ${assetName}`.trim() : assetName;
             
             assetSelect.appendChild(option);
         });
@@ -1897,26 +1892,14 @@ const WorkOrderManager = {
             const option = document.createElement('option');
             option.value = asset.id;
             
-            // Format: Asset ID [Category] Asset Name
-            // User wants: Asset ID, Category, and Name - but NOT the Supabase UUID
-            // The asset.id should be the readable ID (AST-YYYYMMDD-####)
-            // If it's a UUID, that means the schema default wasn't applied - use serial_number instead
-            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(asset.id);
-            
+            // Show only Category and Asset Name - NO Asset ID (since it's read-only in database)
             const category = asset.category 
                 ? `[${asset.category.charAt(0).toUpperCase() + asset.category.slice(1)}]` 
                 : '';
             const assetName = asset.name || 'Unnamed Asset';
             
-            if (isUUID) {
-                // If id is a UUID, use serial_number as the readable identifier instead
-                const readableId = asset.serial_number || 'N/A';
-                option.textContent = `${readableId} ${category} ${assetName}`.trim();
-            } else {
-                // id is already the readable asset ID (like AST-20251227-S502)
-                // Show it in format: Asset ID [Category] Asset Name
-                option.textContent = `${asset.id} ${category} ${assetName}`.trim();
-            }
+            // Format: [Category] Asset Name (no Asset ID)
+            option.textContent = category ? `${category} ${assetName}`.trim() : assetName;
             
             assetSelect.appendChild(option);
         });
