@@ -852,7 +852,6 @@ const assetManager = new AssetManager();
 // Work Order Management Functions
 const WorkOrderManager = {
     pendingAssetId: null,
-    supportsAssignedTechnicianId: true,
     partsUsedItems: [],
     // Initialize work order management
     init: async () => {
@@ -953,21 +952,21 @@ const WorkOrderManager = {
             return;
         }
 
+        // Keep this list conservative to avoid 400s when columns differ between Supabase schema versions.
         const selectFields = [
             'id',
             'asset_id',
             'type',
             'priority',
             'status',
-            'assigned_technician_id',
+            'technician',
+            'assigned_to',
             'due_date',
             'created_date',
             'completed_date',
             'estimated_hours',
             'actual_hours',
             'cost',
-            'parts_used',
-            'completion_notes',
             'description'
         ];
 
@@ -975,15 +974,6 @@ const WorkOrderManager = {
             .from('work_orders')
             .select(selectFields.join(', '))
             .order('created_date', { ascending: false });
-
-        if (error && /assigned_technician_id/i.test(error.message || '')) {
-            WorkOrderManager.supportsAssignedTechnicianId = false;
-            const fallbackFields = selectFields.filter(field => field !== 'assigned_technician_id');
-            ({ data, error } = await supabaseClient
-                .from('work_orders')
-                .select(fallbackFields.join(', '))
-                .order('created_date', { ascending: false }));
-        }
 
         if (error) {
             console.error('Error loading work orders:', error);
@@ -996,13 +986,9 @@ const WorkOrderManager = {
             return;
         }
 
-        const technicianMap = new Map(AppState.technicians.map(tech => [tech.id, tech.full_name]));
-
         AppState.workOrders = (data || []).map(order => ({
             ...order,
-            technician: order.assigned_technician_id
-                ? (technicianMap.get(order.assigned_technician_id) || 'Unassigned')
-                : 'Unassigned'
+            technician: order.technician || 'Unassigned'
         }));
     },
 
@@ -1211,20 +1197,22 @@ const WorkOrderManager = {
             description: detailedDescription
         };
 
+        const technicianName = WorkOrderManager.resolveTechnicianName(technicianId);
+        if (technicianName && technicianName !== 'Unassigned') {
+            payload.technician = technicianName;
+        }
+
         if (supabaseClient?.auth?.getSession) {
             try {
                 const { data } = await supabaseClient.auth.getSession();
                 const userId = data?.session?.user?.id;
                 if (userId) {
-                    payload.created_by = userId;
+                    // Some schemas use assigned_to to reference the auth user.
+                    payload.assigned_to = userId;
                 }
             } catch (error) {
                 console.warn('Unable to read auth session for work order creation.', error);
             }
-        }
-
-        if (WorkOrderManager.supportsAssignedTechnicianId) {
-            payload.assigned_technician_id = technicianId || null;
         }
 
         const selectFields = [
@@ -1233,26 +1221,33 @@ const WorkOrderManager = {
             'type',
             'priority',
             'status',
+            'technician',
+            'assigned_to',
             'due_date',
             'created_date',
             'completed_date',
             'estimated_hours',
             'actual_hours',
             'cost',
-            'parts_used',
-            'completion_notes',
             'description'
         ];
 
-        if (WorkOrderManager.supportsAssignedTechnicianId) {
-            selectFields.push('assigned_technician_id');
-        }
-
-        const { data, error } = await supabaseClient
+        let { data, error } = await supabaseClient
             .from('work_orders')
             .insert(payload)
             .select(selectFields.join(', '))
             .single();
+
+        // Backwards-compatible retry if the target schema doesn't have newer columns.
+        if (error && /column .*technician/i.test(error.message || '')) {
+            const retryPayload = { ...payload };
+            delete retryPayload.technician;
+            ({ data, error } = await supabaseClient
+                .from('work_orders')
+                .insert(retryPayload)
+                .select(selectFields.filter(field => field !== 'technician').join(', '))
+                .single());
+        }
 
         if (error) {
             console.error('Error creating work order:', error);
@@ -1265,9 +1260,7 @@ const WorkOrderManager = {
 
         const newOrder = {
             ...data,
-            technician: WorkOrderManager.supportsAssignedTechnicianId
-                ? WorkOrderManager.resolveTechnicianName(data.assigned_technician_id)
-                : 'Unassigned'
+            technician: data.technician || technicianName || 'Unassigned'
         };
         AppState.workOrders = [newOrder, ...AppState.workOrders];
         WorkOrderManager.renderWorkOrders();
@@ -1286,6 +1279,12 @@ const WorkOrderManager = {
     getTechnicianInitials: (name) => {
         if (!name) return 'UN';
         return name.split(' ').filter(Boolean).slice(0, 2).map(part => part[0]).join('').toUpperCase();
+    },
+
+    resetPartsUsedItems: () => {
+        WorkOrderManager.partsUsedItems = [];
+        const partsUsedInput = document.getElementById('workorder-parts-used');
+        if (partsUsedInput) partsUsedInput.value = '';
     },
 
     updateSummaryCounts: () => {
