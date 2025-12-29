@@ -1312,11 +1312,19 @@ const WorkOrderManager = {
     },
 
     handleUpdateWorkOrder: async () => {
-        const workOrderId = document.getElementById('view-workorder-id')?.value;
+        const workOrderIdInput = document.getElementById('view-workorder-id');
+        const workOrderId = workOrderIdInput?.value || workOrderIdInput?.textContent?.trim();
+        
         if (!workOrderId) {
+            console.error('Work order ID missing. Available elements:', {
+                idInput: document.getElementById('view-workorder-id'),
+                woIdInput: document.getElementById('view-workorder-wo-id')
+            });
             showToast('Work order ID is missing', 'error');
             return;
         }
+
+        console.log('🔄 Updating work order:', workOrderId);
 
         const assetId = document.getElementById('view-workorder-asset-select')?.value || '';
         const type = WorkOrderManager.toDatabaseWorkOrderType(document.getElementById('view-workorder-type-select')?.value || '');
@@ -1352,6 +1360,8 @@ const WorkOrderManager = {
             updatePayload.assigned_technician_id = technicianId;
         }
 
+        console.log('📤 Update payload:', updatePayload);
+
         if (!supabaseClient) {
             // Demo mode
             const workOrderIndex = AppState.workOrders.findIndex(wo => wo.id === workOrderId);
@@ -1371,46 +1381,86 @@ const WorkOrderManager = {
             return;
         }
 
-        // Update in Supabase - try without select first to avoid trigger issues
-        // The trigger error happens when we try to select fields after update
+        // Update in Supabase
         let error = null;
+        let updateSucceeded = false;
         
-        // First, try update without select to avoid trigger issues
-        let updateResult = await supabaseClient
-            .from('work_orders')
-            .update(updatePayload)
-            .eq('id', workOrderId);
-
-        error = updateResult.error;
-
-        // If error is about assigned_technician_id, retry without it
-        if (error && (/assigned_technician_id.*does not exist|42703|PGRST204/i.test(error.message || '') || 
-                      (error.code && (error.code === '42703' || error.code === 'PGRST204')))) {
-            const retryPayload = { ...updatePayload };
-            delete retryPayload.assigned_technician_id;
-            updateResult = await supabaseClient
+        try {
+            // First attempt: update with all fields
+            let updateResult = await supabaseClient
                 .from('work_orders')
-                .update(retryPayload)
-                .eq('id', workOrderId);
+                .update(updatePayload)
+                .eq('id', workOrderId)
+                .select('id')
+                .single();
+
             error = updateResult.error;
+
+            // If error is about assigned_technician_id, retry without it
+            if (error && (/assigned_technician_id.*does not exist|42703|PGRST204/i.test(error.message || '') || 
+                          (error.code && (error.code === '42703' || error.code === 'PGRST204')))) {
+                console.warn('assigned_technician_id column issue, retrying without it');
+                const retryPayload = { ...updatePayload };
+                delete retryPayload.assigned_technician_id;
+                updateResult = await supabaseClient
+                    .from('work_orders')
+                    .update(retryPayload)
+                    .eq('id', workOrderId)
+                    .select('id')
+                    .single();
+                error = updateResult.error;
+            }
+
+            // If error is about updated_at trigger, try without select
+            if (error && /updated_at|42703/i.test(error.message || '')) {
+                console.warn('Trigger error detected, retrying without select');
+                const retryPayload = { ...updatePayload };
+                if (!technicianId || error.message.includes('assigned_technician_id')) {
+                    delete retryPayload.assigned_technician_id;
+                }
+                updateResult = await supabaseClient
+                    .from('work_orders')
+                    .update(retryPayload)
+                    .eq('id', workOrderId);
+                error = updateResult.error;
+                
+                // Verify update succeeded by fetching the record
+                if (!error) {
+                    const verifyResult = await supabaseClient
+                        .from('work_orders')
+                        .select('id, status, asset_id')
+                        .eq('id', workOrderId)
+                        .single();
+                    
+                    if (!verifyResult.error && verifyResult.data) {
+                        // Check if the update actually took effect
+                        if (verifyResult.data.status === dbStatus && verifyResult.data.asset_id === assetId) {
+                            updateSucceeded = true;
+                            console.log('✅ Update verified successfully');
+                        } else {
+                            console.warn('⚠️ Update may not have taken effect');
+                            error = new Error('Update verification failed - changes may not have been saved');
+                        }
+                    }
+                }
+            } else if (!error && updateResult.data) {
+                updateSucceeded = true;
+                console.log('✅ Update succeeded');
+            }
+
+        } catch (e) {
+            console.error('Exception during update:', e);
+            error = e;
         }
 
-        // If still error and it's about updated_at, the trigger might be misconfigured
-        // But the update might have actually succeeded - try to verify by reloading
-        if (error && /updated_at|42703/i.test(error.message || '')) {
-            console.warn('Trigger error detected, but update may have succeeded. Reloading data...');
-            // Don't treat this as a fatal error - the update might have worked
-            // We'll reload the data to verify
-            error = null; // Clear error to proceed with reload
-        }
-
-        if (error) {
-            console.error('Error updating work order:', error);
+        if (error && !updateSucceeded) {
+            console.error('❌ Error updating work order:', error);
             let errorMessage = 'Failed to update work order.';
             if (error.message) {
-                // Provide user-friendly error message
                 if (error.message.includes('updated_at')) {
                     errorMessage = 'Failed to update work order. Database trigger error - please contact administrator.';
+                } else if (error.message.includes('foreign key') || error.message.includes('violates foreign key')) {
+                    errorMessage = 'Failed to update work order. Invalid asset or technician selected.';
                 } else {
                     errorMessage = 'Failed to update work order. ' + error.message;
                 }
@@ -1419,14 +1469,30 @@ const WorkOrderManager = {
             return;
         }
 
-        // Reload work orders
-        await WorkOrderManager.loadWorkOrders();
-        WorkOrderManager.renderWorkOrders();
-        WorkOrderManager.renderWorkOrdersList();
-        WorkOrderManager.renderRecentWorkOrders();
-        WorkOrderManager.updateSummaryCounts();
-        hideViewWorkOrderModal();
-        showToast('Work order updated successfully.', 'success');
+        // Reload work orders from database
+        console.log('🔄 Reloading work orders...');
+        try {
+            await WorkOrderManager.loadWorkOrders();
+            console.log('✅ Work orders reloaded, count:', AppState.workOrders.length);
+            
+            // Re-render all views
+            WorkOrderManager.renderWorkOrders();
+            WorkOrderManager.renderWorkOrdersList();
+            WorkOrderManager.renderRecentWorkOrders();
+            WorkOrderManager.updateSummaryCounts();
+            
+            console.log('✅ UI refreshed');
+            
+            // Close modal
+            hideViewWorkOrderModal();
+            
+            // Show success message
+            showToast('Work order updated successfully.', 'success');
+        } catch (reloadError) {
+            console.error('❌ Error reloading work orders:', reloadError);
+            showToast('Work order updated, but failed to refresh display. Please reload the page.', 'warning');
+            hideViewWorkOrderModal();
+        }
     },
 
     handleCreateWorkOrder: async () => {
