@@ -1725,6 +1725,8 @@ async function initApp() {
     ChartManager.initializeCharts();
     setupMobileMenu();
 
+    await loadSupabaseClient();
+
     if (AppState.currentPage === 'assets') {
         assetManager.loadAssets();
         assetManager.setupEventLuisteners();
