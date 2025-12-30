@@ -29,11 +29,27 @@ const MasterDBManager = {
             }
         });
 
-        // Setup form handler for item modal
-        const form = document.getElementById('master-db-form');
-        if (form) {
-            form.addEventListener('submit', (e) => this.handleSubmit(e));
+        // Setup form handler for item modal - use event delegation to ensure it works
+        // Use a named function to avoid duplicate listeners
+        if (!this._formHandlerAttached) {
+            document.addEventListener('submit', (e) => {
+                if (e.target && e.target.id === 'master-db-form') {
+                    e.preventDefault();
+                    console.log('Form submit event caught');
+                    this.handleSubmit(e);
+                }
+            });
+            this._formHandlerAttached = true;
         }
+
+        // Setup quick add form inputs to update preview
+        document.addEventListener('input', (e) => {
+            if (e.target && e.target.id && e.target.id.startsWith('quick-')) {
+                if (typeof this.updateQuickAddPreview === 'function') {
+                    this.updateQuickAddPreview();
+                }
+            }
+        });
     },
 
     async loadStats() {
@@ -537,9 +553,21 @@ const MasterDBManager = {
     },
 
     async handleSubmit(e) {
-        e.preventDefault();
-        const type = document.getElementById('master-db-type').value;
-        const id = document.getElementById('master-db-id').value;
+        if (e) e.preventDefault();
+        
+        const typeInput = document.getElementById('master-db-type');
+        const idInput = document.getElementById('master-db-id');
+        
+        if (!typeInput) {
+            console.error('master-db-type input not found');
+            this.showToast('Form error: Type field not found', 'error');
+            return;
+        }
+        
+        const type = typeInput.value;
+        const id = idInput ? idInput.value : '';
+        
+        console.log('handleSubmit called:', { type, id });
 
         try {
             let payload = {};
@@ -659,7 +687,13 @@ const MasterDBManager = {
             }
         } catch (error) {
             console.error('Error saving:', error);
-            this.showToast(`Failed to save: ${error.message}`, 'error');
+            console.error('Error details:', {
+                message: error.message,
+                details: error.details,
+                hint: error.hint,
+                code: error.code
+            });
+            this.showToast(`Failed to save: ${error.message || 'Unknown error'}`, 'error');
         }
     },
 
@@ -1211,6 +1245,341 @@ const MasterDBManager = {
         a.download = 'device_configurations_template.csv';
         a.click();
         window.URL.revokeObjectURL(url);
+    },
+
+    // ============================================
+    // QUICK ADD (SINGLE STEP) FUNCTIONALITY
+    // ============================================
+
+    async openQuickAddModal() {
+        const modal = document.getElementById('quick-add-modal');
+        if (!modal) {
+            console.error('quick-add-modal not found');
+            return;
+        }
+
+        // Reset form
+        document.getElementById('quick-add-form').reset();
+        document.getElementById('quick-type-select').value = '';
+        document.getElementById('quick-make-select').value = '';
+        document.getElementById('quick-make-select').disabled = true;
+        document.getElementById('quick-model-select').value = '';
+        document.getElementById('quick-model-select').disabled = true;
+        document.getElementById('quick-pm-frequency').value = '';
+        document.getElementById('quick-pm-frequency').disabled = true;
+        
+        // Disable dependent fields
+        ['quick-make-name', 'quick-make-desc', 'quick-model-name', 'quick-model-desc'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.disabled = true;
+        });
+
+        // Load existing types and PM frequencies
+        await this.loadQuickAddDropdowns();
+        
+        modal.classList.add('active');
+        this.updateQuickAddPreview();
+    },
+
+    closeQuickAddModal() {
+        const modal = document.getElementById('quick-add-modal');
+        if (modal) modal.classList.remove('active');
+    },
+
+    async loadQuickAddDropdowns() {
+        try {
+            // Load types
+            const { data: types } = await this.supabaseClient
+                .from('device_categories')
+                .select('id, name')
+                .order('name');
+            
+            const typeSelect = document.getElementById('quick-type-select');
+            if (typeSelect && types) {
+                typeSelect.innerHTML = '<option value="">-- Select Existing --</option>' +
+                    types.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+            }
+
+            // Load PM frequencies
+            const { data: frequencies } = await this.supabaseClient
+                .from('pm_frequencies')
+                .select('id, name, code, days')
+                .eq('is_active', true)
+                .order('sort_order');
+            
+            const freqSelect = document.getElementById('quick-pm-frequency');
+            if (freqSelect && frequencies) {
+                freqSelect.innerHTML = '<option value="">-- Select Frequency --</option>' +
+                    frequencies.map(f => `<option value="${f.id}">${f.name} (${f.days} days)</option>`).join('');
+            }
+        } catch (error) {
+            console.error('Error loading quick add dropdowns:', error);
+        }
+    },
+
+    async handleQuickTypeChange() {
+        const typeSelect = document.getElementById('quick-type-select');
+        const typeNameInput = document.getElementById('quick-type-name');
+        const makeSelect = document.getElementById('quick-make-select');
+        const makeNameInput = document.getElementById('quick-make-name');
+        const makeDescInput = document.getElementById('quick-make-desc');
+
+        const selectedTypeId = typeSelect.value;
+        const newTypeName = typeNameInput.value.trim();
+
+        if (selectedTypeId || newTypeName) {
+            // Enable make fields
+            makeSelect.disabled = false;
+            makeNameInput.disabled = false;
+            makeDescInput.disabled = false;
+
+            // Load makes for selected type
+            if (selectedTypeId) {
+                const { data: makes } = await this.supabaseClient
+                    .from('device_makes')
+                    .select('id, name')
+                    .eq('category_id', selectedTypeId)
+                    .order('name');
+                
+                makeSelect.innerHTML = '<option value="">-- Select Existing --</option>' +
+                    (makes || []).map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+            } else {
+                makeSelect.innerHTML = '<option value="">-- Add Type First --</option>';
+            }
+        } else {
+            makeSelect.disabled = true;
+            makeNameInput.disabled = true;
+            makeDescInput.disabled = true;
+            makeSelect.innerHTML = '<option value="">-- Select Type First --</option>';
+        }
+
+        this.handleQuickMakeChange();
+        this.updateQuickAddPreview();
+    },
+
+    async handleQuickMakeChange() {
+        const makeSelect = document.getElementById('quick-make-select');
+        const makeNameInput = document.getElementById('quick-make-name');
+        const modelSelect = document.getElementById('quick-model-select');
+        const modelNameInput = document.getElementById('quick-model-name');
+        const modelDescInput = document.getElementById('quick-model-desc');
+
+        const selectedMakeId = makeSelect.value;
+        const newMakeName = makeNameInput.value.trim();
+
+        if (selectedMakeId || newMakeName) {
+            // Enable model fields
+            modelSelect.disabled = false;
+            modelNameInput.disabled = false;
+            modelDescInput.disabled = false;
+
+            // Load models for selected make
+            if (selectedMakeId) {
+                const { data: models } = await this.supabaseClient
+                    .from('device_models')
+                    .select('id, name')
+                    .eq('make_id', selectedMakeId)
+                    .order('name');
+                
+                modelSelect.innerHTML = '<option value="">-- Select Existing --</option>' +
+                    (models || []).map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+            } else {
+                modelSelect.innerHTML = '<option value="">-- Add Make First --</option>';
+            }
+        } else {
+            modelSelect.disabled = true;
+            modelNameInput.disabled = true;
+            modelDescInput.disabled = true;
+            modelSelect.innerHTML = '<option value="">-- Select Make First --</option>';
+        }
+
+        this.handleQuickModelChange();
+        this.updateQuickAddPreview();
+    },
+
+    handleQuickModelChange() {
+        const modelSelect = document.getElementById('quick-model-select');
+        const modelNameInput = document.getElementById('quick-model-name');
+        const pmFreqSelect = document.getElementById('quick-pm-frequency');
+
+        const selectedModelId = modelSelect.value;
+        const newModelName = modelNameInput.value.trim();
+
+        if (selectedModelId || newModelName) {
+            // Enable PM frequency
+            pmFreqSelect.disabled = false;
+        } else {
+            pmFreqSelect.disabled = true;
+            pmFreqSelect.value = '';
+        }
+
+        this.updateQuickAddPreview();
+    },
+
+    updateQuickAddPreview() {
+        const preview = document.getElementById('quick-add-preview');
+        if (!preview) return;
+
+        const typeSelect = document.getElementById('quick-type-select');
+        const typeName = document.getElementById('quick-type-name').value.trim() || 
+                        (typeSelect.options[typeSelect.selectedIndex]?.text || '');
+        
+        const makeSelect = document.getElementById('quick-make-select');
+        const makeName = document.getElementById('quick-make-name').value.trim() || 
+                        (makeSelect.options[makeSelect.selectedIndex]?.text || '');
+        
+        const modelSelect = document.getElementById('quick-model-select');
+        const modelName = document.getElementById('quick-model-name').value.trim() || 
+                         (modelSelect.options[modelSelect.selectedIndex]?.text || '');
+        
+        const pmFreqSelect = document.getElementById('quick-pm-frequency');
+        const pmFreq = pmFreqSelect.options[pmFreqSelect.selectedIndex]?.text || '';
+
+        if (typeName || makeName || modelName) {
+            preview.innerHTML = `
+                <div class="flex items-center gap-2 text-slate-800">
+                    <span class="font-medium">${typeName || '?'}</span>
+                    <i class="fas fa-arrow-right text-slate-400"></i>
+                    <span class="font-medium">${makeName || '?'}</span>
+                    <i class="fas fa-arrow-right text-slate-400"></i>
+                    <span class="font-medium">${modelName || '?'}</span>
+                    ${pmFreq ? `<i class="fas fa-arrow-right text-slate-400"></i><span class="text-amber-600">${pmFreq}</span>` : ''}
+                </div>
+            `;
+        } else {
+            preview.innerHTML = '<p class="italic text-slate-500">Fill in the fields above to see preview</p>';
+        }
+    },
+
+    async handleQuickAddSubmit(e) {
+        if (e) e.preventDefault();
+
+        try {
+            // Get values
+            const typeSelect = document.getElementById('quick-type-select');
+            const typeNameInput = document.getElementById('quick-type-name');
+            const typeDescInput = document.getElementById('quick-type-desc');
+            
+            const makeSelect = document.getElementById('quick-make-select');
+            const makeNameInput = document.getElementById('quick-make-name');
+            const makeDescInput = document.getElementById('quick-make-desc');
+            
+            const modelSelect = document.getElementById('quick-model-select');
+            const modelNameInput = document.getElementById('quick-model-name');
+            const modelDescInput = document.getElementById('quick-model-desc');
+            
+            const pmFreqSelect = document.getElementById('quick-pm-frequency');
+
+            // Validate and get/create Type
+            let typeId = typeSelect.value;
+            const newTypeName = typeNameInput.value.trim();
+            
+            if (!typeId && !newTypeName) {
+                this.showToast('Device Type is required', 'error');
+                return;
+            }
+
+            if (!typeId && newTypeName) {
+                // Create new type
+                const typeIdSlug = newTypeName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '').substring(0, 50) || 'type_' + Date.now();
+                const { data: newType, error: typeError } = await this.supabaseClient
+                    .from('device_categories')
+                    .insert([{
+                        id: typeIdSlug,
+                        name: newTypeName,
+                        description: typeDescInput.value.trim() || null
+                    }])
+                    .select()
+                    .single();
+                
+                if (typeError) throw typeError;
+                typeId = newType.id;
+                this.showToast('Device Type created', 'success');
+            }
+
+            // Validate and get/create Make
+            let makeId = makeSelect.value;
+            const newMakeName = makeNameInput.value.trim();
+            
+            if (!makeId && !newMakeName) {
+                this.showToast('Manufacturer is required', 'error');
+                return;
+            }
+
+            if (!makeId && newMakeName) {
+                // Create new make
+                const makeIdSlug = `${typeId}_${newMakeName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '').substring(0, 30)}` || `${typeId}_make_${Date.now()}`;
+                const { data: newMake, error: makeError } = await this.supabaseClient
+                    .from('device_makes')
+                    .insert([{
+                        id: makeIdSlug,
+                        category_id: typeId,
+                        name: newMakeName,
+                        description: makeDescInput.value.trim() || null
+                    }])
+                    .select()
+                    .single();
+                
+                if (makeError) throw makeError;
+                makeId = newMake.id;
+                this.showToast('Manufacturer created', 'success');
+            }
+
+            // Validate and get/create Model
+            let modelId = modelSelect.value;
+            const newModelName = modelNameInput.value.trim();
+            
+            if (!modelId && !newModelName) {
+                this.showToast('Model is required', 'error');
+                return;
+            }
+
+            if (!modelId && newModelName) {
+                // Create new model
+                const modelIdSlug = `${makeId}_${newModelName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '').substring(0, 30)}` || `${makeId}_model_${Date.now()}`;
+                const pmFreqId = pmFreqSelect.value || null;
+                
+                const { data: newModel, error: modelError } = await this.supabaseClient
+                    .from('device_models')
+                    .insert([{
+                        id: modelIdSlug,
+                        make_id: makeId,
+                        name: newModelName,
+                        description: modelDescInput.value.trim() || null,
+                        pm_frequency_id: pmFreqId
+                    }])
+                    .select()
+                    .single();
+                
+                if (modelError) throw modelError;
+                modelId = newModel.id;
+                this.showToast('Model created', 'success');
+            } else if (modelId && pmFreqSelect.value) {
+                // Update existing model with PM frequency
+                await this.supabaseClient
+                    .from('device_models')
+                    .update({ pm_frequency_id: pmFreqSelect.value })
+                    .eq('id', modelId);
+            }
+
+            this.showToast('All items saved successfully!', 'success');
+            this.closeQuickAddModal();
+            
+            // Reload data
+            await this.loadHierarchy();
+            await this.loadPMFrequencies();
+            await this.loadStats();
+
+            // Trigger refresh in other pages
+            if (window.loadReferenceData) window.loadReferenceData();
+            if (window.loadPMFrequencies) window.loadPMFrequencies();
+            if (window.MMDAssetFormManager && window.MMDAssetFormManager.loadMMDData) {
+                window.MMDAssetFormManager.loadMMDData();
+            }
+        } catch (error) {
+            console.error('Error in quick add:', error);
+            this.showToast(`Failed to save: ${error.message || 'Unknown error'}`, 'error');
+        }
     }
 };
 

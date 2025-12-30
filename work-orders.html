@@ -98,6 +98,14 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
         .workorder-card.priority-critical { border-left-color: #dc2626; }
+        .filter-select {
+            min-width: 150px;
+        }
+        @media (max-width: 768px) {
+            .filter-select {
+                min-width: 100%;
+            }
+        }
         .workorder-card.priority-high { border-left-color: #d97706; }
         .workorder-card.priority-medium { border-left-color: #2563eb; }
         .workorder-card.priority-low { border-left-color: #6b7280; }
@@ -320,22 +328,39 @@
                 <div class="bg-white rounded-lg shadow p-6">
                     <div class="flex flex-col lg:flex-row gap-4 items-center justify-between">
                         <!-- Search and Filters -->
-                        <div class="flex flex-col sm:flex-row gap-4 flex-1">
+                        <div class="flex flex-col gap-4 flex-1">
+                            <!-- Search Bar -->
                             <div class="relative flex-1">
                                 <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
                                 <input type="text" id="workorder-search" placeholder="Search work orders..."
                                        class="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                             </div>
-                            <select id="priority-filter" class="border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                                <option value="">All Priorities</option>
-                                <option value="critical">Critical</option>
-                                <option value="high">High</option>
-                                <option value="medium">Medium</option>
-                                <option value="low">Low</option>
-                            </select>
-                            <select id="technician-filter" class="border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                                <option value="">All Technicians</option>
-                            </select>
+                            <!-- Filter Row -->
+                            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                                <select id="status-filter" class="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                    <option value="">All Statuses</option>
+                                    <option value="open">Open</option>
+                                    <option value="in-progress">In Progress</option>
+                                    <option value="completed">Completed</option>
+                                    <option value="cancelled">Cancelled</option>
+                                </select>
+                                <select id="priority-filter" class="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                    <option value="">All Priorities</option>
+                                    <option value="critical">Critical</option>
+                                    <option value="high">High</option>
+                                    <option value="medium">Medium</option>
+                                    <option value="low">Low</option>
+                                </select>
+                                <select id="technician-filter" class="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                    <option value="">All Technicians</option>
+                                </select>
+                                <select id="customer-filter" class="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                    <option value="">All Customers</option>
+                                </select>
+                                <select id="worktype-filter" class="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                    <option value="">All Work Types</option>
+                                </select>
+                            </div>
                         </div>
                         <!-- Create Work Order Button -->
                         <button class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors flex items-center space-x-2" onclick="showCreateWorkOrderModal()">

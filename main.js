@@ -1223,6 +1223,9 @@ const WorkOrderManager = {
         WorkOrderManager.setupEventListeners();
         WorkOrderManager.initView();
         await WorkOrderManager.loadWorkOrderAssets();
+        // Populate filter dropdowns
+        await WorkOrderManager.populateFilters();
+        WorkOrderManager.setupSearchAndFilters();
     },
 
     getTechnicianLabel: (technicianId) => {
@@ -1813,66 +1816,106 @@ const WorkOrderManager = {
         let updateSucceeded = false;
         
         try {
-            // First attempt: update with all fields
+            // Clean up payload - remove null/empty technician ID, ensure proper types
+            const cleanPayload = { ...updatePayload };
+            
+            // Handle technician ID - only include if it's a valid UUID
+            if (technicianId) {
+                // Validate UUID format
+                const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+                if (uuidRegex.test(technicianId)) {
+                    cleanPayload.assigned_technician_id = technicianId;
+                } else {
+                    console.warn('Invalid technician ID format, skipping:', technicianId);
+                    delete cleanPayload.assigned_technician_id;
+                }
+            } else {
+                // Explicitly set to null if no technician selected
+                cleanPayload.assigned_technician_id = null;
+            }
+
+            // First attempt: update WITHOUT select to avoid trigger issues
             let updateResult = await supabaseClient
                 .from('work_orders')
-                .update(updatePayload)
-                .eq('id', workOrderId)
-                .select('id')
-                .single();
+                .update(cleanPayload)
+                .eq('id', workOrderId);
 
             error = updateResult.error;
 
             // If error is about assigned_technician_id, retry without it
-            if (error && (/assigned_technician_id.*does not exist|42703|PGRST204/i.test(error.message || '') || 
+            if (error && (/assigned_technician_id.*does not exist|42703|PGRST204|column.*assigned_technician_id/i.test(error.message || '') || 
                           (error.code && (error.code === '42703' || error.code === 'PGRST204')))) {
                 console.warn('assigned_technician_id column issue, retrying without it');
-                const retryPayload = { ...updatePayload };
+                const retryPayload = { ...cleanPayload };
                 delete retryPayload.assigned_technician_id;
-                updateResult = await supabaseClient
-                    .from('work_orders')
-                    .update(retryPayload)
-                    .eq('id', workOrderId)
-                    .select('id')
-                    .single();
-                error = updateResult.error;
-            }
-
-            // If error is about updated_at trigger, try without select
-            if (error && /updated_at|42703/i.test(error.message || '')) {
-                console.warn('Trigger error detected, retrying without select');
-                const retryPayload = { ...updatePayload };
-                if (!technicianId || error.message.includes('assigned_technician_id')) {
-                    delete retryPayload.assigned_technician_id;
-                }
                 updateResult = await supabaseClient
                     .from('work_orders')
                     .update(retryPayload)
                     .eq('id', workOrderId);
                 error = updateResult.error;
-                
-                // Verify update succeeded by fetching the record
-                if (!error) {
-                    const verifyResult = await supabaseClient
-                        .from('work_orders')
-                        .select('id, status, asset_id')
-                        .eq('id', workOrderId)
-                        .single();
-                    
-                    if (!verifyResult.error && verifyResult.data) {
-                        // Check if the update actually took effect
-                        if (verifyResult.data.status === dbStatus && verifyResult.data.asset_id === assetId) {
-                            updateSucceeded = true;
-                            console.log('✅ Update verified successfully');
-                        } else {
-                            console.warn('⚠️ Update may not have taken effect');
-                            error = new Error('Update verification failed - changes may not have been saved');
-                        }
-                    }
+            }
+
+            // If error is about updated_at trigger or other trigger issues, try with minimal fields
+            if (error && (/updated_at|trigger|42703|PGRST/i.test(error.message || '') || 
+                         (error.code && (error.code === '42703' || error.code === 'PGRST')))) {
+                console.warn('Trigger error detected, retrying with minimal fields');
+                const minimalPayload = {
+                    asset_id: assetId,
+                    type,
+                    priority,
+                    status: dbStatus,
+                    due_date: new Date(dueDate).toISOString(),
+                    description: description
+                };
+                if (estimatedHours !== null && estimatedHours !== undefined) {
+                    minimalPayload.estimated_hours = estimatedHours;
                 }
-            } else if (!error && updateResult.data) {
-                updateSucceeded = true;
-                console.log('✅ Update succeeded');
+                // Don't include assigned_technician_id in minimal payload
+                updateResult = await supabaseClient
+                    .from('work_orders')
+                    .update(minimalPayload)
+                    .eq('id', workOrderId);
+                error = updateResult.error;
+            }
+            
+            // Verify update succeeded by fetching the record
+            if (!error) {
+                const verifyResult = await supabaseClient
+                    .from('work_orders')
+                    .select('id, status, asset_id, type, priority')
+                    .eq('id', workOrderId)
+                    .single();
+                
+                if (!verifyResult.error && verifyResult.data) {
+                    // Check if the update actually took effect
+                    if (verifyResult.data.status === dbStatus && verifyResult.data.asset_id === assetId) {
+                        updateSucceeded = true;
+                        console.log('✅ Update verified successfully');
+                        
+                        // If we had to skip assigned_technician_id, try to update it separately
+                        if (technicianId && !cleanPayload.assigned_technician_id) {
+                            const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+                            if (uuidRegex.test(technicianId)) {
+                                try {
+                                    await supabaseClient
+                                        .from('work_orders')
+                                        .update({ assigned_technician_id: technicianId })
+                                        .eq('id', workOrderId);
+                                    console.log('✅ Technician assignment updated separately');
+                                } catch (techError) {
+                                    console.warn('Could not update technician assignment:', techError);
+                                }
+                            }
+                        }
+                    } else {
+                        console.warn('⚠️ Update may not have taken effect');
+                        error = new Error('Update verification failed - changes may not have been saved');
+                    }
+                } else if (verifyResult.error) {
+                    console.warn('Could not verify update:', verifyResult.error);
+                    // Assume success if we got no error from update
+                    updateSucceeded = true;
+                }
             }
 
         } catch (e) {
@@ -2298,6 +2341,12 @@ const WorkOrderManager = {
             );
         }
 
+        // Status filter
+        const statusFilter = document.getElementById('status-filter');
+        if (statusFilter && statusFilter.value) {
+            filtered = filtered.filter(wo => wo.status === statusFilter.value);
+        }
+
         // Priority filter
         const priorityFilter = document.getElementById('priority-filter');
         if (priorityFilter && priorityFilter.value) {
@@ -2313,14 +2362,36 @@ const WorkOrderManager = {
             });
         }
 
+        // Customer filter
+        const customerFilter = document.getElementById('customer-filter');
+        if (customerFilter && customerFilter.value) {
+            filtered = filtered.filter(wo => {
+                // Get asset to find customer
+                const asset = AppState.assets.find(a => a.id === wo.asset_id);
+                if (asset && asset.customer_id) {
+                    return asset.customer_id === customerFilter.value;
+                }
+                return false;
+            });
+        }
+
+        // Work Type filter
+        const workTypeFilter = document.getElementById('worktype-filter');
+        if (workTypeFilter && workTypeFilter.value) {
+            filtered = filtered.filter(wo => wo.type === workTypeFilter.value);
+        }
+
         return filtered;
     },
 
     // Setup search and filter event listeners
     setupSearchAndFilters: () => {
         const searchInput = document.getElementById('workorder-search');
+        const statusFilter = document.getElementById('status-filter');
         const priorityFilter = document.getElementById('priority-filter');
         const technicianFilter = document.getElementById('technician-filter');
+        const customerFilter = document.getElementById('customer-filter');
+        const workTypeFilter = document.getElementById('worktype-filter');
 
         const applyFilters = () => {
             if (WorkOrderManager.currentView === 'list') {
@@ -2338,12 +2409,113 @@ const WorkOrderManager = {
             });
         }
 
+        if (statusFilter) {
+            statusFilter.addEventListener('change', applyFilters);
+        }
+
         if (priorityFilter) {
             priorityFilter.addEventListener('change', applyFilters);
         }
 
         if (technicianFilter) {
             technicianFilter.addEventListener('change', applyFilters);
+        }
+
+        if (customerFilter) {
+            customerFilter.addEventListener('change', applyFilters);
+        }
+
+        if (workTypeFilter) {
+            workTypeFilter.addEventListener('change', applyFilters);
+        }
+    },
+
+    // Populate filter dropdowns
+    populateFilters: async () => {
+        // Populate technicians filter
+        const technicianFilter = document.getElementById('technician-filter');
+        if (technicianFilter && AppState.technicians && AppState.technicians.length > 0) {
+            technicianFilter.innerHTML = '<option value="">All Technicians</option>';
+            AppState.technicians.forEach(tech => {
+                const option = document.createElement('option');
+                option.value = tech.id;
+                option.textContent = tech.full_name || tech.name || 'Unknown';
+                technicianFilter.appendChild(option);
+            });
+        }
+
+        // Populate customers filter
+        const customerFilter = document.getElementById('customer-filter');
+        if (customerFilter) {
+            try {
+                if (supabaseClient) {
+                    const { data: customers, error } = await supabaseClient
+                        .from('customers')
+                        .select('id, name')
+                        .order('name');
+                    
+                    if (!error && customers) {
+                        customerFilter.innerHTML = '<option value="">All Customers</option>';
+                        customers.forEach(customer => {
+                            const option = document.createElement('option');
+                            option.value = customer.id;
+                            option.textContent = customer.name || 'Unknown';
+                            customerFilter.appendChild(option);
+                        });
+                    }
+                } else if (AppState.customers && AppState.customers.length > 0) {
+                    customerFilter.innerHTML = '<option value="">All Customers</option>';
+                    AppState.customers.forEach(customer => {
+                        const option = document.createElement('option');
+                        option.value = customer.id;
+                        option.textContent = customer.name || 'Unknown';
+                        customerFilter.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading customers for filter:', error);
+            }
+        }
+
+        // Populate work type filter
+        const workTypeFilter = document.getElementById('worktype-filter');
+        if (workTypeFilter) {
+            try {
+                if (supabaseClient) {
+                    const { data: workOrderTypes, error } = await supabaseClient
+                        .from('work_order_types')
+                        .select('code, name')
+                        .order('name');
+                    
+                    if (!error && workOrderTypes) {
+                        workTypeFilter.innerHTML = '<option value="">All Work Types</option>';
+                        workOrderTypes.forEach(type => {
+                            const option = document.createElement('option');
+                            option.value = type.code;
+                            option.textContent = type.name || type.code;
+                            workTypeFilter.appendChild(option);
+                        });
+                    }
+                } else {
+                    // Fallback to common work order types
+                    const commonTypes = [
+                        { code: 'preventive', name: 'Preventive Maintenance' },
+                        { code: 'corrective', name: 'Corrective Maintenance' },
+                        { code: 'inspection', name: 'Inspection' },
+                        { code: 'repair', name: 'Repair' },
+                        { code: 'calibration', name: 'Calibration' }
+                    ];
+                    workTypeFilter.innerHTML = '<option value="">All Work Types</option>';
+                    commonTypes.forEach(type => {
+                        const option = document.createElement('option');
+                        option.value = type.code;
+                        option.textContent = type.name;
+                        workTypeFilter.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading work order types for filter:', error);
+            }
         }
     },
 
@@ -3502,7 +3674,6 @@ const SettingsManagerLegacy = {
         }
     }
 };
-*/
 */
 
 function showToast(message, type = 'info') {
