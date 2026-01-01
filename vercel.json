@@ -7,6 +7,10 @@
     { "src": "/compliance.html", "dest": "/compliance.html" },
     { "src": "/assets.html", "dest": "/assets.html" },
     { "src": "/work-orders.html", "dest": "/work-orders.html" },
+    { "src": "/customers.html", "dest": "/customers.html" },
+    { "src": "/inventory.html", "dest": "/inventory.html" },
+    { "src": "/settings.html", "dest": "/settings.html" },
+    { "src": "/login.html", "dest": "/login.html" },
     { "src": "/(.*)", "dest": "/$1" }
   ]
 }
