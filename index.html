@@ -169,68 +169,24 @@
                 <h2 class="text-3xl font-bold text-slate-800 mb-8 text-center">Real-Time System Statistics</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <!-- Total Assets -->
-                    <div class="bg-white rounded-xl shadow-lg p-6 card-hover border-l-4 border-blue-500">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-slate-600 text-sm font-medium">Total Assets</p>
-                                <p class="text-3xl font-bold text-slate-800" id="total-assets">2,847</p>
-                                <p class="text-green-600 text-sm mt-1">
-                                    <i class="fas fa-arrow-up mr-1"></i>
-                                    +12 from last month
-                                </p>
-                            </div>
-                            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                                <i class="fas fa-heartbeat text-blue-600 text-xl"></i>
-                            </div>
-                        </div>
+                    <div class="bg-slate-50 rounded-lg p-4 text-center">
+                        <div id="total-assets" class="text-2xl font-bold text-blue-600">0</div>
+                        <div class="text-slate-600 text-sm">Total Assets</div>
                     </div>
                     <!-- Active Work Orders -->
-                    <div class="bg-white rounded-xl shadow-lg p-6 card-hover border-l-4 border-amber-500">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-slate-600 text-sm font-medium">Active Work Orders</p>
-                                <p class="text-3xl font-bold text-slate-800" id="active-work-orders">156</p>
-                                <p class="text-amber-600 text-sm mt-1">
-                                    <i class="fas fa-exclamation-triangle mr-1"></i>
-                                    23 overdue
-                                </p>
-                            </div>
-                            <div class="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center">
-                                <i class="fas fa-tools text-amber-600 text-xl"></i>
-                            </div>
-                        </div>
+                    <div class="bg-slate-50 rounded-lg p-4 text-center">
+                        <div id="active-work-orders" class="text-2xl font-bold text-amber-600">0</div>
+                        <div class="text-slate-600 text-sm">Active Work Orders</div>
                     </div>
                     <!-- Compliance Rate -->
-                    <div class="bg-white rounded-xl shadow-lg p-6 card-hover border-l-4 border-green-500">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-slate-600 text-sm font-medium">Compliance Rate</p>
-                                <p class="text-3xl font-bold text-slate-800" id="compliance-rate">98.7%</p>
-                                <p class="text-green-600 text-sm mt-1">
-                                    <i class="fas fa-check-circle mr-1"></i>
-                                    Above target
-                                </p>
-                            </div>
-                            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                                <i class="fas fa-certificate text-green-600 text-xl"></i>
-                            </div>
-                        </div>
+                    <div class="bg-slate-50 rounded-lg p-4 text-center">
+                        <div id="compliance-rate" class="text-2xl font-bold text-green-600">0%</div>
+                        <div class="text-slate-600 text-sm">Compliance Rate</div>
                     </div>
                     <!-- Maintenance Due -->
-                    <div class="bg-white rounded-xl shadow-lg p-6 card-hover border-l-4 border-red-500">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-slate-600 text-sm font-medium">Maintenance Due</p>
-                                <p class="text-3xl font-bold text-slate-800" id="maintenance-due">89</p>
-                                <p class="text-red-600 text-sm mt-1">
-                                    <i class="fas fa-clock mr-1"></i>
-                                    12 critical
-                                </p>
-                            </div>
-                            <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-                                <i class="fas fa-calendar-check text-red-600 text-xl"></i>
-                            </div>
-                        </div>
+                    <div class="bg-slate-50 rounded-lg p-4 text-center">
+                        <div id="maintenance-due" class="text-2xl font-bold text-red-600">0</div>
+                        <div class="text-slate-600 text-sm">Maintenance Due</div>
                     </div>
                 </div>
             </div>
