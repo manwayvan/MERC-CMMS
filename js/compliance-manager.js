@@ -5,7 +5,8 @@
 
 class ComplianceManager {
     constructor() {
-        this.supabaseClient = window.supabaseClient;
+        // Use shared Supabase client from auth.js to avoid multiple instances
+        this.supabaseClient = window.sharedSupabaseClient || window.supabaseClient || null;
         this.complianceStandards = [];
         this.complianceRecords = [];
         this.auditTrail = [];
@@ -13,9 +14,19 @@ class ComplianceManager {
     }
 
     async init() {
+        // Ensure we have a Supabase client
         if (!this.supabaseClient) {
-            console.error('Supabase client not initialized');
-            return;
+            if (window.sharedSupabaseClient) {
+                this.supabaseClient = window.sharedSupabaseClient;
+            } else if (window.supabase && typeof CONFIG !== 'undefined') {
+                this.supabaseClient = window.supabase.createClient(
+                    CONFIG.SUPABASE_URL || 'https://hmdemsbqiqlqcggwblvl.supabase.co',
+                    CONFIG.SUPABASE_ANON_KEY || 'sb_publishable_Z9oNxTGDCCz3EZnh6NqySg_QzF6amCN'
+                );
+            } else {
+                console.error('Supabase client not initialized');
+                return;
+            }
         }
 
         await this.loadComplianceData();

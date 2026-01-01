@@ -7,14 +7,14 @@ const WorkOrderParts = {
     currentMode: null, // 'create' or 'view'
 
     async init() {
-        // Initialize Supabase client
-        if (typeof window.supabase !== 'undefined' && typeof CONFIG !== 'undefined') {
+        // Initialize Supabase client - prioritize shared client to avoid multiple instances
+        if (window.sharedSupabaseClient) {
+            this.supabaseClient = window.sharedSupabaseClient;
+        } else if (typeof window.supabase !== 'undefined' && typeof CONFIG !== 'undefined') {
             this.supabaseClient = window.supabase.createClient(
                 CONFIG.SUPABASE_URL || 'https://hmdemsbqiqlqcggwblvl.supabase.co',
                 CONFIG.SUPABASE_ANON_KEY || 'sb_publishable_Z9oNxTGDCCz3EZnh6NqySg_QzF6amCN'
             );
-        } else if (window.sharedSupabaseClient) {
-            this.supabaseClient = window.sharedSupabaseClient;
         } else {
             console.error('Supabase client not initialized');
             return;

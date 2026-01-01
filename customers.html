@@ -332,7 +332,7 @@
     </div>
 
     <!-- Toast Notification -->
-    <div id="toast" class="toast"></div>
+    <div id="toast-container" class="fixed bottom-4 right-4 z-50"></div>
 
     <!-- Debug Button -->
     <!-- Main Content -->
@@ -659,18 +659,22 @@
         const customerModal = document.getElementById('customer-modal');
         const locationModal = document.getElementById('location-modal');
 
-        // Initialize Supabase client with your credentials
+        // Initialize Supabase client - use shared client from auth.js
         document.addEventListener('DOMContentLoaded', () => {
-            const supabaseUrl = 'https://hmdemsbqiqlqcggwblvl.supabase.co';
-            const supabaseKey = 'sb_publishable_Z9oNxTGDCCz3EZnh6NqySg_QzF6amCN';
-            
-            if (!window.supabase) {
+            // Use shared Supabase client from auth.js to avoid multiple instances
+            if (window.sharedSupabaseClient) {
+                supabaseClient = window.sharedSupabaseClient;
+                console.log('✅ Using shared Supabase client');
+            } else if (window.supabase) {
+                // Fallback: create client if shared one not available
+                const supabaseUrl = 'https://hmdemsbqiqlqcggwblvl.supabase.co';
+                const supabaseKey = 'sb_publishable_Z9oNxTGDCCz3EZnh6NqySg_QzF6amCN';
+                supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+                console.log('✅ Supabase client initialized (fallback)');
+            } else {
                 showToast('Supabase library not loaded. Please check your internet connection.', 'error');
                 return;
             }
-            
-            supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
-            console.log('✅ Supabase client initialized successfully');
 
             // Load customers on page load
             loadCustomers();
@@ -1650,32 +1654,47 @@
             }
         }
 
-        // Show toast notification
+        // Use global showToast from main.js if available, otherwise use local implementation
         function showToast(message, type = 'info') {
-            const toast = document.getElementById('toast');
-            const icons = {
-                success: '✅',
-                error: '❌',
-                warning: '⚠️',
-                info: 'ℹ️'
-            };
-            const colors = {
-                success: '#10b981',
-                error: '#ef4444',
-                warning: '#f59e0b',
-                info: '#3b82f6'
+            if (typeof window.showToast === 'function') {
+                window.showToast(message, type);
+                return;
+            }
+            
+            // Fallback local implementation
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+            
+            const toast = document.createElement('div');
+            const typeStyles = {
+                success: 'bg-green-600',
+                error: 'bg-red-600',
+                warning: 'bg-amber-500',
+                info: 'bg-blue-600'
             };
             
-            toast.textContent = `${icons[type] || icons.info} ${message}`;
-            toast.style.backgroundColor = colors[type] || colors.info;
-            toast.style.display = 'block';
+            toast.className = `text-white px-4 py-3 rounded-lg shadow-lg mb-3 flex items-center space-x-3 ${typeStyles[type] || typeStyles.info}`;
+            toast.innerHTML = `
+                <span class="font-semibold">${message}</span>
+                <button class="ml-auto text-white/80 hover:text-white" aria-label="Close notification">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
             
-            console.log(`${icons[type]} ${message}`);
-
+            const closeButton = toast.querySelector('button');
+            if (closeButton) {
+                closeButton.addEventListener('click', () => toast.remove());
+            }
+            
+            container.appendChild(toast);
+            
             setTimeout(() => {
-                toast.style.display = 'none';
+                toast.remove();
             }, 5000);
         }
+        
+        // Expose locally for backward compatibility
+        window.showToast = showToast;
 
         // Show coming soon notification
         function showComingSoon() {

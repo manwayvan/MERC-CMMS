@@ -615,6 +615,14 @@
 
     <script src="main.js"></script>
     <script src="js/inventory-manager.js"></script>
+    <script>
+        // Initialize InventoryManager when DOM is ready
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (typeof InventoryManager !== 'undefined') {
+                await InventoryManager.init();
+            }
+        });
+    </script>
 </body>
 </html>
 

@@ -788,11 +788,16 @@
                 });
             }
 
-            if (!window.supabase) {
+            // Use shared Supabase client from auth.js to avoid multiple instances
+            if (window.sharedSupabaseClient) {
+                supabaseClient = window.sharedSupabaseClient;
+            } else if (window.supabase) {
+                // Fallback: create client if shared one not available
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            } else {
                 showToast('Supabase library not loaded', 'error');
                 return;
             }
-            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             await detectAssetSchema();
             await loadReferenceData();
             await loadDeviceConfigurations();
@@ -3575,3 +3580,4 @@
     <script src="js/pm-management.js"></script>
 </body>
 </html>
+image.png

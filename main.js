@@ -18,12 +18,13 @@ function shouldUseMockData() {
 }
 
 function loadSupabaseClient() {
-    if (supabaseClient) {
-        return Promise.resolve(supabaseClient);
-    }
-
+    // Prioritize shared client to avoid multiple instances
     if (window.sharedSupabaseClient) {
         supabaseClient = window.sharedSupabaseClient;
+        return Promise.resolve(supabaseClient);
+    }
+    
+    if (supabaseClient) {
         return Promise.resolve(supabaseClient);
     }
 
@@ -1215,7 +1216,7 @@ const WorkOrderManager = {
         additionalCosts: [],
         links: [],
         files: []
-    },,
+    },
     partsUsedItems: [],
     // Initialize work order management
     init: async () => {
@@ -3780,7 +3781,14 @@ const SettingsManagerLegacy = {
 
 function showToast(message, type = 'info') {
     const container = document.getElementById('toast-container');
-    if (!container) return;
+    if (!container) {
+        // Create toast container if it doesn't exist
+        const newContainer = document.createElement('div');
+        newContainer.id = 'toast-container';
+        newContainer.className = 'fixed bottom-4 right-4 z-50';
+        document.body.appendChild(newContainer);
+        return showToast(message, type); // Retry with new container
+    }
 
     const toast = document.createElement('div');
     const typeStyles = {
@@ -3809,6 +3817,9 @@ function showToast(message, type = 'info') {
         toast.remove();
     }, 4000);
 }
+
+// Expose showToast globally for all pages
+window.showToast = showToast;
 
 function switchTab(tabId) {
     const tabButtons = document.querySelectorAll('.tab-button');
@@ -4571,16 +4582,18 @@ async function initApp() {
     if (AppState.currentPage === 'dashboard') {
         await DashboardManager.init();
     } else if (AppState.currentPage === 'assets') {
-        assetManager.loadAssets();
-        assetManager.setupEventLuisteners();
+        // Assets page handles its own initialization in assets.html
     } else if (AppState.currentPage === 'workorders') {
         await WorkOrderManager.init();
     } else if (AppState.currentPage === 'settings') {
         // SettingsManager.init() is now handled in js/settings-manager.js
-        // await SettingsManager.init();
         await ChecklistManager.init();
     } else if (AppState.currentPage === 'customers') {
-        initCustomerPage();
+        // Customers page handles its own initialization in customers.html
+    } else if (AppState.currentPage === 'inventory') {
+        // InventoryManager.init() is handled in inventory.html
+    } else if (AppState.currentPage === 'compliance') {
+        // ComplianceManager.init() is handled in compliance.html
     }
 }
 

@@ -11,12 +11,37 @@
         ? CONFIG.SUPABASE_ANON_KEY
         : defaultKey;
 
-    const client = window.supabase?.createClient(supabaseUrl, supabaseKey);
-    window.sharedSupabaseClient = client || null;
+    // Initialize Supabase client - wait for library to load if needed
+    function initSupabaseClient() {
+        if (window.supabase) {
+            const client = window.supabase.createClient(supabaseUrl, supabaseKey);
+            window.sharedSupabaseClient = client;
+            return client;
+        }
+        return null;
+    }
+
+    // Initialize client - wait for DOMContentLoaded to ensure Supabase script is loaded
+    let client = null;
+    
+    function initializeClient() {
+        if (!client) {
+            client = initSupabaseClient();
+        }
+        return client;
+    }
+
+    // Try to initialize immediately if Supabase is already loaded
+    client = initSupabaseClient();
 
     const isLoginPage = () => window.location.pathname.endsWith('login.html');
 
     const requireAuth = async () => {
+        // Ensure client is initialized
+        if (!client) {
+            client = initializeClient();
+        }
+        
         if (!client || isLoginPage()) {
             return;
         }
@@ -37,6 +62,11 @@
         if (!logoutButton) return;
 
         logoutButton.addEventListener('click', async () => {
+            // Ensure client is initialized
+            if (!client) {
+                client = initializeClient();
+            }
+            
             if (client?.auth?.signOut) {
                 try {
                     await client.auth.signOut();
@@ -48,7 +78,13 @@
         });
     };
 
+    // Wait for DOMContentLoaded to ensure Supabase script is loaded
     document.addEventListener('DOMContentLoaded', () => {
+        // Initialize client if not already done
+        if (!client) {
+            client = initializeClient();
+        }
+        
         setupLogout();
         requireAuth();
     });

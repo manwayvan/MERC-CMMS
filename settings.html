@@ -1260,8 +1260,14 @@
     <script src="js/master-db-manager.js?v=2"></script>
     <script src="js/settings-manager.js"></script>
     <script>
-        // Initialize MasterDBManager when DOM is ready
-        document.addEventListener('DOMContentLoaded', () => {
+        // Initialize SettingsManager and MasterDBManager when DOM is ready
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Initialize SettingsManager first
+            if (typeof SettingsManager !== 'undefined') {
+                await SettingsManager.init();
+            }
+            
+            // Initialize MasterDBManager
             if (typeof MasterDBManager !== 'undefined') {
                 MasterDBManager.init();
             }

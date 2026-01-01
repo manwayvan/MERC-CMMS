@@ -661,8 +661,8 @@
             }
         }
 
-        // Handle custom report form submission
-        document.addEventListener('DOMContentLoaded', () => {
+        // Handle custom report form submission and initialize ComplianceManager
+        document.addEventListener('DOMContentLoaded', async () => {
             const customReportForm = document.getElementById('custom-report-form');
             if (customReportForm) {
                 customReportForm.addEventListener('submit', (e) => {
@@ -670,6 +670,13 @@
                     showComingSoon();
                     hideCustomReportModal();
                 });
+            }
+            
+            // Initialize ComplianceManager
+            if (typeof ComplianceManager !== 'undefined') {
+                const complianceManager = new ComplianceManager();
+                await complianceManager.init();
+                window.complianceManager = complianceManager; // Store globally for access
             }
         });
     </script>
