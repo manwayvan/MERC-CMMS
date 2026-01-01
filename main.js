@@ -1208,6 +1208,14 @@ const assetManager = new AssetManager();
 // Work Order Management Functions
 const WorkOrderManager = {
     pendingAssetId: null,
+    currentWorkOrderId: null,
+    // Temporary storage for create mode
+    createModeData: {
+        labor: [],
+        additionalCosts: [],
+        links: [],
+        files: []
+    },,
     partsUsedItems: [],
     // Initialize work order management
     init: async () => {
@@ -1521,40 +1529,38 @@ const WorkOrderManager = {
 
     // Setup event listeners
     setupEventListeners: () => {
-        const createForm = document.getElementById('create-workorder-form');
-        if (createForm) {
-            createForm.addEventListener('submit', async (event) => {
+        // Unified work order form handler
+        const workOrderForm = document.getElementById('workorder-form');
+        if (workOrderForm) {
+            workOrderForm.addEventListener('submit', async (event) => {
                 event.preventDefault();
-                await WorkOrderManager.handleCreateWorkOrder();
-            });
-        }
-
-        const createModal = document.getElementById('create-workorder-modal');
-        if (createModal) {
-            createModal.addEventListener('click', (event) => {
-                if (event.target === createModal) {
-                    hideCreateWorkOrderModal();
+                const mode = document.getElementById('workorder-mode')?.value || 'create';
+                if (mode === 'create') {
+                    await WorkOrderManager.handleCreateWorkOrder();
+                } else {
+                    await WorkOrderManager.handleUpdateWorkOrder();
                 }
             });
         }
 
-        const viewForm = document.getElementById('view-workorder-form');
-        if (viewForm) {
-            viewForm.addEventListener('submit', async (event) => {
-                event.preventDefault();
-                await WorkOrderManager.handleUpdateWorkOrder();
+        const workOrderModal = document.getElementById('workorder-modal');
+        if (workOrderModal) {
+            workOrderModal.addEventListener('click', (event) => {
+                if (event.target === workOrderModal) {
+                    WorkOrderManager.closeWorkOrderModal();
+                }
             });
         }
 
         document.addEventListener('keydown', (event) => {
             if (event.key === 'Escape') {
                 hideCreateWorkOrderModal();
-                hideViewWorkOrderModal();
+                WorkOrderManager.closeWorkOrderModal();
             }
         });
     },
 
-    // View work order
+    // View work order (using unified modal)
     viewWorkOrder: async (workOrderId) => {
         const workOrder = AppState.workOrders.find(wo => wo.id === workOrderId);
         if (!workOrder) {
@@ -1562,46 +1568,62 @@ const WorkOrderManager = {
             return;
         }
 
+        // Open unified modal in view mode
+        WorkOrderManager.openWorkOrderModal('view', workOrderId);
         WorkOrderManager.currentWorkOrderId = workOrderId;
 
         // Set title with work order ID and asset name
-        const titleEl = document.getElementById('view-workorder-title');
+        const titleEl = document.getElementById('workorder-modal-title');
         if (titleEl) {
             const asset = AppState.assets.find(a => a.id === workOrder.asset_id);
             const assetName = asset ? asset.name : 'Unknown Asset';
             titleEl.textContent = `${workOrder.id} - ${assetName}`;
         }
 
+        // Show view-only elements
+        document.getElementById('workorder-header-actions')?.classList.remove('hidden');
+        document.getElementById('workorder-action-menu-container')?.classList.remove('hidden');
+        document.getElementById('workorder-edit-btn')?.classList.remove('hidden');
+        document.getElementById('workorder-delete-btn')?.classList.remove('hidden');
+        document.getElementById('workorder-tabs')?.classList.remove('hidden');
+        document.getElementById('workorder-wo-id-container')?.classList.remove('hidden');
+        
         // Set status header dropdown
-        const statusHeader = document.getElementById('view-workorder-status-header');
+        const statusHeader = document.getElementById('workorder-status-header');
         if (statusHeader) {
             statusHeader.value = workOrder.status === 'completed' ? 'closed' : 
                                 workOrder.status === 'cancelled' ? 'incomplete' : 
                                 workOrder.status || 'open';
         }
 
-        // Populate dropdowns FIRST (before setting values), passing the values to set
-        WorkOrderManager.populateViewAssetOptions(workOrder.asset_id || '');
-        WorkOrderManager.populateViewTechnicianOptions(workOrder.assigned_technician_id || '');
-        WorkOrderManager.populateViewWorkOrderTypes(workOrder.type || '');
+        // Populate dropdowns
+        WorkOrderManager.populateWorkOrderAssetOptions(workOrder.asset_id || '');
+        WorkOrderManager.populateWorkOrderTechnicianOptions(workOrder.assigned_technician_id || '');
+        WorkOrderManager.populateWorkOrderTypeOptions(workOrder.type || '');
 
-        // Now set the other values AFTER dropdowns are populated
-        document.getElementById('view-workorder-id').value = workOrder.id;
-        document.getElementById('view-workorder-wo-id').value = workOrder.id;
-        document.getElementById('view-workorder-status').value = workOrder.status === 'completed' ? 'closed' : 
-                                                                  workOrder.status === 'cancelled' ? 'incomplete' : 
-                                                                  workOrder.status || 'open';
-        document.getElementById('view-workorder-priority-select').value = workOrder.priority || 'medium';
+        // Set form values
+        document.getElementById('workorder-id').value = workOrder.id;
+        document.getElementById('workorder-wo-id').value = workOrder.id;
+        document.getElementById('workorder-status').value = workOrder.status === 'completed' ? 'closed' : 
+                                                          workOrder.status === 'cancelled' ? 'incomplete' : 
+                                                          workOrder.status || 'open';
+        document.getElementById('workorder-priority-select').value = workOrder.priority || 'medium';
         
         // Format date for input
         if (workOrder.due_date) {
             const dueDate = new Date(workOrder.due_date);
             const formattedDate = dueDate.toISOString().split('T')[0];
-            document.getElementById('view-workorder-due-date').value = formattedDate;
+            document.getElementById('workorder-due-date').value = formattedDate;
         }
         
-        document.getElementById('view-workorder-estimated-hours').value = workOrder.estimated_hours || '';
-        document.getElementById('view-workorder-description').value = workOrder.description || '';
+        document.getElementById('workorder-estimated-hours').value = workOrder.estimated_hours || '';
+        document.getElementById('workorder-description').value = workOrder.description || '';
+
+        // Update submit button
+        const submitBtn = document.getElementById('workorder-submit-btn');
+        const cancelBtn = document.getElementById('workorder-cancel-btn');
+        if (submitBtn) submitBtn.textContent = 'Update Work Order';
+        if (cancelBtn) cancelBtn.textContent = 'Close';
 
         // Reset timer
         if (WorkOrderManager.timerInterval) {
@@ -1634,14 +1656,49 @@ const WorkOrderManager = {
         if (actionMenu) {
             actionMenu.classList.add('hidden');
         }
-
-        // Show modal
-        const modal = document.getElementById('view-workorder-modal');
-        if (modal) {
-            modal.classList.add('active');
-            // Close action menu when clicking outside
-            document.addEventListener('click', WorkOrderManager.handleOutsideClick, true);
-        }
+    },
+    
+    // Helper functions for populating dropdowns (unified)
+    populateWorkOrderAssetOptions: (valueToSet = null) => {
+        const assetSelect = document.getElementById('workorder-asset-select');
+        if (!assetSelect) return;
+        const currentValue = valueToSet !== null ? valueToSet : assetSelect.value;
+        assetSelect.innerHTML = '<option value="">Select Asset</option>';
+        AppState.assets.forEach(asset => {
+            const option = document.createElement('option');
+            option.value = asset.id;
+            option.textContent = asset.name || asset.id;
+            if (asset.id === currentValue) option.selected = true;
+            assetSelect.appendChild(option);
+        });
+    },
+    
+    populateWorkOrderTechnicianOptions: (valueToSet = null) => {
+        const techSelect = document.getElementById('workorder-technician-select');
+        if (!techSelect) return;
+        const currentValue = valueToSet !== null ? valueToSet : techSelect.value;
+        techSelect.innerHTML = '<option value="">Select technician</option>';
+        AppState.technicians.forEach(tech => {
+            const option = document.createElement('option');
+            option.value = tech.id;
+            option.textContent = tech.full_name || 'Unnamed Technician';
+            if (tech.id === currentValue) option.selected = true;
+            techSelect.appendChild(option);
+        });
+    },
+    
+    populateWorkOrderTypeOptions: (valueToSet = null) => {
+        const typeSelect = document.getElementById('workorder-type-select');
+        if (!typeSelect) return;
+        const currentValue = valueToSet !== null ? valueToSet : typeSelect.value;
+        typeSelect.innerHTML = '<option value="">Select type</option>';
+        AppState.workOrderTypes.forEach(type => {
+            const option = document.createElement('option');
+            option.value = type.code || type.name;
+            option.textContent = type.name;
+            if ((type.code || type.name) === currentValue) option.selected = true;
+            typeSelect.appendChild(option);
+        });
     },
 
     toggleActionMenu: () => {
@@ -1742,13 +1799,13 @@ const WorkOrderManager = {
     },
 
     handleUpdateWorkOrder: async () => {
-        const workOrderIdInput = document.getElementById('view-workorder-id');
+        const workOrderIdInput = document.getElementById('workorder-id');
         const workOrderId = workOrderIdInput?.value || workOrderIdInput?.textContent?.trim();
         
         if (!workOrderId) {
             console.error('Work order ID missing. Available elements:', {
-                idInput: document.getElementById('view-workorder-id'),
-                woIdInput: document.getElementById('view-workorder-wo-id')
+                idInput: document.getElementById('workorder-id'),
+                woIdInput: document.getElementById('workorder-wo-id')
             });
             showToast('Work order ID is missing', 'error');
             return;
@@ -1756,14 +1813,14 @@ const WorkOrderManager = {
 
         console.log('🔄 Updating work order:', workOrderId);
 
-        const assetId = document.getElementById('view-workorder-asset-select')?.value || '';
-        const type = WorkOrderManager.toDatabaseWorkOrderType(document.getElementById('view-workorder-type-select')?.value || '');
-        const priority = document.getElementById('view-workorder-priority-select')?.value || 'medium';
-        const status = document.getElementById('view-workorder-status')?.value || 'open';
-        const technicianId = document.getElementById('view-workorder-technician-select')?.value || null;
-        const dueDate = document.getElementById('view-workorder-due-date')?.value || '';
-        const estimatedHours = document.getElementById('view-workorder-estimated-hours')?.value ? Number(document.getElementById('view-workorder-estimated-hours').value) : null;
-        const description = document.getElementById('view-workorder-description')?.value?.trim() || '';
+        const assetId = document.getElementById('workorder-asset-select')?.value || '';
+        const type = WorkOrderManager.toDatabaseWorkOrderType(document.getElementById('workorder-type-select')?.value || '');
+        const priority = document.getElementById('workorder-priority-select')?.value || 'medium';
+        const status = document.getElementById('workorder-status')?.value || 'open';
+        const technicianId = document.getElementById('workorder-technician-select')?.value || null;
+        const dueDate = document.getElementById('workorder-due-date')?.value || '';
+        const estimatedHours = document.getElementById('workorder-estimated-hours')?.value ? Number(document.getElementById('workorder-estimated-hours').value) : null;
+        const description = document.getElementById('workorder-description')?.value?.trim() || '';
 
         if (!assetId || !type || !dueDate || !description) {
             showToast('Please complete all required fields.', 'warning');
@@ -1805,7 +1862,7 @@ const WorkOrderManager = {
                 WorkOrderManager.renderWorkOrdersList();
                 WorkOrderManager.renderRecentWorkOrders();
                 WorkOrderManager.updateSummaryCounts();
-                hideViewWorkOrderModal();
+                WorkOrderManager.closeWorkOrderModal();
                 showToast('Work order updated (demo mode).', 'success');
             }
             return;
@@ -1832,6 +1889,18 @@ const WorkOrderManager = {
             } else {
                 // Explicitly set to null if no technician selected
                 cleanPayload.assigned_technician_id = null;
+            }
+
+            // Check if status is being changed to completed
+            const isCompleting = dbStatus === 'completed';
+            const oldWorkOrder = AppState.workOrders.find(wo => wo.id === workOrderId);
+            const wasCompleted = oldWorkOrder?.status === 'completed';
+            
+            // If completing, add completed_date
+            if (isCompleting && !wasCompleted) {
+                cleanPayload.completed_date = new Date().toISOString();
+            } else if (!isCompleting && wasCompleted) {
+                cleanPayload.completed_date = null;
             }
 
             // First attempt: update WITHOUT select to avoid trigger issues
@@ -1955,51 +2024,58 @@ const WorkOrderManager = {
             
             // If work order was completed and is a PM work order, update asset PM dates
             const workOrderId = document.getElementById('view-workorder-id')?.value;
-            if (workOrderId && status === 'completed' || status === 'closed') {
+            if (workOrderId && (dbStatus === 'completed' || status === 'completed' || status === 'closed')) {
                 try {
                     const { data: wo } = await supabaseClient
                         .from('work_orders')
-                        .select('asset_id, type')
+                        .select('asset_id, type, completed_date')
                         .eq('id', workOrderId)
                         .single();
                     
-                    if (wo && wo.type === 'preventive_maintenance' && wo.asset_id) {
-                        // Update asset PM dates
-                        const { data: asset } = await supabaseClient
-                            .from('assets')
-                            .select('pm_schedule_type, pm_interval_days, last_maintenance')
-                            .eq('id', wo.asset_id)
-                            .single();
+                    // Check for PM work order (both 'PM' and 'preventive_maintenance' types)
+                    if (wo && (wo.type === 'PM' || wo.type === 'preventive_maintenance') && wo.asset_id) {
+                        const completionDate = wo.completed_date || cleanPayload.completed_date || new Date().toISOString();
                         
-                        if (asset && asset.pm_schedule_type) {
-                            const completionDate = new Date();
-                            const lastMaintenance = completionDate.toISOString();
-                            
-                            // Calculate next maintenance date
-                            let nextMaintenance = null;
-                            if (asset.pm_schedule_type === 'custom' && asset.pm_interval_days) {
-                                nextMaintenance = new Date(completionDate);
-                                nextMaintenance.setDate(nextMaintenance.getDate() + asset.pm_interval_days);
-                            } else {
-                                const intervals = {
-                                    daily: 1, weekly: 7, biweekly: 14, monthly: 30,
-                                    quarterly: 90, semiannually: 180, annually: 365
-                                };
-                                const days = intervals[asset.pm_schedule_type] || 30;
-                                nextMaintenance = new Date(completionDate);
-                                nextMaintenance.setDate(nextMaintenance.getDate() + days);
-                            }
-                            
-                            await supabaseClient
+                        // Use PMAutomation if available, otherwise fall back to manual update
+                        if (window.PMAutomation && typeof window.PMAutomation.updatePMAfterWorkOrderCompletion === 'function') {
+                            await window.PMAutomation.updatePMAfterWorkOrderCompletion(workOrderId, completionDate);
+                        } else {
+                            // Fallback: Update asset PM dates manually
+                            const { data: asset } = await supabaseClient
                                 .from('assets')
-                                .update({
-                                    last_maintenance: lastMaintenance,
-                                    next_maintenance: nextMaintenance.toISOString(),
-                                    compliance_status: 'compliant'
-                                })
-                                .eq('id', wo.asset_id);
+                                .select('pm_schedule_type, pm_interval_days, last_maintenance')
+                                .eq('id', wo.asset_id)
+                                .single();
                             
-                            console.log('✅ Asset PM dates updated after work order completion');
+                            if (asset && asset.pm_schedule_type) {
+                                const lastMaintenance = completionDate;
+                                
+                                // Calculate next maintenance date
+                                let nextMaintenance = null;
+                                if (asset.pm_schedule_type === 'custom' && asset.pm_interval_days) {
+                                    nextMaintenance = new Date(completionDate);
+                                    nextMaintenance.setDate(nextMaintenance.getDate() + asset.pm_interval_days);
+                                } else {
+                                    const intervals = {
+                                        daily: 1, weekly: 7, biweekly: 14, monthly: 30,
+                                        quarterly: 90, semiannually: 180, annually: 365
+                                    };
+                                    const days = intervals[asset.pm_schedule_type] || 30;
+                                    nextMaintenance = new Date(completionDate);
+                                    nextMaintenance.setDate(nextMaintenance.getDate() + days);
+                                }
+                                
+                                await supabaseClient
+                                    .from('assets')
+                                    .update({
+                                        last_maintenance: lastMaintenance,
+                                        next_maintenance: nextMaintenance.toISOString(),
+                                        compliance_status: 'compliant'
+                                    })
+                                    .eq('id', wo.asset_id);
+                                
+                                console.log('✅ Asset PM dates updated after work order completion');
+                            }
                         }
                     }
                 } catch (pmError) {
@@ -2008,14 +2084,14 @@ const WorkOrderManager = {
             }
             
             // Close modal
-            hideViewWorkOrderModal();
+            WorkOrderManager.closeWorkOrderModal();
             
             // Show success message
             showToast('Work order updated successfully.', 'success');
         } catch (reloadError) {
             console.error('❌ Error reloading work orders:', reloadError);
             showToast('Work order updated, but failed to refresh display. Please reload the page.', 'warning');
-            hideViewWorkOrderModal();
+            WorkOrderManager.closeWorkOrderModal();
         }
     },
 
@@ -2857,14 +2933,15 @@ const WorkOrderManager = {
     },
 
 
-    showAddTimeModal: () => {
-        const workOrderId = WorkOrderManager.currentWorkOrderId;
-        if (!workOrderId) {
+    showAddTimeModal: (mode = 'view') => {
+        const workOrderId = mode === 'create' ? 'CREATE' : WorkOrderManager.currentWorkOrderId;
+        if (!workOrderId && mode !== 'create') {
             showToast('No work order selected', 'error');
             return;
         }
 
-        document.getElementById('add-time-wo-id').value = workOrderId;
+        document.getElementById('add-time-wo-id').value = workOrderId || '';
+        document.getElementById('add-time-mode').value = mode;
         document.getElementById('add-time-date').value = new Date().toISOString().split('T')[0];
         
         // Populate technician dropdown
@@ -2901,26 +2978,28 @@ const WorkOrderManager = {
         openModal('add-time-modal');
     },
 
-    showAddCostModal: () => {
-        const workOrderId = WorkOrderManager.currentWorkOrderId;
-        if (!workOrderId) {
+    showAddCostModal: (mode = 'view') => {
+        const workOrderId = mode === 'create' ? 'CREATE' : WorkOrderManager.currentWorkOrderId;
+        if (!workOrderId && mode !== 'create') {
             showToast('No work order selected', 'error');
             return;
         }
 
-        document.getElementById('add-cost-wo-id').value = workOrderId;
+        document.getElementById('add-cost-wo-id').value = workOrderId || '';
+        document.getElementById('add-cost-mode').value = mode;
         document.getElementById('add-cost-date').value = new Date().toISOString().split('T')[0];
         openModal('add-cost-modal');
     },
 
-    showLinkWorkOrdersModal: () => {
-        const workOrderId = WorkOrderManager.currentWorkOrderId;
-        if (!workOrderId) {
+    showLinkWorkOrdersModal: (mode = 'view') => {
+        const workOrderId = mode === 'create' ? 'CREATE' : WorkOrderManager.currentWorkOrderId;
+        if (!workOrderId && mode !== 'create') {
             showToast('No work order selected', 'error');
             return;
         }
 
-        document.getElementById('link-wo-id').value = workOrderId;
+        document.getElementById('link-wo-id').value = workOrderId || '';
+        document.getElementById('link-wo-mode').value = mode;
         
         // Populate work orders dropdown (exclude current work order)
         const woSelect = document.getElementById('link-wo-select');
@@ -2941,14 +3020,15 @@ const WorkOrderManager = {
         openModal('link-workorders-modal');
     },
 
-    showAddFileModal: () => {
-        const workOrderId = WorkOrderManager.currentWorkOrderId;
-        if (!workOrderId) {
+    showAddFileModal: (mode = 'view') => {
+        const workOrderId = mode === 'create' ? 'CREATE' : WorkOrderManager.currentWorkOrderId;
+        if (!workOrderId && mode !== 'create') {
             showToast('No work order selected', 'error');
             return;
         }
 
-        document.getElementById('add-file-wo-id').value = workOrderId;
+        document.getElementById('add-file-wo-id').value = workOrderId || '';
+        document.getElementById('add-file-mode').value = mode;
         document.getElementById('add-file-input').value = '';
         document.getElementById('add-file-description').value = '';
         document.getElementById('add-file-progress').classList.add('hidden');
@@ -3059,7 +3139,7 @@ const WorkOrderManager = {
             await WorkOrderManager.loadWorkOrders();
             WorkOrderManager.renderWorkOrders();
             WorkOrderManager.renderWorkOrdersList();
-            hideViewWorkOrderModal();
+            WorkOrderManager.closeWorkOrderModal();
         } catch (error) {
             console.error('Error archiving work order:', error);
             showToast('Failed to archive work order', 'error');
@@ -3107,7 +3187,7 @@ const WorkOrderManager = {
             await WorkOrderManager.loadWorkOrders();
             WorkOrderManager.renderWorkOrders();
             WorkOrderManager.renderWorkOrdersList();
-            hideViewWorkOrderModal();
+            WorkOrderManager.closeWorkOrderModal();
         } catch (error) {
             console.error('Error deleting work order:', error);
             showToast('Failed to delete work order', 'error');
@@ -3297,10 +3377,32 @@ const WorkOrderManager = {
     },
 
     updateStatusFromHeader: () => {
-        const statusHeader = document.getElementById('view-workorder-status-header');
-        const statusSelect = document.getElementById('view-workorder-status');
+        const statusHeader = document.getElementById('workorder-status-header');
+        const statusSelect = document.getElementById('workorder-status');
         if (statusHeader && statusSelect) {
             statusSelect.value = statusHeader.value;
+        }
+    },
+    
+    switchWOTab: (tab) => {
+        // Hide all tab contents
+        document.getElementById('wo-details-content')?.classList.add('hidden');
+        document.getElementById('wo-updates-content')?.classList.add('hidden');
+        
+        // Remove active state from all tabs
+        document.getElementById('wo-details-tab')?.classList.remove('border-blue-600', 'text-blue-600');
+        document.getElementById('wo-details-tab')?.classList.add('border-transparent', 'text-slate-600');
+        document.getElementById('wo-updates-tab')?.classList.remove('border-blue-600', 'text-blue-600');
+        document.getElementById('wo-updates-tab')?.classList.add('border-transparent', 'text-slate-600');
+        
+        if (tab === 'details') {
+            document.getElementById('wo-details-content')?.classList.remove('hidden');
+            document.getElementById('wo-details-tab')?.classList.remove('border-transparent', 'text-slate-600');
+            document.getElementById('wo-details-tab')?.classList.add('border-blue-600', 'text-blue-600');
+        } else if (tab === 'updates') {
+            document.getElementById('wo-updates-content')?.classList.remove('hidden');
+            document.getElementById('wo-updates-tab')?.classList.remove('border-transparent', 'text-slate-600');
+            document.getElementById('wo-updates-tab')?.classList.add('border-blue-600', 'text-blue-600');
         }
     }
 };
@@ -3763,54 +3865,91 @@ function hideLocationModal() {
     closeModal('location-modal');
 }
 
+// Unified Work Order Modal Functions
 function showCreateWorkOrderModal() {
-    openModal('create-workorder-modal');
-    // Initialize parts list for new work order
-    if (typeof WorkOrderParts !== 'undefined') {
-        const tempId = 'temp-' + Date.now();
-        WorkOrderParts.workOrderParts[tempId] = [];
-        const partsList = document.getElementById('create-wo-parts-list');
-        if (partsList) {
-            partsList.innerHTML = '<p class="text-xs text-slate-500 italic">No parts added yet</p>';
-        }
-        const partsTotal = document.getElementById('create-wo-parts-total');
-        if (partsTotal) {
-            partsTotal.classList.add('hidden');
-        }
-    }
+    WorkOrderManager.openWorkOrderModal('create');
 }
 
 function hideCreateWorkOrderModal() {
-    // Clear parts when closing create modal
-    if (typeof WorkOrderParts !== 'undefined') {
-        const tempIds = Object.keys(WorkOrderParts.workOrderParts || {}).filter(id => id.startsWith('temp-'));
-        tempIds.forEach(id => {
-            WorkOrderParts.clearWorkOrderParts(id);
-        });
-        // Reset parts display
-        const partsList = document.getElementById('create-wo-parts-list');
-        if (partsList) {
-            partsList.innerHTML = '<p class="text-xs text-slate-500 italic">No parts added yet</p>';
-        }
-        const partsTotal = document.getElementById('create-wo-parts-total');
-        if (partsTotal) {
-            partsTotal.classList.add('hidden');
-        }
-    }
-    closeModal('create-workorder-modal');
-    // Reset form if needed
-    const form = document.getElementById('create-workorder-form');
-    if (form) form.reset();
+    WorkOrderManager.closeWorkOrderModal();
 }
 
 function hideViewWorkOrderModal() {
-    // Stop timer if running
-    if (WorkOrderManager.timerInterval) {
-        clearInterval(WorkOrderManager.timerInterval);
-        WorkOrderManager.timerInterval = null;
-    }
-    WorkOrderManager.currentWorkOrderId = null;
-    WorkOrderManager.timerElapsed = 0;
+    WorkOrderManager.closeWorkOrderModal();
+}
+
+// Add unified modal management to WorkOrderManager
+if (typeof WorkOrderManager !== 'undefined') {
+    WorkOrderManager.openWorkOrderModal = function(mode, workOrderId = null) {
+        const modal = document.getElementById('workorder-modal');
+        const modeInput = document.getElementById('workorder-mode');
+        const titleEl = document.getElementById('workorder-modal-title');
+        const submitBtn = document.getElementById('workorder-submit-btn');
+        const cancelBtn = document.getElementById('workorder-cancel-btn');
+        
+        if (!modal) {
+            console.error('Work order modal not found');
+            return;
+        }
+        
+        // Set mode
+        if (modeInput) modeInput.value = mode;
+        
+        // Configure modal based on mode
+        if (mode === 'create') {
+            if (titleEl) titleEl.textContent = 'Create New Work Order';
+            if (submitBtn) submitBtn.textContent = 'Create Work Order';
+            if (cancelBtn) cancelBtn.textContent = 'Cancel';
+            
+            // Hide view-only elements
+            document.getElementById('workorder-header-actions')?.classList.add('hidden');
+            document.getElementById('workorder-action-menu-container')?.classList.add('hidden');
+            document.getElementById('workorder-edit-btn')?.classList.add('hidden');
+            document.getElementById('workorder-delete-btn')?.classList.add('hidden');
+            document.getElementById('workorder-tabs')?.classList.add('hidden');
+            document.getElementById('workorder-wo-id-container')?.classList.add('hidden');
+            document.getElementById('wo-updates-content')?.classList.add('hidden');
+            
+            // Show details tab content
+            document.getElementById('wo-details-content')?.classList.remove('hidden');
+            
+            // Reset form
+            const form = document.getElementById('workorder-form');
+            if (form) form.reset();
+            
+            // Initialize parts list
+            if (typeof WorkOrderParts !== 'undefined') {
+                const tempId = 'temp-' + Date.now();
+                WorkOrderParts.workOrderParts[tempId] = [];
+                const partsList = document.getElementById('wo-parts-list');
+                if (partsList) {
+                    partsList.innerHTML = '<p class="text-xs text-slate-500 italic">No parts added yet</p>';
+                }
+            }
+            
+            // Reset create mode data
+            WorkOrderManager.createModeData = {
+                labor: [],
+                additionalCosts: [],
+                links: [],
+                files: []
+            };
+        } else if (mode === 'view' && workOrderId) {
+            // Will be populated by viewWorkOrder function
+            WorkOrderManager.currentWorkOrderId = workOrderId;
+        }
+        
+        openModal('workorder-modal');
+    };
+    
+    WorkOrderManager.closeWorkOrderModal = function() {
+        // Stop timer if running
+        if (WorkOrderManager.timerInterval) {
+            clearInterval(WorkOrderManager.timerInterval);
+            WorkOrderManager.timerInterval = null;
+        }
+        WorkOrderManager.currentWorkOrderId = null;
+        WorkOrderManager.timerElapsed = 0;
     
     closeModal('view-workorder-modal');
     // Reset form if needed
@@ -3935,6 +4074,8 @@ const ChecklistManager = {
         ChecklistManager.currentTab = tab;
         const editTab = document.getElementById('checklist-edit-tab');
         const previewTab = document.getElementById('checklist-preview-tab');
+        const form = document.getElementById('checklist-form');
+        const previewContainer = document.getElementById('checklist-preview-container');
         
         if (tab === 'edit') {
             if (editTab) {
@@ -3945,8 +4086,8 @@ const ChecklistManager = {
                 previewTab.classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
                 previewTab.classList.add('text-slate-500');
             }
-            const form = document.getElementById('checklist-form');
             if (form) form.style.display = 'block';
+            if (previewContainer) previewContainer.style.display = 'none';
         } else {
             if (previewTab) {
                 previewTab.classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
@@ -3956,8 +4097,8 @@ const ChecklistManager = {
                 editTab.classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
                 editTab.classList.add('text-slate-500');
             }
-            const form = document.getElementById('checklist-form');
             if (form) form.style.display = 'none';
+            if (previewContainer) previewContainer.style.display = 'block';
             ChecklistManager.renderPreview();
         }
     },
@@ -4108,8 +4249,11 @@ const ChecklistManager = {
     },
 
     renderPreview: () => {
-        const container = document.getElementById('checklist-items-container');
-        if (!container) return;
+        const container = document.getElementById('checklist-preview-content');
+        if (!container) {
+            console.error('Preview container not found');
+            return;
+        }
 
         const name = document.getElementById('checklist-name')?.value || 'Untitled Checklist';
         const description = document.getElementById('checklist-description')?.value || '';
@@ -4481,6 +4625,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            const mode = document.getElementById('add-time-mode')?.value || 'view';
+            
+            // If in create mode, store temporarily
+            if (mode === 'create') {
+                const laborEntry = {
+                    technician_id: technicianId,
+                    hours: hours,
+                    hourly_rate: hourlyRate,
+                    date: date,
+                    notes: notes || null,
+                    total_cost: hours * hourlyRate
+                };
+                WorkOrderManager.createModeData.labor.push(laborEntry);
+                showToast('Labor time added (will be saved when work order is created)', 'success');
+                closeAddTimeModal();
+                WorkOrderManager.renderCreateModeLabor();
+                WorkOrderManager.updateCreateModeTotalCost();
+                return;
+            }
+
             try {
                 const { error } = await supabaseClient
                     .from('work_order_labor')
@@ -4522,6 +4686,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            const mode = document.getElementById('add-cost-mode')?.value || 'view';
+            
+            // If in create mode, store temporarily
+            if (mode === 'create') {
+                const costEntry = {
+                    description: description,
+                    amount: amount,
+                    category: category || null,
+                    date: date
+                };
+                WorkOrderManager.createModeData.additionalCosts.push(costEntry);
+                showToast('Additional cost added (will be saved when work order is created)', 'success');
+                closeAddCostModal();
+                WorkOrderManager.renderCreateModeAdditionalCosts();
+                WorkOrderManager.updateCreateModeTotalCost();
+                return;
+            }
+
             try {
                 const { error } = await supabaseClient
                     .from('work_order_additional_costs')
@@ -4558,6 +4740,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!supabaseClient) {
                 showToast('Database not connected', 'error');
+                return;
+            }
+
+            const mode = document.getElementById('link-wo-mode')?.value || 'view';
+            
+            // If in create mode, store temporarily
+            if (mode === 'create') {
+                const linkEntry = {
+                    linked_work_order_id: linkedWorkOrderId,
+                    link_type: linkType,
+                    notes: notes || null
+                };
+                WorkOrderManager.createModeData.links.push(linkEntry);
+                showToast('Link added (will be saved when work order is created)', 'success');
+                closeLinkWorkOrdersModal();
+                WorkOrderManager.renderCreateModeLinks();
                 return;
             }
 
@@ -4615,6 +4813,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            const mode = document.getElementById('add-file-mode')?.value || 'view';
+            
             try {
                 progressDiv.classList.remove('hidden');
                 progressBar.style.width = '0%';
@@ -4622,7 +4822,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Upload to Supabase Storage
                 const fileExt = file.name.split('.').pop();
-                const fileName = `${workOrderId}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+                const tempId = mode === 'create' ? 'CREATE' : workOrderId;
+                const fileName = `${tempId}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
                 const filePath = `work-orders/${fileName}`;
 
                 const { data: uploadData, error: uploadError } = await supabaseClient.storage

@@ -135,5 +135,5 @@ To fully implement all features:
 
 ## 🔗 Reference
 
-Based on features from [Atlas CMMS](https://github.com/Grashjs/cmms) - a comprehensive self-hosted CMMS solution.
+Based on features from Atlas CMMS - a comprehensive self-hosted CMMS solution.
 

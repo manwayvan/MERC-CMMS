@@ -260,6 +260,17 @@ class MMDAssetFormManager {
                 name: pmFrequencyName,
                 days: parseInt(pmFrequencyDays) || null
             };
+            
+            // Store PM frequency days in hidden field for form submission
+            const pmFrequencyDaysInput = document.getElementById('mmd-pm-frequency-days');
+            if (pmFrequencyDaysInput) {
+                pmFrequencyDaysInput.value = pmFrequencyDays || '';
+            }
+            
+            // Trigger next maintenance calculation if last maintenance is set
+            if (typeof calculateNextMaintenance === 'function') {
+                calculateNextMaintenance();
+            }
         } else {
             pmFrequencyDisplay.innerHTML = `
                 <div class="bg-amber-50 border border-amber-200 rounded-lg p-3">

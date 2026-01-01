@@ -61,13 +61,10 @@ const WorkOrderParts = {
     },
 
     async renderWorkOrderParts(workOrderId, mode) {
-        const containerId = mode === 'create' ? 'create-wo-parts-list' : 'view-wo-parts-list';
-        const totalId = mode === 'create' ? 'create-wo-parts-total' : 'view-wo-parts-total';
-        const totalAmountId = mode === 'create' ? 'create-wo-parts-total-amount' : 'view-wo-parts-total-amount';
-        
-        const container = document.getElementById(containerId);
-        const totalDiv = document.getElementById(totalId);
-        const totalAmount = document.getElementById(totalAmountId);
+        // Use unified element IDs
+        const container = document.getElementById('wo-parts-list');
+        const totalDiv = document.getElementById('wo-parts-total');
+        const totalAmount = document.getElementById('wo-parts-total-amount');
         
         if (!container) return;
 
@@ -342,7 +339,11 @@ const WorkOrderParts = {
 };
 
 // Global functions for onclick handlers
-function addPartToWorkOrder(mode) {
+function addPartToWorkOrder() {
+    // Get mode from unified modal
+    const modeInput = document.getElementById('workorder-mode');
+    const mode = modeInput?.value || 'create';
+    
     let workOrderId;
     if (mode === 'create') {
         // Use existing temp ID or create new one
@@ -353,7 +354,7 @@ function addPartToWorkOrder(mode) {
             WorkOrderParts.workOrderParts[workOrderId] = [];
         }
     } else {
-        workOrderId = document.getElementById('view-workorder-id')?.value;
+        workOrderId = document.getElementById('workorder-id')?.value;
         if (!workOrderId) {
             WorkOrderParts.showToast('Work order ID not found', 'error');
             return;

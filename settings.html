@@ -380,7 +380,7 @@
                 <div class="text-center">
                     <h1 class="text-4xl md:text-5xl font-bold text-white mb-4">Settings & Configuration</h1>
                     <p class="text-xl text-blue-200 max-w-3xl mx-auto">
-                        Manage PM schedules, compliance rules, team permissions, and advanced reporting features
+                        Manage technicians, work order types, checklists, master database, and system configuration
                     </p>
                 </div>
             </div>
@@ -392,19 +392,7 @@
                 <!-- Tab Navigation -->
                 <div class="bg-white rounded-t-lg shadow-md border-b border-slate-200">
                     <div class="flex flex-wrap gap-1 px-6 pt-6 overflow-x-auto">
-                        <button class="tab-button active" data-tab="pm-automation" onclick="switchTab('pm-automation')">
-                            <i class="fas fa-cogs"></i>PM Automation
-                        </button>
-                        <button class="tab-button" data-tab="reporting" onclick="switchTab('reporting')">
-                            <i class="fas fa-chart-bar"></i>Reporting
-                        </button>
-                        <button class="tab-button" data-tab="access-control" onclick="switchTab('access-control')">
-                            <i class="fas fa-lock"></i>Access Control
-                        </button>
-                        <button class="tab-button" data-tab="notifications" onclick="switchTab('notifications')">
-                            <i class="fas fa-bell"></i>Notifications
-                        </button>
-                        <button class="tab-button" data-tab="technicians" onclick="switchTab('technicians')">
+                        <button class="tab-button active" data-tab="technicians" onclick="switchTab('technicians')">
                             <i class="fas fa-users"></i>Technicians
                         </button>
                         <button class="tab-button" data-tab="work-order-types" onclick="switchTab('work-order-types')">
@@ -424,305 +412,8 @@
 
                 <!-- Tab Content -->
                 <div class="bg-white rounded-b-lg shadow-md">
-                    <!-- PM Automation Tab -->
-                    <div id="pm-automation" class="tab-content active p-8">
-                        <h2 class="text-2xl font-bold text-slate-800 mb-6">Preventive Maintenance Automation</h2>
-                        
-                        <div class="settings-section">
-                            <h3 class="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
-                                <i class="fas fa-robot text-blue-600"></i>Auto-Generation Rules
-                            </h3>
-                            <div class="space-y-4">
-                                <div class="toggle-row">
-                                    <div class="flex-1">
-                                        <div class="settings-label">Auto-create PM work orders</div>
-                                        <div class="settings-description">Generate work orders based on asset PM schedules</div>
-                                    </div>
-                                    <button class="toggle active" role="switch" aria-checked="true" onclick="toggleSetting(this)"></button>
-                                </div>
-                                <div class="toggle-row">
-                                    <div class="flex-1">
-                                        <div class="settings-label">Generate 7 days in advance</div>
-                                        <div class="settings-description">Create work orders before PM due date</div>
-                                    </div>
-                                    <button class="toggle active" role="switch" aria-checked="true" onclick="toggleSetting(this)"></button>
-                                </div>
-                                <div class="toggle-row">
-                                    <div class="flex-1">
-                                        <div class="settings-label">Auto-escalate overdue PMs</div>
-                                        <div class="settings-description">Escalate critical priority after 7 days overdue</div>
-                                    </div>
-                                    <button class="toggle" role="switch" aria-checked="false" onclick="toggleSetting(this)"></button>
-                                </div>
-                                <div class="toggle-row">
-                                    <div class="flex-1">
-                                        <div class="settings-label">Respects blackout dates</div>
-                                        <div class="settings-description">Skip PMs during facility downtime windows</div>
-                                    </div>
-                                    <button class="toggle active" role="switch" aria-checked="true" onclick="toggleSetting(this)"></button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="settings-section">
-                            <h3 class="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
-                                <i class="fas fa-calendar-alt text-blue-600"></i>Schedule Configuration
-                            </h3>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label class="block text-sm font-semibold text-slate-700 mb-2">PM Lookahead Window (days)</label>
-                                    <input type="number" value="90" class="form-input" min="7" max="365">
-                                    <p class="settings-description">How far ahead to plan PM schedules</p>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-semibold text-slate-700 mb-2">Default Scheduling Lead Time (days)</label>
-                                    <input type="number" value="14" class="form-input" min="1" max="30">
-                                    <p class="settings-description">Days before due date to schedule work</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="settings-section">
-                            <h3 class="text-lg font-semibold text-slate-800 mb-4">Technician Auto-Assignment</h3>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label class="block text-sm font-semibold text-slate-700 mb-2">Assignment Strategy</label>
-                                    <select class="form-input">
-                                        <option>Skill-Based Matching</option>
-                                        <option>Workload Balanced</option>
-                                        <option>Geographic Proximity</option>
-                                        <option>Manual Assignment Only</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-semibold text-slate-700 mb-2">Max Work Orders Per Technician</label>
-                                    <input type="number" value="8" class="form-input" min="1" max="20">
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="flex justify-end gap-3 mt-6">
-                            <button class="btn btn-secondary" onclick="showToast('Changes discarded', 'info')">Discard Changes</button>
-                            <button class="btn btn-primary" onclick="showToast('PM automation settings saved', 'success')">Save Settings</button>
-                        </div>
-                    </div>
-
-                    <!-- Reporting Tab -->
-                    <div id="reporting" class="tab-content p-8" style="display: none;">
-                        <h2 class="text-2xl font-bold text-slate-800 mb-6">Advanced Reporting Configuration</h2>
-                        
-                        <div class="settings-section">
-                            <h3 class="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
-                                <i class="fas fa-file-pdf text-blue-600"></i>Report Generation Settings
-                            </h3>
-                            <div class="space-y-4">
-                                <div class="settings-group">
-                                    <div class="flex items-center justify-between mb-3">
-                                        <div>
-                                            <div class="settings-label">Enable automated report generation</div>
-                                            <div class="settings-description">Schedule reports to generate automatically</div>
-                                        </div>
-                                        <button class="toggle active" role="switch" aria-checked="true" onclick="toggleSetting(this)"></button>
-                                    </div>
-                                </div>
-                                <div class="settings-group">
-                                    <div class="flex items-center justify-between mb-3">
-                                        <div>
-                                            <div class="settings-label">Enable compliance reports</div>
-                                            <div class="settings-description">Generate FDA/ISO compliance documentation</div>
-                                        </div>
-                                        <button class="toggle active" role="switch" aria-checked="true" onclick="toggleSetting(this)"></button>
-                                    </div>
-
-
-                                </div>
-                                <div class="settings-group">
-                                    <div class="flex items-center justify-between mb-3">
-                                        <div>
-                                            <div class="settings-label">Enable financial reports</div>
-                                            <div class="settings-description">Track maintenance costs and depreciation</div>
-                                        </div>
-                                        <button class="toggle active" role="switch" aria-checked="true" onclick="toggleSetting(this)"></button>
-                                    </div>
-                                </div>
-                                <div class="settings-group">
-                                    <div class="flex items-center justify-between mb-3">
-                                        <div>
-                                            <div class="settings-label">Enable custom reports</div>
-                                            <div class="settings-description">Allow users to create custom report templates</div>
-                                        </div>
-                                        <button class="toggle active" role="switch" aria-checked="true" onclick="toggleSetting(this)"></button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="settings-section">
-                            <h3 class="text-lg font-semibold text-slate-800 mb-4">Report Formats</h3>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <label class="flex items-center gap-3 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-blue-50">
-                                    <input type="checkbox" checked class="w-4 h-4 rounded border-slate-300">
-                                    <span class="text-sm font-medium">PDF Export</span>
-                                </label>
-                                <label class="flex items-center gap-3 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-blue-50">
-                                    <input type="checkbox" checked class="w-4 h-4 rounded border-slate-300">
-                                    <span class="text-sm font-medium">Excel Export</span>
-                                </label>
-                                <label class="flex items-center gap-3 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-blue-50">
-                                    <input type="checkbox" checked class="w-4 h-4 rounded border-slate-300">
-                                    <span class="text-sm font-medium">CSV Export</span>
-                                </label>
-                                <label class="flex items-center gap-3 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-blue-50">
-                                    <input type="checkbox" checked class="w-4 h-4 rounded border-slate-300">
-                                    <span class="text-sm font-medium">Email Distribution</span>
-                                </label>
-                            </div>
-                        </div>
-
-                        <div class="settings-section">
-                            <h3 class="text-lg font-semibold text-slate-800 mb-4">Scheduled Report Templates</h3>
-                            <div class="space-y-3">
-                                <div class="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                                    <div>
-                                        <p class="font-medium text-slate-800">Monthly Compliance Report</p>
-                                        <p class="text-sm text-slate-600">1st of every month at 6:00 AM</p>
-                                    </div>
-                                    <span class="status-badge status-active"><span class="badge-pulse"></span>Active</span>
-                                </div>
-                                <div class="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                                    <div>
-                                        <p class="font-medium text-slate-800">Maintenance Cost Report</p>
-                                        <p class="text-sm text-slate-600">Every Friday at 5:00 PM</p>
-                                    </div>
-                                    <span class="status-badge status-active"><span class="badge-pulse"></span>Active</span>
-                                </div>
-                                <div class="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                                    <div>
-                                        <p class="font-medium text-slate-800">Asset Inventory Report</p>
-                                        <p class="text-sm text-slate-600">Monthly</p>
-                                    </div>
-                                    <span class="status-badge status-inactive">Inactive</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="flex justify-end gap-3 mt-6">
-                            <button class="btn btn-secondary" onclick="showToast('Changes discarded', 'info')">Discard Changes</button>
-                            <button class="btn btn-primary" onclick="showToast('Reporting settings saved', 'success')">Save Settings</button>
-                        </div>
-                    </div>
-
-                    <!-- Access Control Tab -->
-                    <div id="access-control" class="tab-content p-8" style="display: none;">
-                        <h2 class="text-2xl font-bold text-slate-800 mb-6">Access Control & Permissions</h2>
-                        
-                        <div class="settings-section">
-                            <h3 class="text-lg font-semibold text-slate-800 mb-4">Role Management</h3>
-                            <div class="space-y-3">
-                                <div class="p-4 bg-slate-50 rounded-lg border border-slate-200">
-                                    <div class="flex items-center justify-between mb-2">
-                                        <p class="font-medium text-slate-800">Administrator</p>
-                                        <span class="text-xs text-slate-600">Full Access</span>
-                                    </div>
-                                    <p class="text-sm text-slate-600">Complete system access including settings management</p>
-                                </div>
-                                <div class="p-4 bg-slate-50 rounded-lg border border-slate-200">
-                                    <div class="flex items-center justify-between mb-2">
-                                        <p class="font-medium text-slate-800">Compliance Officer</p>
-                                        <span class="text-xs text-slate-600">Audit Access</span>
-                                    </div>
-                                    <p class="text-sm text-slate-600">View only - compliance reports and audit trails</p>
-                                </div>
-                                <div class="p-4 bg-slate-50 rounded-lg border border-slate-200">
-                                    <div class="flex items-center justify-between mb-2">
-                                        <p class="font-medium text-slate-800">Technician</p>
-                                        <span class="text-xs text-slate-600">Field Access</span>
-                                    </div>
-                                    <p class="text-sm text-slate-600">Create and update assigned work orders only</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="settings-section">
-                            <h3 class="text-lg font-semibold text-slate-800 mb-4">Security Controls</h3>
-                            <div class="space-y-4">
-                                <div class="toggle-row">
-                                    <div class="flex-1">
-                                        <div class="settings-label">Require multi-factor authentication</div>
-                                        <div class="settings-description">Enforce MFA for admin and manager roles</div>
-                                    </div>
-                                    <button class="toggle active" role="switch" aria-checked="true" onclick="toggleSetting(this)"></button>
-                                </div>
-                                <div class="toggle-row">
-                                    <div class="flex-1">
-                                        <div class="settings-label">Session timeout</div>
-                                        <div class="settings-description">Automatically sign out inactive users after 30 minutes</div>
-                                    </div>
-                                    <button class="toggle" role="switch" aria-checked="false" onclick="toggleSetting(this)"></button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="flex justify-end gap-3 mt-6">
-                            <button class="btn btn-secondary" onclick="showToast('Changes discarded', 'info')">Discard Changes</button>
-                            <button class="btn btn-primary" onclick="showToast('Access control settings saved', 'success')">Save Settings</button>
-                        </div>
-                    </div>
-
-                    <!-- Notifications Tab -->
-                    <div id="notifications" class="tab-content p-8" style="display: none;">
-                        <h2 class="text-2xl font-bold text-slate-800 mb-6">Notifications & Alerts</h2>
-
-                        <div class="settings-section">
-                            <h3 class="text-lg font-semibold text-slate-800 mb-4">Work Order Alerts</h3>
-                            <div class="space-y-4">
-                                <div class="toggle-row">
-                                    <div class="flex-1">
-                                        <div class="settings-label">Notify on critical priority</div>
-                                        <div class="settings-description">Immediate alert when a critical work order is created</div>
-                                    </div>
-                                    <button class="toggle active" role="switch" aria-checked="true" onclick="toggleSetting(this)"></button>
-                                </div>
-                                <div class="toggle-row">
-                                    <div class="flex-1">
-                                        <div class="settings-label">Daily summary emails</div>
-                                        <div class="settings-description">Send daily digest of open and overdue work orders</div>
-                                    </div>
-                                    <button class="toggle" role="switch" aria-checked="false" onclick="toggleSetting(this)"></button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="settings-section">
-                            <h3 class="text-lg font-semibold text-slate-800 mb-4">Notification Channels</h3>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <label class="flex items-center gap-3 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-blue-50">
-                                    <input type="checkbox" checked class="w-4 h-4 rounded border-slate-300">
-                                    <span class="text-sm font-medium">Email</span>
-                                </label>
-                                <label class="flex items-center gap-3 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-blue-50">
-                                    <input type="checkbox" checked class="w-4 h-4 rounded border-slate-300">
-                                    <span class="text-sm font-medium">In-app</span>
-                                </label>
-                                <label class="flex items-center gap-3 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-blue-50">
-                                    <input type="checkbox" class="w-4 h-4 rounded border-slate-300">
-                                    <span class="text-sm font-medium">SMS</span>
-                                </label>
-                                <label class="flex items-center gap-3 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-blue-50">
-                                    <input type="checkbox" class="w-4 h-4 rounded border-slate-300">
-                                    <span class="text-sm font-medium">Slack</span>
-                                </label>
-                            </div>
-                        </div>
-
-                        <div class="flex justify-end gap-3 mt-6">
-                            <button class="btn btn-secondary" onclick="showToast('Changes discarded', 'info')">Discard Changes</button>
-                            <button class="btn btn-primary" onclick="showToast('Notification settings saved', 'success')">Save Settings</button>
-                        </div>
-                    </div>
-
                     <!-- Technicians Tab -->
-                    <div id="technicians" class="tab-content p-8" style="display: none;">
+                    <div id="technicians" class="tab-content active p-8">
                         <h2 class="text-2xl font-bold text-slate-800 mb-6">Technician Directory</h2>
 
                         <div class="settings-section">
@@ -1005,7 +696,7 @@
     <div id="master-db-modal" class="modal">
         <div class="modal-content" style="max-width: 1200px; max-height: 90vh;">
             <div class="flex justify-between items-center mb-6">
-                <div>
+                                <div>
                     <h3 class="text-2xl font-bold text-slate-800">Master Database Manager</h3>
                     <p class="text-sm text-slate-600 mt-1">Manage Type → Make → Model hierarchy and PM Frequencies</p>
                 </div>
@@ -1144,23 +835,74 @@
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-2">Device Type <span class="text-red-500">*</span></label>
-                        <select id="config-category" class="form-input" required onchange="MasterDBManager.updateConfigMakes()">
-                            <option value="">Select Type</option>
-                        </select>
+                        <div class="flex gap-2">
+                            <select id="config-category" class="form-input flex-1" required onchange="MasterDBManager.updateConfigMakes()">
+                                <option value="">Select Type</option>
+                            </select>
+                            <button type="button" onclick="MasterDBManager.showQuickAddType()" class="btn btn-secondary btn-sm whitespace-nowrap" title="Add New Type">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                        <div id="config-new-type-container" class="mt-2 hidden">
+                            <input type="text" id="config-new-type-name" class="form-input mb-2" placeholder="New Type Name">
+                            <textarea id="config-new-type-desc" class="form-input text-sm" rows="2" placeholder="Description (optional)"></textarea>
+                            <div class="flex gap-2">
+                                <button type="button" onclick="MasterDBManager.createNewType()" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-check"></i> Create
+                                </button>
+                                <button type="button" onclick="MasterDBManager.cancelQuickAdd('type')" class="btn btn-secondary btn-sm">
+                                    <i class="fas fa-times"></i> Cancel
+                                </button>
+                            </div>
+                        </div>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-2">Manufacturer <span class="text-red-500">*</span></label>
-                        <select id="config-make" class="form-input" required onchange="MasterDBManager.updateConfigModels()">
-                            <option value="">Select Manufacturer</option>
-                        </select>
+                        <div class="flex gap-2">
+                            <select id="config-make" class="form-input flex-1" required onchange="MasterDBManager.updateConfigModels()" disabled>
+                                <option value="">Select Manufacturer</option>
+                            </select>
+                            <button type="button" onclick="MasterDBManager.showQuickAddMake()" class="btn btn-secondary btn-sm whitespace-nowrap" title="Add New Manufacturer" id="config-add-make-btn" disabled>
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                        <div id="config-new-make-container" class="mt-2 hidden">
+                            <input type="text" id="config-new-make-name" class="form-input mb-2" placeholder="New Manufacturer Name">
+                            <textarea id="config-new-make-desc" class="form-input text-sm" rows="2" placeholder="Description (optional)"></textarea>
+                            <div class="flex gap-2">
+                                <button type="button" onclick="MasterDBManager.createNewMake()" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-check"></i> Create
+                                </button>
+                                <button type="button" onclick="MasterDBManager.cancelQuickAdd('make')" class="btn btn-secondary btn-sm">
+                                    <i class="fas fa-times"></i> Cancel
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-2">Model <span class="text-red-500">*</span></label>
-                        <select id="config-model" class="form-input" required>
-                            <option value="">Select Model</option>
-                        </select>
+                        <div class="flex gap-2">
+                            <select id="config-model" class="form-input flex-1" required disabled>
+                                <option value="">Select Model</option>
+                            </select>
+                            <button type="button" onclick="MasterDBManager.showQuickAddModel()" class="btn btn-secondary btn-sm whitespace-nowrap" title="Add New Model" id="config-add-model-btn" disabled>
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                        <div id="config-new-model-container" class="mt-2 hidden">
+                            <input type="text" id="config-new-model-name" class="form-input mb-2" placeholder="New Model Name">
+                            <textarea id="config-new-model-desc" class="form-input text-sm" rows="2" placeholder="Description (optional)"></textarea>
+                            <div class="flex gap-2">
+                                <button type="button" onclick="MasterDBManager.createNewModel()" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-check"></i> Create
+                                </button>
+                                <button type="button" onclick="MasterDBManager.cancelQuickAdd('model')" class="btn btn-secondary btn-sm">
+                                    <i class="fas fa-times"></i> Cancel
+                                </button>
+                            </div>
+                        </div>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-2">PM Frequency</label>
@@ -1188,8 +930,8 @@
                     <button type="submit" class="btn btn-primary">Save Configuration</button>
                 </div>
             </form>
-        </div>
-    </div>
+                            </div>
+                        </div>
 
     <!-- Bulk Upload Modal -->
     <div id="bulk-upload-modal" class="modal">
@@ -1219,15 +961,15 @@
                         <table class="w-full text-sm" id="bulk-preview-table"></table>
                     </div>
                 </div>
-                <div class="flex justify-end gap-3 mt-6">
+                        <div class="flex justify-end gap-3 mt-6">
                     <button type="button" onclick="MasterDBManager.closeBulkUploadModal()" class="btn btn-secondary">Cancel</button>
                     <button type="button" onclick="MasterDBManager.processBulkUpload()" class="btn btn-primary" id="bulk-upload-btn" disabled>
                         <i class="fas fa-upload"></i> Upload Configurations
                     </button>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-    </div>
 
     <!-- Add/Edit Item Modal (for individual items) -->
     <div id="master-db-item-modal" class="modal">
@@ -1237,7 +979,7 @@
                 <button onclick="MasterDBManager.closeItemModal()" class="text-slate-400 hover:text-slate-600">
                     <i class="fas fa-times text-xl"></i>
                 </button>
-            </div>
+        </div>
             <form id="master-db-form" class="space-y-4">
                 <input type="hidden" id="master-db-id">
                 <input type="hidden" id="master-db-type">
@@ -1359,7 +1101,7 @@
                                     <option value="">-- Select Existing --</option>
                                 </select>
                                 <div class="text-xs text-slate-500 mb-2">OR</div>
-                                <input type="text" id="quick-type-name" class="form-input mb-2" placeholder="New Type Name" oninput="MasterDBManager.updateQuickAddPreview()">
+                                <input type="text" id="quick-type-name" class="form-input mb-2" placeholder="New Type Name" oninput="MasterDBManager.handleQuickTypeChange()">
                                 <textarea id="quick-type-desc" class="form-input text-sm" rows="2" placeholder="Description (optional)"></textarea>
                             </div>
                         </div>
@@ -1378,7 +1120,7 @@
                                     <option value="">-- Select Type First --</option>
                                 </select>
                                 <div class="text-xs text-slate-500 mb-2">OR</div>
-                                <input type="text" id="quick-make-name" class="form-input mb-2" placeholder="New Make Name" disabled oninput="MasterDBManager.updateQuickAddPreview()">
+                                <input type="text" id="quick-make-name" class="form-input mb-2" placeholder="New Make Name" disabled oninput="MasterDBManager.handleQuickMakeChange()">
                                 <textarea id="quick-make-desc" class="form-input text-sm" rows="2" placeholder="Description (optional)" disabled></textarea>
                             </div>
                         </div>
@@ -1397,7 +1139,7 @@
                                     <option value="">-- Select Make First --</option>
                                 </select>
                                 <div class="text-xs text-slate-500 mb-2">OR</div>
-                                <input type="text" id="quick-model-name" class="form-input mb-2" placeholder="New Model Name" disabled oninput="MasterDBManager.updateQuickAddPreview()">
+                                <input type="text" id="quick-model-name" class="form-input mb-2" placeholder="New Model Name" disabled oninput="MasterDBManager.handleQuickModelChange()">
                                 <textarea id="quick-model-desc" class="form-input text-sm" rows="2" placeholder="Description (optional)" disabled></textarea>
                             </div>
                         </div>
@@ -1452,6 +1194,13 @@
             <div class="flex gap-2 mb-4 border-b border-slate-200">
                 <button id="checklist-edit-tab" onclick="ChecklistManager.switchTab('edit')" class="px-4 py-2 font-semibold text-blue-600 border-b-2 border-blue-600">Edit</button>
                 <button id="checklist-preview-tab" onclick="ChecklistManager.switchTab('preview')" class="px-4 py-2 font-semibold text-slate-500 hover:text-slate-700">Preview</button>
+            </div>
+
+            <!-- Preview Container (shown when preview tab is active) -->
+            <div id="checklist-preview-container" class="space-y-5" style="display: none;">
+                <div id="checklist-preview-content">
+                    <!-- Preview content will be rendered here -->
+                </div>
             </div>
 
             <form id="checklist-form" class="space-y-5">

@@ -912,6 +912,11 @@ const MasterDBManager = {
         form.reset();
         document.getElementById('config-id').value = configId || '';
 
+        // Hide all quick-add containers
+        ['type', 'make', 'model'].forEach(type => {
+            this.cancelQuickAdd(type);
+        });
+
         // Load dropdowns
         await this.loadConfigCategories();
         await this.loadPMFrequencyDropdown();
@@ -961,10 +966,17 @@ const MasterDBManager = {
         const categoryId = document.getElementById('config-category').value;
         const makeSelect = document.getElementById('config-make');
         const modelSelect = document.getElementById('config-model');
+        const addMakeBtn = document.getElementById('config-add-make-btn');
 
         if (!categoryId) {
             makeSelect.innerHTML = '<option value="">Select Manufacturer</option>';
+            makeSelect.disabled = true;
             modelSelect.innerHTML = '<option value="">Select Model</option>';
+            modelSelect.disabled = true;
+            if (addMakeBtn) addMakeBtn.disabled = true;
+            if (document.getElementById('config-add-model-btn')) {
+                document.getElementById('config-add-model-btn').disabled = true;
+            }
             return;
         }
 
@@ -977,15 +989,24 @@ const MasterDBManager = {
         makeSelect.innerHTML = '<option value="">Select Manufacturer</option>' +
             (data || []).map(m => `<option value="${m.id}">${this.escapeHtml(m.name)}</option>`).join('');
         
+        makeSelect.disabled = false;
+        if (addMakeBtn) addMakeBtn.disabled = false;
         modelSelect.innerHTML = '<option value="">Select Model</option>';
+        modelSelect.disabled = true;
+        if (document.getElementById('config-add-model-btn')) {
+            document.getElementById('config-add-model-btn').disabled = true;
+        }
     },
 
     async updateConfigModels() {
         const makeId = document.getElementById('config-make').value;
         const modelSelect = document.getElementById('config-model');
+        const addModelBtn = document.getElementById('config-add-model-btn');
 
         if (!makeId) {
             modelSelect.innerHTML = '<option value="">Select Model</option>';
+            modelSelect.disabled = true;
+            if (addModelBtn) addModelBtn.disabled = true;
             return;
         }
 
@@ -997,6 +1018,9 @@ const MasterDBManager = {
 
         modelSelect.innerHTML = '<option value="">Select Model</option>' +
             (data || []).map(m => `<option value="${m.id}">${this.escapeHtml(m.name)}</option>`).join('');
+        
+        modelSelect.disabled = false;
+        if (addModelBtn) addModelBtn.disabled = false;
     },
 
     async loadPMFrequencyDropdown() {
@@ -1324,33 +1348,48 @@ const MasterDBManager = {
         const makeNameInput = document.getElementById('quick-make-name');
         const makeDescInput = document.getElementById('quick-make-desc');
 
+        if (!typeSelect || !typeNameInput || !makeSelect || !makeNameInput || !makeDescInput) {
+            console.error('Quick add form elements not found');
+            return;
+        }
+
         const selectedTypeId = typeSelect.value;
         const newTypeName = typeNameInput.value.trim();
 
         if (selectedTypeId || newTypeName) {
-            // Enable make fields
-            makeSelect.disabled = false;
+            // Always enable make text input fields when type is selected or entered
             makeNameInput.disabled = false;
             makeDescInput.disabled = false;
 
             // Load makes for selected type
             if (selectedTypeId) {
-                const { data: makes } = await this.supabaseClient
-                    .from('device_makes')
-                    .select('id, name')
-                    .eq('category_id', selectedTypeId)
-                    .order('name');
-                
-                makeSelect.innerHTML = '<option value="">-- Select Existing --</option>' +
-                    (makes || []).map(m => `<option value="${m.id}">${m.name}</option>`).join('');
-            } else {
-                makeSelect.innerHTML = '<option value="">-- Add Type First --</option>';
+                // Type is selected from dropdown - enable dropdown and load makes
+                makeSelect.disabled = false;
+                try {
+                    const { data: makes } = await this.supabaseClient
+                        .from('device_makes')
+                        .select('id, name')
+                        .eq('category_id', selectedTypeId)
+                        .order('name');
+                    
+                    makeSelect.innerHTML = '<option value="">-- Select Existing --</option>' +
+                        (makes || []).map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+                } catch (error) {
+                    console.error('Error loading makes:', error);
+                    makeSelect.innerHTML = '<option value="">-- Error loading makes --</option>';
+                }
+            } else if (newTypeName) {
+                // New type being created - disable dropdown (can't select existing makes for non-existent type)
+                // but keep text inputs enabled so user can type new make name
+                makeSelect.disabled = true;
+                makeSelect.innerHTML = '<option value="">-- Type Make Name Below (Type will be created) --</option>';
             }
         } else {
+            // No type selected or entered - disable everything
             makeSelect.disabled = true;
             makeNameInput.disabled = true;
             makeDescInput.disabled = true;
-            makeSelect.innerHTML = '<option value="">-- Select Type First --</option>';
+            makeSelect.innerHTML = '<option value="">-- Select or Enter Type First --</option>';
         }
 
         this.handleQuickMakeChange();
@@ -1364,33 +1403,48 @@ const MasterDBManager = {
         const modelNameInput = document.getElementById('quick-model-name');
         const modelDescInput = document.getElementById('quick-model-desc');
 
+        if (!makeSelect || !makeNameInput || !modelSelect || !modelNameInput || !modelDescInput) {
+            console.error('Quick add form elements not found');
+            return;
+        }
+
         const selectedMakeId = makeSelect.value;
         const newMakeName = makeNameInput.value.trim();
 
         if (selectedMakeId || newMakeName) {
-            // Enable model fields
-            modelSelect.disabled = false;
+            // Always enable model text input fields when make is selected or entered
             modelNameInput.disabled = false;
             modelDescInput.disabled = false;
 
             // Load models for selected make
             if (selectedMakeId) {
-                const { data: models } = await this.supabaseClient
-                    .from('device_models')
-                    .select('id, name')
-                    .eq('make_id', selectedMakeId)
-                    .order('name');
-                
-                modelSelect.innerHTML = '<option value="">-- Select Existing --</option>' +
-                    (models || []).map(m => `<option value="${m.id}">${m.name}</option>`).join('');
-            } else {
-                modelSelect.innerHTML = '<option value="">-- Add Make First --</option>';
+                // Make is selected from dropdown - enable dropdown and load models
+                modelSelect.disabled = false;
+                try {
+                    const { data: models } = await this.supabaseClient
+                        .from('device_models')
+                        .select('id, name')
+                        .eq('make_id', selectedMakeId)
+                        .order('name');
+                    
+                    modelSelect.innerHTML = '<option value="">-- Select Existing --</option>' +
+                        (models || []).map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+                } catch (error) {
+                    console.error('Error loading models:', error);
+                    modelSelect.innerHTML = '<option value="">-- Error loading models --</option>';
+                }
+            } else if (newMakeName) {
+                // New make being created - disable dropdown (can't select existing models for non-existent make)
+                // but keep text inputs enabled so user can type new model name
+                modelSelect.disabled = true;
+                modelSelect.innerHTML = '<option value="">-- Type Model Name Below (Make will be created) --</option>';
             }
         } else {
+            // No make selected or entered - disable everything
             modelSelect.disabled = true;
             modelNameInput.disabled = true;
             modelDescInput.disabled = true;
-            modelSelect.innerHTML = '<option value="">-- Select Make First --</option>';
+            modelSelect.innerHTML = '<option value="">-- Select or Enter Make First --</option>';
         }
 
         this.handleQuickModelChange();
@@ -1579,6 +1633,208 @@ const MasterDBManager = {
         } catch (error) {
             console.error('Error in quick add:', error);
             this.showToast(`Failed to save: ${error.message || 'Unknown error'}`, 'error');
+        }
+    },
+
+    // Real-time MMD creation from config modal
+    showQuickAddType() {
+        const container = document.getElementById('config-new-type-container');
+        if (container) {
+            container.classList.remove('hidden');
+            document.getElementById('config-new-type-name').focus();
+        }
+    },
+
+    showQuickAddMake() {
+        const categoryId = document.getElementById('config-category').value;
+        if (!categoryId) {
+            this.showToast('Please select a Device Type first', 'warning');
+            return;
+        }
+        const container = document.getElementById('config-new-make-container');
+        if (container) {
+            container.classList.remove('hidden');
+            const nameInput = document.getElementById('config-new-make-name');
+            if (nameInput) nameInput.focus();
+        }
+    },
+
+    showQuickAddModel() {
+        const makeId = document.getElementById('config-make').value;
+        if (!makeId) {
+            this.showToast('Please select a Manufacturer first', 'warning');
+            return;
+        }
+        const container = document.getElementById('config-new-model-container');
+        if (container) {
+            container.classList.remove('hidden');
+            document.getElementById('config-new-model-name').focus();
+        }
+    },
+
+    cancelQuickAdd(type) {
+        const container = document.getElementById(`config-new-${type}-container`);
+        if (container) {
+            container.classList.add('hidden');
+            const nameInput = document.getElementById(`config-new-${type}-name`);
+            const descInput = document.getElementById(`config-new-${type}-desc`);
+            if (nameInput) nameInput.value = '';
+            if (descInput) descInput.value = '';
+        }
+    },
+
+    async createNewType() {
+        const nameInput = document.getElementById('config-new-type-name');
+        const descInput = document.getElementById('config-new-type-desc');
+        const name = nameInput?.value.trim();
+        
+        if (!name) {
+            this.showToast('Please enter a type name', 'warning');
+            return;
+        }
+
+        try {
+            // Generate ID
+            const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
+            const id = `ET-${today}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+
+            const { data, error } = await this.supabaseClient
+                .from('device_categories')
+                .insert([{
+                    id: id,
+                    name: name,
+                    description: descInput?.value.trim() || null
+                }])
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            // Add to dropdown and select it
+            const select = document.getElementById('config-category');
+            const option = document.createElement('option');
+            option.value = data.id;
+            option.textContent = data.name;
+            select.appendChild(option);
+            select.value = data.id;
+
+            // Hide the add form
+            this.cancelQuickAdd('type');
+
+            // Update makes dropdown
+            await this.updateConfigMakes();
+
+            this.showToast('Type created successfully!', 'success');
+        } catch (error) {
+            console.error('Error creating type:', error);
+            this.showToast(`Failed to create type: ${error.message}`, 'error');
+        }
+    },
+
+    async createNewMake() {
+        const categoryId = document.getElementById('config-category').value;
+        if (!categoryId) {
+            this.showToast('Please select a Device Type first', 'warning');
+            return;
+        }
+
+        const nameInput = document.getElementById('config-new-make-name');
+        const descInput = document.getElementById('config-new-make-desc');
+        const name = nameInput?.value.trim();
+        
+        if (!name) {
+            this.showToast('Please enter a manufacturer name', 'warning');
+            return;
+        }
+
+        try {
+            // Generate ID
+            const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
+            const id = `EM-${today}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+
+            const { data, error } = await this.supabaseClient
+                .from('device_makes')
+                .insert([{
+                    id: id,
+                    name: name,
+                    category_id: categoryId,
+                    description: descInput?.value.trim() || null
+                }])
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            // Add to dropdown and select it
+            const select = document.getElementById('config-make');
+            const option = document.createElement('option');
+            option.value = data.id;
+            option.textContent = data.name;
+            select.appendChild(option);
+            select.value = data.id;
+
+            // Hide the add form
+            this.cancelQuickAdd('make');
+
+            // Update models dropdown
+            await this.updateConfigModels();
+
+            this.showToast('Manufacturer created successfully!', 'success');
+        } catch (error) {
+            console.error('Error creating make:', error);
+            this.showToast(`Failed to create manufacturer: ${error.message}`, 'error');
+        }
+    },
+
+    async createNewModel() {
+        const makeId = document.getElementById('config-make').value;
+        if (!makeId) {
+            this.showToast('Please select a Manufacturer first', 'warning');
+            return;
+        }
+
+        const nameInput = document.getElementById('config-new-model-name');
+        const descInput = document.getElementById('config-new-model-desc');
+        const name = nameInput?.value.trim();
+        
+        if (!name) {
+            this.showToast('Please enter a model name', 'warning');
+            return;
+        }
+
+        try {
+            // Generate ID
+            const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
+            const id = `MDL-${today}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+
+            const { data, error } = await this.supabaseClient
+                .from('device_models')
+                .insert([{
+                    id: id,
+                    name: name,
+                    make_id: makeId,
+                    description: descInput?.value.trim() || null
+                }])
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            // Add to dropdown and select it
+            const select = document.getElementById('config-model');
+            const option = document.createElement('option');
+            option.value = data.id;
+            option.textContent = data.name;
+            select.appendChild(option);
+            select.value = data.id;
+
+            // Hide the add form
+            this.cancelQuickAdd('model');
+
+            this.showToast('Model created successfully!', 'success');
+        } catch (error) {
+            console.error('Error creating model:', error);
+            this.showToast(`Failed to create model: ${error.message}`, 'error');
         }
     }
 };
