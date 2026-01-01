@@ -217,6 +217,10 @@
                         <i class="fas fa-list mr-2"></i>List View
                     </button>
                 </div>
+                <button onclick="showColumnVisibilityModal()" class="btn btn-secondary" title="Customize visible columns">
+                    <i class="fas fa-columns"></i>
+                    <span class="hidden sm:inline ml-2">Columns</span>
+                </button>
                 <div class="flex gap-2 flex-wrap">
                     <button onclick="showPMManagement()" class="btn btn-secondary">
                         <i class="fas fa-calendar-check"></i>
@@ -373,6 +377,37 @@
                         <button onclick="cancelImport()" class="btn btn-secondary">Cancel</button>
                         <button onclick="confirmImport()" class="btn btn-primary">
                             <i class="fas fa-check mr-2"></i>Import Assets
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Column Visibility Modal -->
+    <div id="column-visibility-modal" class="modal">
+        <div class="modal-content" style="max-width: 600px; width: 95vw;">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-2xl font-bold text-gray-900">Customize Columns</h2>
+                    <button onclick="closeColumnVisibilityModal()" class="text-gray-400 hover:text-gray-600 text-2xl">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-6">
+                <p class="text-sm text-gray-600 mb-4">Select which columns to display in the list view.</p>
+                <div id="column-visibility-list" class="space-y-2 max-h-96 overflow-y-auto">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+                <div class="flex justify-between items-center mt-6 pt-4 border-t border-gray-200">
+                    <button onclick="resetColumnVisibility()" class="btn btn-secondary text-sm">
+                        <i class="fas fa-undo mr-2"></i>Reset to Default
+                    </button>
+                    <div class="flex gap-3">
+                        <button onclick="closeColumnVisibilityModal()" class="btn btn-secondary">Cancel</button>
+                        <button onclick="applyColumnVisibility()" class="btn btn-primary">
+                            <i class="fas fa-check mr-2"></i>Apply
                         </button>
                     </div>
                 </div>
@@ -778,6 +813,57 @@
         window.referenceMaps = referenceMaps;
         let lookupContext = { type: null, label: null, parentId: null };
         let canManageReferenceData = false;
+        
+        // Column visibility management
+        const availableColumns = [
+            { id: 'status', label: 'Status', default: true },
+            { id: 'name', label: 'Asset Name', default: true },
+            { id: 'category', label: 'Category', default: true },
+            { id: 'serial_number', label: 'Serial Number', default: true },
+            { id: 'next_maintenance', label: 'Next PM', default: true },
+            { id: 'compliance', label: 'Compliance', default: true },
+            { id: 'location', label: 'Location', default: false },
+            { id: 'customer', label: 'Customer', default: false },
+            { id: 'purchase_date', label: 'Purchase Date', default: false },
+            { id: 'purchase_cost', label: 'Purchase Cost', default: false },
+            { id: 'warranty_expiry', label: 'Warranty Expiry', default: false },
+            { id: 'last_maintenance', label: 'Last PM', default: false },
+            { id: 'model', label: 'Model', default: false },
+            { id: 'manufacturer', label: 'Manufacturer', default: false },
+            { id: 'description', label: 'Description', default: false }
+        ];
+        
+        let visibleColumns = [];
+        
+        // Load column visibility from localStorage
+        function loadColumnVisibility() {
+            const saved = localStorage.getItem('assetListVisibleColumns');
+            if (saved) {
+                try {
+                    const savedColumns = JSON.parse(saved);
+                    // Validate saved columns against available columns
+                    visibleColumns = savedColumns.filter(col => 
+                        availableColumns.find(ac => ac.id === col)
+                    );
+                    // Ensure at least one column is visible
+                    if (visibleColumns.length === 0) {
+                        visibleColumns = availableColumns.filter(c => c.default).map(c => c.id);
+                    }
+                } catch (e) {
+                    visibleColumns = availableColumns.filter(c => c.default).map(c => c.id);
+                }
+            } else {
+                visibleColumns = availableColumns.filter(c => c.default).map(c => c.id);
+            }
+        }
+        
+        // Save column visibility to localStorage
+        function saveColumnVisibility() {
+            localStorage.setItem('assetListVisibleColumns', JSON.stringify(visibleColumns));
+        }
+        
+        // Initialize column visibility on page load
+        loadColumnVisibility();
 
         document.addEventListener('DOMContentLoaded', async () => {
             const mobileMenuButton = document.getElementById('mobile-menu-button');
@@ -1669,9 +1755,10 @@
             if (!listBody) return;
             
             if (filteredAssets.length === 0) {
+                const emptyColspan = visibleColumns.length + 1; // +1 for Actions column
                 listBody.innerHTML = `
                     <tr>
-                        <td colspan="8" class="px-6 py-12 text-center text-slate-500">
+                        <td colspan="${emptyColspan}" class="px-6 py-12 text-center text-slate-500">
                             <i class="fas fa-box-open text-4xl mb-4 text-slate-300"></i>
                             <p class="text-lg font-semibold mb-2">No assets found</p>
                             <p class="text-sm mb-4">Get started by adding your first medical device asset</p>
@@ -1685,42 +1772,35 @@
             }
             
             listBody.innerHTML = filteredAssets.map(asset => {
-                const days = getDaysUntil(asset.next_maintenance);
-                const statusColors = {
-                    active: 'bg-green-100 text-green-800',
-                    maintenance: 'bg-yellow-100 text-yellow-800',
-                    inactive: 'bg-gray-100 text-gray-800',
-                    retired: 'bg-red-100 text-red-800'
-                };
-                const complianceColor = days !== null && days < 0 ? 'text-red-600 font-bold' : days !== null && days <= 7 ? 'text-orange-600 font-semibold' : 'text-green-600';
-                const complianceText = days !== null && days < 0 ? `${Math.abs(days)} days OVERDUE` : days !== null ? `${days} days remaining` : 'N/A';
-                
                 // Store asset in map for lookup
                 assetsById.set(asset.id, asset);
                 
+                // Generate cells based on visible columns
+                const cells = visibleColumns.map(colId => {
+                    return `<td class="px-6 py-4 whitespace-nowrap">${getColumnValue(asset, colId)}</td>`;
+                }).join('');
+                
+                // Always add Actions column
+                const actionsCell = `
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium" onclick="event.stopPropagation();">
+                        <button onclick="event.stopPropagation(); viewAssetById('${asset.id}')" class="text-blue-600 hover:text-blue-900 mr-3">
+                            <i class="fas fa-eye"></i> View
+                        </button>
+                        <button onclick="event.stopPropagation(); deleteAsset('${asset.id}')" class="text-red-600 hover:text-red-900">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                
                 return `
                     <tr class="hover:bg-slate-50 transition-colors cursor-pointer" data-asset-id="${asset.id}" title="Click to view/edit asset">
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="px-2 py-1 text-xs font-medium rounded-full ${statusColors[asset.status] || 'bg-gray-100 text-gray-800'}">
-                                ${asset.status ? asset.status.charAt(0).toUpperCase() + asset.status.slice(1) : 'Unknown'}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">${escapeHtml(asset.name || 'Unnamed')}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">${escapeHtml(asset.category || 'N/A')}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">${escapeHtml(asset.serial_number || 'N/A')}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">${formatDate(asset.next_maintenance)}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm ${complianceColor}">${complianceText}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium" onclick="event.stopPropagation();">
-                            <button onclick="event.stopPropagation(); viewAssetById('${asset.id}')" class="text-blue-600 hover:text-blue-900 mr-3">
-                                <i class="fas fa-eye"></i> View
-                            </button>
-                            <button onclick="event.stopPropagation(); deleteAsset('${asset.id}')" class="text-red-600 hover:text-red-900">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </td>
+                        ${cells}${actionsCell}
                     </tr>
                 `;
             }).join('');
+            
+            // Update colspan for empty state
+            const emptyColspan = visibleColumns.length + 1; // +1 for Actions column
         }
 
         function createAssetCard(asset) {
@@ -2842,6 +2922,8 @@
                         { name: 'warranty_expiry', type: 'timestamp', nullable: true },
                         { name: 'customer_id', type: 'text', nullable: true },
                         { name: 'location_id', type: 'text', nullable: true },
+                        { name: 'last_maintenance', type: 'timestamp', nullable: true },
+                        { name: 'next_maintenance', type: 'timestamp', nullable: true },
                         { name: 'depreciation_method', type: 'text', nullable: true },
                         { name: 'useful_life_years', type: 'integer', nullable: true },
                         { name: 'salvage_value', type: 'numeric', nullable: true },
@@ -2849,6 +2931,16 @@
                     ];
                 } else {
                     databaseColumns = data || [];
+                    // Ensure critical columns are present even if not returned by RPC
+                    const criticalColumns = [
+                        { name: 'last_maintenance', type: 'timestamp', nullable: true },
+                        { name: 'next_maintenance', type: 'timestamp', nullable: true }
+                    ];
+                    criticalColumns.forEach(critCol => {
+                        if (!databaseColumns.find(c => c.name === critCol.name)) {
+                            databaseColumns.push(critCol);
+                        }
+                    });
                 }
             } catch (error) {
                 console.error('Error loading database columns:', error);
@@ -2866,7 +2958,9 @@
                     { name: 'purchase_cost', type: 'numeric', nullable: true },
                     { name: 'warranty_expiry', type: 'timestamp', nullable: true },
                     { name: 'customer_id', type: 'text', nullable: true },
-                    { name: 'location_id', type: 'text', nullable: true }
+                    { name: 'location_id', type: 'text', nullable: true },
+                    { name: 'last_maintenance', type: 'timestamp', nullable: true },
+                    { name: 'next_maintenance', type: 'timestamp', nullable: true }
                 ];
             }
         }
@@ -3574,6 +3668,137 @@
                 clearTimeout(timeout);
                 timeout = setTimeout(() => func(...args), wait);
             };
+        }
+        
+        // Column Visibility Functions
+        function showColumnVisibilityModal() {
+            const modal = document.getElementById('column-visibility-modal');
+            const list = document.getElementById('column-visibility-list');
+            if (!modal || !list) return;
+            
+            // Render checkboxes for all available columns
+            list.innerHTML = availableColumns.map(col => {
+                const isVisible = visibleColumns.includes(col.id);
+                return `
+                    <label class="flex items-center p-3 hover:bg-slate-50 rounded-lg cursor-pointer">
+                        <input type="checkbox" class="mr-3 h-4 w-4 text-blue-600 rounded" 
+                               data-column-id="${col.id}" ${isVisible ? 'checked' : ''}>
+                        <span class="text-sm font-medium text-gray-900">${col.label}</span>
+                        ${col.default ? '<span class="ml-auto text-xs text-gray-500">(Default)</span>' : ''}
+                    </label>
+                `;
+            }).join('');
+            
+            modal.classList.add('active');
+        }
+        
+        function closeColumnVisibilityModal() {
+            const modal = document.getElementById('column-visibility-modal');
+            if (modal) modal.classList.remove('active');
+        }
+        
+        function resetColumnVisibility() {
+            visibleColumns = availableColumns.filter(c => c.default).map(c => c.id);
+            // Update checkboxes
+            availableColumns.forEach(col => {
+                const checkbox = document.querySelector(`input[data-column-id="${col.id}"]`);
+                if (checkbox) {
+                    checkbox.checked = col.default;
+                }
+            });
+        }
+        
+        function applyColumnVisibility() {
+            const checkboxes = document.querySelectorAll('#column-visibility-list input[type="checkbox"]');
+            visibleColumns = [];
+            
+            checkboxes.forEach(checkbox => {
+                if (checkbox.checked) {
+                    visibleColumns.push(checkbox.getAttribute('data-column-id'));
+                }
+            });
+            
+            // Ensure at least one column is visible
+            if (visibleColumns.length === 0) {
+                visibleColumns = ['name'];
+                showToast('At least one column must be visible. Showing Asset Name.', 'warning');
+            }
+            
+            // Always include Actions column
+            if (!visibleColumns.includes('actions')) {
+                // Actions is not in availableColumns, it's always shown
+            }
+            
+            saveColumnVisibility();
+            renderTableHeader();
+            renderAssetsList();
+            closeColumnVisibilityModal();
+            showToast('Column visibility updated', 'success');
+        }
+        
+        function renderTableHeader() {
+            const headerRow = document.getElementById('assets-list-header-row');
+            if (!headerRow) return;
+            
+            const headers = visibleColumns.map(colId => {
+                const col = availableColumns.find(c => c.id === colId);
+                if (!col) return '';
+                
+                const alignClass = colId === 'actions' ? 'text-right' : 'text-left';
+                return `<th class="px-6 py-3 ${alignClass} text-xs font-medium text-slate-500 uppercase tracking-wider">${col.label}</th>`;
+            }).filter(h => h).join('');
+            
+            // Always add Actions column at the end
+            headerRow.innerHTML = headers + '<th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>';
+        }
+        
+        function getColumnValue(asset, colId) {
+            const days = getDaysUntil(asset.next_maintenance);
+            const statusColors = {
+                active: 'bg-green-100 text-green-800',
+                maintenance: 'bg-yellow-100 text-yellow-800',
+                inactive: 'bg-gray-100 text-gray-800',
+                retired: 'bg-red-100 text-red-800'
+            };
+            
+            switch(colId) {
+                case 'status':
+                    return `<span class="px-2 py-1 text-xs font-medium rounded-full ${statusColors[asset.status] || 'bg-gray-100 text-gray-800'}">${asset.status ? asset.status.charAt(0).toUpperCase() + asset.status.slice(1) : 'Unknown'}</span>`;
+                case 'name':
+                    return `<span class="text-sm font-medium text-slate-900">${escapeHtml(asset.name || 'Unnamed')}</span>`;
+                case 'category':
+                    return `<span class="text-sm text-slate-600">${escapeHtml(asset.category || 'N/A')}</span>`;
+                case 'serial_number':
+                    return `<span class="text-sm text-slate-600">${escapeHtml(asset.serial_number || 'N/A')}</span>`;
+                case 'next_maintenance':
+                    return `<span class="text-sm text-slate-600">${formatDate(asset.next_maintenance)}</span>`;
+                case 'compliance':
+                    const complianceColor = days !== null && days < 0 ? 'text-red-600 font-bold' : days !== null && days <= 7 ? 'text-orange-600 font-semibold' : 'text-green-600';
+                    const complianceText = days !== null && days < 0 ? `${Math.abs(days)} days OVERDUE` : days !== null ? `${days} days remaining` : 'N/A';
+                    return `<span class="text-sm ${complianceColor}">${complianceText}</span>`;
+                case 'location':
+                    return `<span class="text-sm text-slate-600">${escapeHtml(asset.locations?.name || asset.location || 'N/A')}</span>`;
+                case 'customer':
+                    return `<span class="text-sm text-slate-600">${escapeHtml(asset.customers?.name || asset.customer || 'N/A')}</span>`;
+                case 'purchase_date':
+                    return `<span class="text-sm text-slate-600">${formatDate(asset.purchase_date)}</span>`;
+                case 'purchase_cost':
+                    return `<span class="text-sm text-slate-600">${asset.purchase_cost ? '$' + parseFloat(asset.purchase_cost).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : 'N/A'}</span>`;
+                case 'warranty_expiry':
+                    return `<span class="text-sm text-slate-600">${formatDate(asset.warranty_expiry)}</span>`;
+                case 'last_maintenance':
+                    return `<span class="text-sm text-slate-600">${formatDate(asset.last_maintenance)}</span>`;
+                case 'model':
+                    return `<span class="text-sm text-slate-600">${escapeHtml(asset.model || 'N/A')}</span>`;
+                case 'manufacturer':
+                    return `<span class="text-sm text-slate-600">${escapeHtml(asset.manufacturer || 'N/A')}</span>`;
+                case 'description':
+                    const desc = asset.description || 'N/A';
+                    const shortDesc = desc.length > 50 ? desc.substring(0, 50) + '...' : desc;
+                    return `<span class="text-sm text-slate-600" title="${escapeHtml(desc)}">${escapeHtml(shortDesc)}</span>`;
+                default:
+                    return '<span class="text-sm text-slate-600">N/A</span>';
+            }
         }
     </script>
     <script src="js/pm-automation.js"></script>
