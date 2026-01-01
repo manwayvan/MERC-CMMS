@@ -1897,11 +1897,13 @@
 
         function showAddAssetModal() {
             currentAsset = null;
+            assetImageUrls = [];
             document.getElementById('modal-title').textContent = 'Add New Asset';
             document.getElementById('modal-subtitle').textContent = '';
             document.getElementById('submit-btn-text').textContent = 'Save Asset';
             document.getElementById('asset-form').reset();
             document.getElementById('edit-asset-id').value = '';
+            loadAssetImages([]); // Clear images
             
             // Reset MMD form
             if (window.MMDAssetFormManager) {
@@ -2145,6 +2147,21 @@
                     window.MMDAssetFormManager.reset();
                 }
                 
+                // Load images
+                let imageUrls = [];
+                if (asset.image_urls) {
+                    if (typeof asset.image_urls === 'string') {
+                        try {
+                            imageUrls = JSON.parse(asset.image_urls);
+                        } catch (e) {
+                            imageUrls = [];
+                        }
+                    } else if (Array.isArray(asset.image_urls)) {
+                        imageUrls = asset.image_urls;
+                    }
+                }
+                loadAssetImages(imageUrls);
+                
                 // Load PM Schedule
                 loadPMSchedule(asset);
                 
@@ -2384,6 +2401,8 @@
         function closeAssetModal() {
             document.getElementById('asset-modal').classList.remove('active');
             currentAsset = null;
+            assetImageUrls = [];
+            loadAssetImages([]); // Clear images
         }
 
         async function deleteAsset(assetId) {
