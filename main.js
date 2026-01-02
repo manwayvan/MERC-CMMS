@@ -3288,25 +3288,62 @@ const WorkOrderManager = {
         }
 
         try {
-            const { data, error } = await supabaseClient
+            // First, get all labor records
+            const { data: laborData, error: laborError } = await supabaseClient
                 .from('work_order_labor')
-                .select('*, technicians(full_name)')
+                .select('*')
                 .eq('work_order_id', workOrderId)
                 .order('date', { ascending: false });
 
-            if (error) throw error;
+            if (laborError) throw laborError;
 
-            if (!data || data.length === 0) {
+            if (!laborData || laborData.length === 0) {
                 list.innerHTML = '<p class="text-xs text-slate-500 italic">No labor costs have been added yet. They\'ll show up here when a user logs time.</p>';
                 if (totalEl) totalEl.classList.add('hidden');
                 return;
             }
 
+            // Get unique technician IDs (filter out null/empty)
+            const techIds = [...new Set(laborData.map(item => item.technician_id).filter(id => id))];
+            
+            // Fetch technician names if we have IDs
+            let techniciansMap = new Map();
+            if (techIds.length > 0) {
+                // Try to fetch technicians - handle both UUID and text IDs
+                const { data: techData } = await supabaseClient
+                    .from('technicians')
+                    .select('id, full_name')
+                    .in('id', techIds);
+                
+                if (techData) {
+                    techData.forEach(tech => {
+                        techniciansMap.set(tech.id, tech.full_name);
+                    });
+                }
+            }
+
             let total = 0;
-            list.innerHTML = data.map(item => {
+            list.innerHTML = laborData.map(item => {
                 const cost = parseFloat(item.total_cost || 0);
                 total += cost;
-                const techName = item.technicians?.full_name || 'Unknown Technician';
+                
+                // Get technician name - try both UUID and text matching
+                let techName = 'Unknown Technician';
+                if (item.technician_id) {
+                    // Try direct match first
+                    if (techniciansMap.has(item.technician_id)) {
+                        techName = techniciansMap.get(item.technician_id);
+                    } else {
+                        // Try to find by converting to UUID or matching as text
+                        for (const [techId, name] of techniciansMap.entries()) {
+                            if (String(techId) === String(item.technician_id)) {
+                                techName = name;
+                                break;
+                            }
+                        }
+                    }
+                }
+                
                 const date = new Date(item.date).toLocaleDateString();
                 const hourlyRate = parseFloat(item.hourly_rate || 0);
                 const rateDisplay = hourlyRate > 0 ? `@ $${hourlyRate.toFixed(2)}/hr` : '(No rate specified)';
@@ -3316,7 +3353,7 @@ const WorkOrderManager = {
                         <div class="flex-1">
                             <p class="text-sm font-medium text-slate-800">${techName}</p>
                             <p class="text-xs text-slate-500">${item.hours} hours ${rateDisplay} • ${date}</p>
-                            ${item.notes ? `<p class="text-xs text-slate-600 mt-1">${item.notes}</p>` : ''}
+                            ${item.notes ? `<p class="text-xs text-slate-600 mt-1">${escapeHtml(item.notes)}</p>` : ''}
                         </div>
                         <div class="flex items-center gap-3">
                             <span class="text-sm font-semibold text-slate-800">${costDisplay}</span>
