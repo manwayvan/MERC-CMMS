@@ -255,15 +255,9 @@
                 <div id="assets-list">
                     <div class="bg-white rounded-xl shadow-md overflow-hidden">
                         <table class="min-w-full divide-y divide-slate-200">
-                            <thead class="bg-slate-50">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Asset Name</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Category</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Serial Number</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Next PM</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Compliance</th>
-                                    <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
+                            <thead class="bg-slate-50" id="assets-list-header">
+                                <tr id="assets-list-header-row">
+                                    <!-- Headers will be dynamically generated based on visibleColumns -->
                                 </tr>
                             </thead>
                             <tbody id="assets-list-body" class="bg-white divide-y divide-slate-200">
