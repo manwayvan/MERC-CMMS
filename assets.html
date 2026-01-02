@@ -2845,6 +2845,7 @@
                 const matchesStat = !status || a.status === status;
                 return matchesTerm && matchesCat && matchesStat;
             });
+            currentPage = 1; // Reset to first page when filters change
             renderAssets();
         }
 
