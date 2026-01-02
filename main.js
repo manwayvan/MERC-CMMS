@@ -3878,8 +3878,18 @@ function hideLocationModal() {
 
 // Unified Work Order Modal Functions
 function showCreateWorkOrderModal() {
-    WorkOrderManager.openWorkOrderModal('create');
+    if (typeof WorkOrderManager !== 'undefined' && WorkOrderManager.openWorkOrderModal) {
+        WorkOrderManager.openWorkOrderModal('create');
+    } else {
+        console.error('WorkOrderManager.openWorkOrderModal is not available');
+        if (typeof showToast === 'function') {
+            showToast('Work order system is initializing. Please try again.', 'warning');
+        }
+    }
 }
+
+// Expose to window for global access
+window.showCreateWorkOrderModal = showCreateWorkOrderModal;
 
 function hideCreateWorkOrderModal() {
     WorkOrderManager.closeWorkOrderModal();
