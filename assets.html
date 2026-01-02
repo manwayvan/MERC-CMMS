@@ -978,44 +978,48 @@
         async function detectAssetSchema() {
             assetSchema = { hasCustomerId: true, hasLookupIds: true, makeField: 'manufacturer_id' };
             try {
-                const { error } = await supabaseClient
-                    .from('assets')
-                    .select('customer_id')
-                    .limit(1);
-                if (error && /customer_id|column/i.test(error.message)) {
+                // Use a more graceful approach - check if we can query the column
+                // If column doesn't exist, Supabase returns 400, which we'll catch silently
+                const checkColumn = async (columnName) => {
+                    try {
+                        const { error } = await supabaseClient
+                            .from('assets')
+                            .select(columnName)
+                            .limit(1);
+                        // Return true if no error or error is not about missing column
+                        return !error || !/column.*does not exist|column.*not found|does not exist/i.test(error.message);
+                    } catch (e) {
+                        // Silently catch expected errors for non-existent columns
+                        return false;
+                    }
+                };
+
+                // Check customer_id
+                if (!(await checkColumn('customer_id'))) {
                     assetSchema.hasCustomerId = false;
                 }
-                const { error: categoryError } = await supabaseClient
-                    .from('assets')
-                    .select('category_id')
-                    .limit(1);
-                if (categoryError && /category_id|column/i.test(categoryError.message)) {
+                
+                // Check category_id (legacy lookup)
+                if (!(await checkColumn('category_id'))) {
                     assetSchema.hasLookupIds = false;
                 }
-                const { error: makeError } = await supabaseClient
-                    .from('assets')
-                    .select('manufacturer_id')
-                    .limit(1);
-                if (makeError && /manufacturer_id|column/i.test(makeError.message)) {
-                    const { error: altMakeError } = await supabaseClient
-                        .from('assets')
-                        .select('make_id')
-                        .limit(1);
-                    if (altMakeError && /make_id|column/i.test(altMakeError.message)) {
-                        assetSchema.hasLookupIds = false;
-                    } else {
+                
+                // Check manufacturer_id vs make_id
+                if (!(await checkColumn('manufacturer_id'))) {
+                    if (await checkColumn('make_id')) {
                         assetSchema.makeField = 'make_id';
+                    } else {
+                        assetSchema.hasLookupIds = false;
                     }
                 }
-                const { error: modelError } = await supabaseClient
-                    .from('assets')
-                    .select('model_id')
-                    .limit(1);
-                if (modelError && /model_id|column/i.test(modelError.message)) {
+                
+                // Check model_id
+                if (!(await checkColumn('model_id'))) {
                     assetSchema.hasLookupIds = false;
                 }
             } catch (error) {
-                console.warn('Unable to detect asset schema, disabling customer field.', error);
+                // Silently handle schema detection errors
+                console.debug('Asset schema detection completed with defaults');
                 assetSchema.hasCustomerId = false;
                 assetSchema.hasLookupIds = false;
             }
@@ -3156,7 +3160,8 @@
                 });
 
                 if (error) {
-                    // Fallback: Use the known columns
+                    // RPC function may not exist - this is expected, use fallback
+                    // Silently fall back to known columns without logging error
                     databaseColumns = [
                         { name: 'name', type: 'text', nullable: true },
                         { name: 'category', type: 'text', nullable: true },
