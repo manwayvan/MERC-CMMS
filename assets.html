@@ -3749,11 +3749,7 @@
 
         async function loadDeviceConfigurations() {
             try {
-                // Initialize empty array if not already set
-                if (!deviceConfigurations) {
-                    deviceConfigurations = [];
-                }
-                
+                // deviceConfigurations is already declared at the top of the script
                 const { data, error } = await supabaseClient
                     .from('device_configurations')
                     .select(`
