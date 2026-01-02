@@ -3844,6 +3844,19 @@
             
             // Attach event listeners to filter inputs
             attachColumnFilterListeners();
+            
+            // Update table width based on number of columns
+            updateTableWidth();
+        }
+        
+        function updateTableWidth() {
+            const table = document.getElementById('assets-table');
+            if (table) {
+                // Calculate minimum width based on number of visible columns (150px per column + Actions)
+                const columnCount = visibleColumns.length + 1; // +1 for Actions column
+                const minWidth = Math.max(800, columnCount * 150);
+                table.style.minWidth = `${minWidth}px`;
+            }
         }
         
         function getFilterInputForColumn(colId, label) {
