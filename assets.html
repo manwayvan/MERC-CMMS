@@ -1217,6 +1217,8 @@
                 });
                 
                 updateStatistics();
+                // Ensure table header is rendered before rendering assets
+                renderTableHeader();
                 renderAssets();
                 const lastRefresh = document.getElementById('assets-last-refresh');
                 if (lastRefresh) {
