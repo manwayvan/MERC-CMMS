@@ -1640,8 +1640,9 @@ const MasterDBManager = {
             // Trigger refresh in other pages
             if (window.loadReferenceData) window.loadReferenceData();
             if (window.loadPMFrequencies) window.loadPMFrequencies();
-            if (window.MMDAssetFormManager && window.MMDAssetFormManager.loadMMDData) {
-                window.MMDAssetFormManager.loadMMDData();
+            // Refresh Asset Modal MMD data if it's loaded
+            if (window.MMDAssetFormManager && window.MMDAssetFormManager.loadMMDHierarchy) {
+                await window.MMDAssetFormManager.loadMMDHierarchy();
             }
         } catch (error) {
             console.error('Error in quick add:', error);
