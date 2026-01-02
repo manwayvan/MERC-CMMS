@@ -389,6 +389,33 @@
         </div>
     </div>
 
+    <!-- Mobile Filters Modal -->
+    <div id="mobile-filters-modal" class="modal">
+        <div class="modal-content" style="max-width: 100%; width: 100vw; height: 100vh; border-radius: 0; margin: 0;">
+            <div class="p-4 border-b border-gray-200 bg-blue-600 text-white">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xl font-bold">Filters</h2>
+                    <button onclick="closeMobileFilters()" class="text-white hover:text-gray-200 text-2xl">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-4 overflow-y-auto" style="max-height: calc(100vh - 140px);">
+                <div id="mobile-filters-content" class="space-y-4">
+                    <!-- Filters will be populated here -->
+                </div>
+                <div class="flex gap-3 mt-6 pt-4 border-t border-gray-200 sticky bottom-0 bg-white pb-4">
+                    <button onclick="clearAllMobileFilters()" class="flex-1 btn btn-secondary py-3 text-base">
+                        <i class="fas fa-undo mr-2"></i>Clear All
+                    </button>
+                    <button onclick="applyMobileFilters()" class="flex-1 btn btn-primary py-3 text-base">
+                        <i class="fas fa-check mr-2"></i>Apply Filters
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Column Visibility Modal -->
     <div id="column-visibility-modal" class="modal">
         <div class="modal-content" style="max-width: 600px; width: 95vw;">
@@ -4103,10 +4130,188 @@
             document.getElementById('asset-images-urls').value = JSON.stringify(assetImageUrls);
         }
         
+        // Mobile Filter Functions
+        function showMobileFilters() {
+            const modal = document.getElementById('mobile-filters-modal');
+            const content = document.getElementById('mobile-filters-content');
+            if (!modal || !content) return;
+            
+            // Build mobile-friendly filter UI
+            let filterHTML = '';
+            
+            // Search filter
+            const searchValue = document.getElementById('search-input')?.value || '';
+            filterHTML += `
+                <div class="bg-white border border-gray-200 rounded-lg p-4">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Search</label>
+                    <input type="text" id="mobile-search-filter" value="${searchValue}" 
+                           placeholder="Search by name or serial number..." 
+                           class="w-full border border-gray-300 rounded-lg px-4 py-3 text-base">
+                </div>
+            `;
+            
+            // Status filter
+            const statusValue = columnFilters.status || '';
+            filterHTML += `
+                <div class="bg-white border border-gray-200 rounded-lg p-4">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Status</label>
+                    <select id="mobile-status-filter" class="w-full border border-gray-300 rounded-lg px-4 py-3 text-base min-h-[44px]">
+                        <option value="">All Statuses</option>
+                        <option value="active" ${statusValue === 'active' ? 'selected' : ''}>Active</option>
+                        <option value="maintenance" ${statusValue === 'maintenance' ? 'selected' : ''}>Maintenance</option>
+                        <option value="inactive" ${statusValue === 'inactive' ? 'selected' : ''}>Inactive</option>
+                        <option value="retired" ${statusValue === 'retired' ? 'selected' : ''}>Retired</option>
+                    </select>
+                </div>
+            `;
+            
+            // Category filter
+            const categoryValue = document.getElementById('category-filter')?.value || '';
+            filterHTML += `
+                <div class="bg-white border border-gray-200 rounded-lg p-4">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Category</label>
+                    <select id="mobile-category-filter" class="w-full border border-gray-300 rounded-lg px-4 py-3 text-base min-h-[44px]">
+                        <option value="">All Categories</option>
+                    </select>
+                </div>
+            `;
+            
+            // Column-specific filters
+            visibleColumns.forEach(colId => {
+                if (colId === 'compliance' || colId === 'actions' || colId === 'status') return;
+                
+                const col = availableColumns.find(c => c.id === colId);
+                if (!col) return;
+                
+                const filterValue = columnFilters[colId] || '';
+                filterHTML += `
+                    <div class="bg-white border border-gray-200 rounded-lg p-4">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">${col.label}</label>
+                        <input type="text" id="mobile-filter-${colId}" value="${filterValue}" 
+                               placeholder="Filter ${col.label}..." 
+                               class="w-full border border-gray-300 rounded-lg px-4 py-3 text-base min-h-[44px]">
+                    </div>
+                `;
+            });
+            
+            content.innerHTML = filterHTML;
+            
+            // Populate category dropdown
+            const categorySelect = document.getElementById('mobile-category-filter');
+            if (categorySelect) {
+                const mainCategorySelect = document.getElementById('category-filter');
+                if (mainCategorySelect) {
+                    categorySelect.innerHTML = mainCategorySelect.innerHTML;
+                    categorySelect.value = categoryValue;
+                }
+            }
+            
+            updateMobileFilterCount();
+            modal.classList.add('active');
+        }
+        
+        function closeMobileFilters() {
+            const modal = document.getElementById('mobile-filters-modal');
+            if (modal) modal.classList.remove('active');
+        }
+        
+        function clearAllMobileFilters() {
+            const searchInput = document.getElementById('mobile-search-filter');
+            if (searchInput) searchInput.value = '';
+            const statusSelect = document.getElementById('mobile-status-filter');
+            if (statusSelect) statusSelect.value = '';
+            const categorySelect = document.getElementById('mobile-category-filter');
+            if (categorySelect) categorySelect.value = '';
+            visibleColumns.forEach(colId => {
+                if (colId !== 'compliance' && colId !== 'actions' && colId !== 'status') {
+                    const input = document.getElementById(`mobile-filter-${colId}`);
+                    if (input) input.value = '';
+                }
+            });
+            updateMobileFilterCount();
+        }
+        
+        function applyMobileFilters() {
+            // Apply search filter
+            const searchInput = document.getElementById('search-input');
+            const mobileSearch = document.getElementById('mobile-search-filter');
+            if (searchInput && mobileSearch) {
+                searchInput.value = mobileSearch.value;
+            }
+            
+            // Apply status filter
+            const statusValue = document.getElementById('mobile-status-filter')?.value || '';
+            if (statusValue) {
+                columnFilters.status = statusValue;
+            } else {
+                delete columnFilters.status;
+            }
+            
+            // Apply category filter
+            const categoryValue = document.getElementById('mobile-category-filter')?.value || '';
+            const categorySelect = document.getElementById('category-filter');
+            if (categorySelect) {
+                categorySelect.value = categoryValue;
+            }
+            
+            // Apply column filters
+            visibleColumns.forEach(colId => {
+                if (colId === 'compliance' || colId === 'actions' || colId === 'status') return;
+                const input = document.getElementById(`mobile-filter-${colId}`);
+                if (input) {
+                    const value = input.value.trim();
+                    if (value) {
+                        columnFilters[colId] = value;
+                    } else {
+                        delete columnFilters[colId];
+                    }
+                }
+            });
+            
+            // Update desktop filters
+            document.querySelectorAll('.column-filter').forEach(input => {
+                const colId = input.getAttribute('data-column');
+                if (colId && columnFilters[colId]) {
+                    input.value = columnFilters[colId];
+                } else if (colId && !columnFilters[colId]) {
+                    input.value = '';
+                }
+            });
+            
+            applyFilters();
+            updateMobileFilterCount();
+            closeMobileFilters();
+        }
+        
+        function updateMobileFilterCount() {
+            let count = 0;
+            const searchValue = document.getElementById('mobile-search-filter')?.value || '';
+            if (searchValue) count++;
+            const statusValue = document.getElementById('mobile-status-filter')?.value || '';
+            if (statusValue) count++;
+            const categoryValue = document.getElementById('mobile-category-filter')?.value || '';
+            if (categoryValue) count++;
+            visibleColumns.forEach(colId => {
+                if (colId !== 'compliance' && colId !== 'actions' && colId !== 'status') {
+                    const input = document.getElementById(`mobile-filter-${colId}`);
+                    if (input && input.value.trim()) count++;
+                }
+            });
+            const countBadge = document.getElementById('mobile-filter-count');
+            if (countBadge) {
+                countBadge.textContent = count;
+                countBadge.style.display = count > 0 ? 'block' : 'none';
+            }
+        }
+        
         // Expose functions to window for global access
         window.handleAssetImageUpload = handleAssetImageUpload;
         window.removeAssetImage = removeAssetImage;
         window.loadAssetImages = loadAssetImages;
+        window.showMobileFilters = showMobileFilters;
+        window.closeMobileFilters = closeMobileFilters;
+        window.clearAllMobileFilters = clearAllMobileFilters;
+        window.applyMobileFilters = applyMobileFilters;
     </script>
     <script src="js/pm-automation.js"></script>
     <script src="js/pm-management.js"></script>
