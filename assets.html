@@ -976,53 +976,15 @@
         });
 
         async function detectAssetSchema() {
-            assetSchema = { hasCustomerId: true, hasLookupIds: true, makeField: 'manufacturer_id' };
-            try {
-                // Use a more graceful approach - check if we can query the column
-                // If column doesn't exist, Supabase returns 400, which we'll catch silently
-                const checkColumn = async (columnName) => {
-                    try {
-                        const { error } = await supabaseClient
-                            .from('assets')
-                            .select(columnName)
-                            .limit(1);
-                        // Return true if no error or error is not about missing column
-                        return !error || !/column.*does not exist|column.*not found|does not exist/i.test(error.message);
-                    } catch (e) {
-                        // Silently catch expected errors for non-existent columns
-                        return false;
-                    }
-                };
-
-                // Check customer_id
-                if (!(await checkColumn('customer_id'))) {
-                    assetSchema.hasCustomerId = false;
-                }
-                
-                // Check category_id (legacy lookup)
-                if (!(await checkColumn('category_id'))) {
-                    assetSchema.hasLookupIds = false;
-                }
-                
-                // Check manufacturer_id vs make_id
-                if (!(await checkColumn('manufacturer_id'))) {
-                    if (await checkColumn('make_id')) {
-                        assetSchema.makeField = 'make_id';
-                    } else {
-                        assetSchema.hasLookupIds = false;
-                    }
-                }
-                
-                // Check model_id
-                if (!(await checkColumn('model_id'))) {
-                    assetSchema.hasLookupIds = false;
-                }
-            } catch (error) {
-                // Silently handle schema detection errors
-                console.debug('Asset schema detection completed with defaults');
-                assetSchema.hasCustomerId = false;
-                assetSchema.hasLookupIds = false;
-            }
+            // Use actual schema from database - assets table has:
+            // - customer_id (text, nullable) - exists
+            // - model_id (text, nullable) - exists, references equipment_models
+            // - NO category_id, manufacturer_id, or make_id columns
+            assetSchema = { 
+                hasCustomerId: true,  // customer_id exists in schema
+                hasLookupIds: true,   // model_id exists, uses MMD system
+                makeField: 'model_id' // Assets use model_id which links to equipment_models -> equipment_makes
+            };
         }
 
         async function detectReferenceAccess() {

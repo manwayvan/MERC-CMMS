@@ -55,9 +55,9 @@ const MasterDBManager = {
     async loadStats() {
         try {
             const [categories, makes, models, frequencies] = await Promise.all([
-                this.supabaseClient.from('device_categories').select('id', { count: 'exact' }),
-                this.supabaseClient.from('device_makes').select('id', { count: 'exact' }),
-                this.supabaseClient.from('device_models').select('id', { count: 'exact' }),
+                this.supabaseClient.from('equipment_types').select('id', { count: 'exact' }).is('deleted_at', null),
+                this.supabaseClient.from('equipment_makes').select('id', { count: 'exact' }).is('deleted_at', null),
+                this.supabaseClient.from('equipment_models').select('id', { count: 'exact' }).is('deleted_at', null),
                 this.supabaseClient.from('pm_frequencies').select('id', { count: 'exact' })
             ]);
 
@@ -118,18 +118,31 @@ const MasterDBManager = {
 
     async loadHierarchy() {
         try {
-            // Load all data with relationships
-            const [categoriesResult, makesResult, modelsResult] = await Promise.all([
-                this.supabaseClient.from('device_categories').select('*').order('name'),
-                this.supabaseClient.from('device_makes').select('*, device_categories:category_id(id, name)').order('name'),
-                this.supabaseClient.from('device_models').select('*, device_makes:make_id(id, name, category_id, device_categories:category_id(id, name))').order('name')
-            ]);
+            // Use the same MMD tables as Asset Modal: equipment_types, equipment_makes, equipment_models
+            // Try RPC function first for efficiency
+            const { data: rpcData, error: rpcError } = await this.supabaseClient.rpc('get_mmd_hierarchy');
+            
+            if (!rpcError && rpcData && rpcData.length > 0) {
+                const result = rpcData[0];
+                this.hierarchyData = {
+                    categories: result.types || [],
+                    makes: result.makes || [],
+                    models: result.models || []
+                };
+            } else {
+                // Fallback to individual queries
+                const [categoriesResult, makesResult, modelsResult] = await Promise.all([
+                    this.supabaseClient.from('equipment_types').select('*').is('deleted_at', null).order('name'),
+                    this.supabaseClient.from('equipment_makes').select('*, equipment_types:type_id(id, name)').is('deleted_at', null).order('name'),
+                    this.supabaseClient.from('equipment_models').select('*, equipment_makes:make_id(id, name, type_id, equipment_types:type_id(id, name))').is('deleted_at', null).order('name')
+                ]);
 
-            this.hierarchyData = {
-                categories: categoriesResult.data || [],
-                makes: makesResult.data || [],
-                models: modelsResult.data || []
-            };
+                this.hierarchyData = {
+                    categories: categoriesResult.data || [],
+                    makes: makesResult.data || [],
+                    models: modelsResult.data || []
+                };
+            }
 
             this.renderHierarchy();
         } catch (error) {
@@ -157,9 +170,9 @@ const MasterDBManager = {
         });
 
         this.hierarchyData.makes.forEach(make => {
-            const catId = make.category_id;
-            if (hierarchy[catId] && (!searchTerm || make.name.toLowerCase().includes(searchTerm))) {
-                hierarchy[catId].makes[make.id] = {
+            const typeId = make.type_id || (make.equipment_types && make.equipment_types.id);
+            if (hierarchy[typeId] && (!searchTerm || make.name.toLowerCase().includes(searchTerm))) {
+                hierarchy[typeId].makes[make.id] = {
                     make: make,
                     models: []
                 };
@@ -169,9 +182,10 @@ const MasterDBManager = {
         this.hierarchyData.models.forEach(model => {
             const makeId = model.make_id;
             const make = this.hierarchyData.makes.find(m => m.id === makeId);
-            if (make && hierarchy[make.category_id]?.makes[makeId]) {
+            const typeId = make ? (make.type_id || (make.equipment_types && make.equipment_types.id)) : null;
+            if (make && typeId && hierarchy[typeId]?.makes[makeId]) {
                 if (!searchTerm || model.name.toLowerCase().includes(searchTerm)) {
-                    hierarchy[make.category_id].makes[makeId].models.push(model);
+                    hierarchy[typeId].makes[makeId].models.push(model);
                 }
             }
         });
@@ -380,13 +394,16 @@ const MasterDBManager = {
 
         // Pre-populate parent IDs if provided
         if (type === 'make' && categoryId) {
-            document.getElementById('make-category-id').value = categoryId;
+            document.getElementById('make-type-id').value = categoryId;
         }
         if (type === 'model' && makeId) {
             const make = this.hierarchyData.makes.find(m => m.id === makeId);
             if (make) {
-                document.getElementById('model-category-id').value = make.category_id;
-                this.updateMakeDropdown();
+                const typeId = make.type_id || (make.equipment_types && make.equipment_types.id);
+                if (typeId) {
+                    document.getElementById('model-type-id').value = typeId;
+                    this.updateMakeDropdown();
+                }
                 document.getElementById('model-make-id').value = makeId;
             }
         }
@@ -422,9 +439,9 @@ const MasterDBManager = {
 
         try {
             let table = '';
-            if (type === 'category') table = 'device_categories';
-            else if (type === 'make') table = 'device_makes';
-            else if (type === 'model') table = 'device_models';
+            if (type === 'category') table = 'equipment_types';
+            else if (type === 'make') table = 'equipment_makes';
+            else if (type === 'model') table = 'equipment_models';
             else if (type === 'pm-frequency') table = 'pm_frequencies';
 
             const { data, error } = await this.supabaseClient
@@ -500,18 +517,19 @@ const MasterDBManager = {
     async loadCategoryDropdowns() {
         try {
             const { data, error } = await this.supabaseClient
-                .from('device_categories')
+                .from('equipment_types')
                 .select('id, name')
+                .is('deleted_at', null)
                 .order('name');
 
             if (error) throw error;
 
-            const dropdowns = ['make-category-id', 'model-category-id'];
+            const dropdowns = ['make-type-id', 'model-type-id'];
             dropdowns.forEach(dropdownId => {
                 const dropdown = document.getElementById(dropdownId);
                 if (dropdown) {
                     const currentValue = dropdown.value;
-                    dropdown.innerHTML = '<option value="">Select Device Type</option>' +
+                    dropdown.innerHTML = '<option value="">Select Equipment Type</option>' +
                         data.map(cat => `<option value="${cat.id}">${this.escapeHtml(cat.name)}</option>`).join('');
                     if (currentValue) {
                         dropdown.value = currentValue;
@@ -519,23 +537,24 @@ const MasterDBManager = {
                 }
             });
         } catch (error) {
-            console.error('Error loading categories:', error);
+            console.error('Error loading equipment types:', error);
         }
     },
 
     async updateMakeDropdown() {
-        const categoryId = document.getElementById('model-category-id')?.value || '';
+        const typeId = document.getElementById('model-type-id')?.value || '';
         const makeDropdown = document.getElementById('model-make-id');
         if (!makeDropdown) return;
 
         try {
             let query = this.supabaseClient
-                .from('device_makes')
+                .from('equipment_makes')
                 .select('id, name')
+                .is('deleted_at', null)
                 .order('name');
 
-            if (categoryId) {
-                query = query.eq('category_id', categoryId);
+            if (typeId) {
+                query = query.eq('type_id', typeId);
             }
 
             const { data, error } = await query;
@@ -574,7 +593,7 @@ const MasterDBManager = {
             let table = '';
 
             if (type === 'category') {
-                table = 'device_categories';
+                table = 'equipment_types';
                 const name = document.getElementById('category-name').value.trim();
                 if (!name) {
                     this.showToast('Name is required', 'error');
@@ -582,52 +601,40 @@ const MasterDBManager = {
                 }
                 payload = {
                     name: name,
-                    description: document.getElementById('category-description').value.trim() || null
+                    description: document.getElementById('category-description').value.trim() || null,
+                    is_active: true
                 };
-                if (!id) {
-                    payload.id = name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '').substring(0, 50);
-                    if (!payload.id) payload.id = 'category_' + Date.now();
-                }
+                // Equipment types use auto-generated IDs from database default
             } else if (type === 'make') {
-                table = 'device_makes';
-                const categoryId = document.getElementById('make-category-id').value;
+                table = 'equipment_makes';
+                const typeId = document.getElementById('make-type-id').value;
                 const name = document.getElementById('make-name').value.trim();
-                if (!categoryId || !name) {
-                    this.showToast('Device Type and Name are required', 'error');
+                if (!typeId || !name) {
+                    this.showToast('Equipment Type and Name are required', 'error');
                     return;
                 }
                 payload = {
-                    category_id: categoryId,
+                    type_id: typeId,
                     name: name,
-                    description: document.getElementById('make-description').value.trim() || null
+                    description: document.getElementById('make-description').value.trim() || null,
+                    is_active: true
                 };
-                if (!id) {
-                    const nameSlug = name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '').substring(0, 30);
-                    payload.id = `${categoryId}_${nameSlug}`;
-                    if (!payload.id || payload.id.length < 2) {
-                        payload.id = `${categoryId}_make_${Date.now()}`;
-                    }
-                }
+                // Equipment makes use auto-generated IDs from database default
             } else if (type === 'model') {
-                table = 'device_models';
+                table = 'equipment_models';
                 const makeId = document.getElementById('model-make-id').value;
                 const name = document.getElementById('model-name').value.trim();
                 if (!makeId || !name) {
-                    this.showToast('Manufacturer and Name are required', 'error');
+                    this.showToast('Make and Name are required', 'error');
                     return;
                 }
                 payload = {
                     make_id: makeId,
                     name: name,
-                    description: document.getElementById('model-description').value.trim() || null
+                    description: document.getElementById('model-description').value.trim() || null,
+                    is_active: true
                 };
-                if (!id) {
-                    const nameSlug = name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '').substring(0, 30);
-                    payload.id = `${makeId}_${nameSlug}`;
-                    if (!payload.id || payload.id.length < 2) {
-                        payload.id = `${makeId}_model_${Date.now()}`;
-                    }
-                }
+                // Equipment models use auto-generated IDs from database default
             } else if (type === 'pm-frequency') {
                 table = 'pm_frequencies';
                 const name = document.getElementById('pm-frequency-name').value.trim();
@@ -704,9 +711,9 @@ const MasterDBManager = {
 
         try {
             let table = '';
-            if (type === 'category') table = 'device_categories';
-            else if (type === 'make') table = 'device_makes';
-            else if (type === 'model') table = 'device_models';
+            if (type === 'category') table = 'equipment_types';
+            else if (type === 'make') table = 'equipment_makes';
+            else if (type === 'model') table = 'equipment_models';
             else if (type === 'pm-frequency') table = 'pm_frequencies';
 
             const { error } = await this.supabaseClient
