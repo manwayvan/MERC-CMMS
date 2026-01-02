@@ -3962,11 +3962,12 @@ if (typeof WorkOrderManager !== 'undefined') {
         WorkOrderManager.currentWorkOrderId = null;
         WorkOrderManager.timerElapsed = 0;
     
-    closeModal('view-workorder-modal');
-    // Reset form if needed
-    const form = document.getElementById('view-workorder-form');
-    if (form) form.reset();
-}
+        closeModal('workorder-modal');
+        // Reset form if needed
+        const form = document.getElementById('workorder-form');
+        if (form) form.reset();
+    };
+} // Close the if (typeof WorkOrderManager !== 'undefined') block
 
 function showCustomReportModal() {
     showToast('Custom reporting is coming soon.', 'info');
