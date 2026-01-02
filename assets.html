@@ -3852,10 +3852,10 @@
                 return '';
             }
             
-            // Different input types based on column
+            // Different input types based on column - make larger for mobile
             if (colId === 'status') {
                 return `
-                    <select class="column-filter text-xs border border-gray-300 rounded px-2 py-1 w-full" data-column="${colId}">
+                    <select class="column-filter text-sm border border-gray-300 rounded px-2 py-1.5 w-full min-h-[36px]" data-column="${colId}">
                         <option value="">All</option>
                         <option value="active">Active</option>
                         <option value="maintenance">Maintenance</option>
@@ -3865,12 +3865,12 @@
                 `;
             } else if (colId === 'purchase_cost') {
                 return `
-                    <input type="text" class="column-filter text-xs border border-gray-300 rounded px-2 py-1 w-full" 
+                    <input type="text" class="column-filter text-sm border border-gray-300 rounded px-2 py-1.5 w-full min-h-[36px]" 
                            data-column="${colId}" placeholder="Filter..." />
                 `;
             } else {
                 return `
-                    <input type="text" class="column-filter text-xs border border-gray-300 rounded px-2 py-1 w-full" 
+                    <input type="text" class="column-filter text-sm border border-gray-300 rounded px-2 py-1.5 w-full min-h-[36px]" 
                            data-column="${colId}" placeholder="Filter..." />
                 `;
             }
