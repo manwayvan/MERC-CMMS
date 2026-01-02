@@ -1252,7 +1252,6 @@
                 if (lastRefresh) {
                     lastRefresh.textContent = new Date().toLocaleString();
                 }
-                showToast(`Loaded ${allAssets.length} assets successfully`, 'success');
             } catch (error) {
                 console.error('Error loading assets:', error);
                 showToast(`Failed to load assets: ${error.message}`, 'error');
