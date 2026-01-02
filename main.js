@@ -23,7 +23,7 @@ function loadSupabaseClient() {
         supabaseClient = window.sharedSupabaseClient;
         return Promise.resolve(supabaseClient);
     }
-    
+
     if (supabaseClient) {
         return Promise.resolve(supabaseClient);
     }
@@ -588,37 +588,37 @@ const ChartManager = {
         const assetChartEl = document.getElementById('asset-distribution-chart');
         if (assetChartEl) {
             const assetChart = echarts.init(assetChartEl);
-            const assetOption = {
-                tooltip: { trigger: 'item' },
-                legend: { bottom: '0%', left: 'center' },
-                series: [{
-                    type: 'pie',
-                    radius: ['40%', '70%'],
-                    avoidLabelOverlap: false,
-                    itemStyle: { borderRadius: 10, borderColor: '#fff', borderWidth: 2 },
-                    label: { show: false, position: 'center' },
-                    emphasis: { label: { show: true, fontSize: 20, fontWeight: 'bold' } },
-                    labelLine: { show: false },
-                    data: [
-                        { value: 456, name: 'Diagnostic' },
-                        { value: 892, name: 'Therapeutic' },
-                        { value: 234, name: 'Surgical' },
-                        { value: 567, name: 'Monitoring' },
-                        { value: 189, name: 'Imaging' },
-                        { value: 509, name: 'Laboratory' }
-                    ],
-                    color: ['#2563eb', '#059669', '#dc2626', '#d97706', '#7c3aed', '#0891b2']
-                }]
-            };
-            assetChart.setOption(assetOption);
-            ChartManager.charts.assetDistribution = assetChart;
+        const assetOption = {
+            tooltip: { trigger: 'item' },
+            legend: { bottom: '0%', left: 'center' },
+            series: [{
+                type: 'pie',
+                radius: ['40%', '70%'],
+                avoidLabelOverlap: false,
+                itemStyle: { borderRadius: 10, borderColor: '#fff', borderWidth: 2 },
+                label: { show: false, position: 'center' },
+                emphasis: { label: { show: true, fontSize: 20, fontWeight: 'bold' } },
+                labelLine: { show: false },
+                data: [
+                    { value: 456, name: 'Diagnostic' },
+                    { value: 892, name: 'Therapeutic' },
+                    { value: 234, name: 'Surgical' },
+                    { value: 567, name: 'Monitoring' },
+                    { value: 189, name: 'Imaging' },
+                    { value: 509, name: 'Laboratory' }
+                ],
+                color: ['#2563eb', '#059669', '#dc2626', '#d97706', '#7c3aed', '#0891b2']
+            }]
+        };
+        assetChart.setOption(assetOption);
+        ChartManager.charts.assetDistribution = assetChart;
         }
 
         // Work Order Trends Line Chart
         const trendsChartEl = document.getElementById('work-order-trends-chart');
         if (trendsChartEl) {
             const trendsChart = echarts.init(trendsChartEl);
-            const trendsOption = {
+        const trendsOption = {
             tooltip: { trigger: 'axis' },
             legend: { data: ['Preventive', 'Corrective', 'Inspection', 'Calibration'] },
             grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
@@ -658,9 +658,9 @@ const ChartManager = {
                     itemStyle: { color: '#d97706' }
                 }
             ]
-            };
-            trendsChart.setOption(trendsOption);
-            ChartManager.charts.workOrderTrends = trendsChart;
+        };
+        trendsChart.setOption(trendsOption);
+        ChartManager.charts.workOrderTrends = trendsChart;
         }
 
         // Compliance Gauge Charts
@@ -670,7 +670,7 @@ const ChartManager = {
         const costChartEl = document.getElementById('maintenance-cost-chart');
         if (costChartEl) {
             const costChart = echarts.init(costChartEl);
-            const costOption = {
+        const costOption = {
             tooltip: { trigger: 'axis' },
             xAxis: {
                 type: 'category',
@@ -682,16 +682,16 @@ const ChartManager = {
                 type: 'bar',
                 itemStyle: { color: '#2563eb' }
             }]
-            };
-            costChart.setOption(costOption);
-            ChartManager.charts.maintenanceCost = costChart;
+        };
+        costChart.setOption(costOption);
+        ChartManager.charts.maintenanceCost = costChart;
         }
 
         // Equipment Status Heatmap
         const heatmapChartEl = document.getElementById('equipment-status-heatmap');
         if (heatmapChartEl) {
             const heatmapChart = echarts.init(heatmapChartEl);
-            const heatmapOption = {
+        const heatmapOption = {
             tooltip: { position: 'top' },
             grid: { height: '50%', top: '10%' },
             xAxis: {
@@ -725,9 +725,9 @@ const ChartManager = {
                 ],
                 label: { show: true }
             }]
-            };
-            heatmapChart.setOption(heatmapOption);
-            ChartManager.charts.equipmentStatus = heatmapChart;
+        };
+        heatmapChart.setOption(heatmapOption);
+        ChartManager.charts.equipmentStatus = heatmapChart;
         }
     },
 
@@ -1537,7 +1537,7 @@ const WorkOrderManager = {
                 event.preventDefault();
                 const mode = document.getElementById('workorder-mode')?.value || 'create';
                 if (mode === 'create') {
-                    await WorkOrderManager.handleCreateWorkOrder();
+                await WorkOrderManager.handleCreateWorkOrder();
                 } else {
                     await WorkOrderManager.handleUpdateWorkOrder();
                 }
@@ -1593,8 +1593,8 @@ const WorkOrderManager = {
         const statusHeader = document.getElementById('workorder-status-header');
         if (statusHeader) {
             statusHeader.value = workOrder.status === 'completed' ? 'closed' : 
-                                workOrder.status === 'cancelled' ? 'incomplete' : 
-                                workOrder.status || 'open';
+                                                                  workOrder.status === 'cancelled' ? 'incomplete' : 
+                                                                  workOrder.status || 'open';
         }
 
         // Populate dropdowns
@@ -1947,20 +1947,20 @@ const WorkOrderManager = {
                     .eq('id', workOrderId);
                 error = updateResult.error;
             }
-            
-            // Verify update succeeded by fetching the record
-            if (!error) {
-                const verifyResult = await supabaseClient
-                    .from('work_orders')
-                    .select('id, status, asset_id, type, priority')
-                    .eq('id', workOrderId)
-                    .single();
                 
-                if (!verifyResult.error && verifyResult.data) {
-                    // Check if the update actually took effect
-                    if (verifyResult.data.status === dbStatus && verifyResult.data.asset_id === assetId) {
-                        updateSucceeded = true;
-                        console.log('✅ Update verified successfully');
+                // Verify update succeeded by fetching the record
+                if (!error) {
+                    const verifyResult = await supabaseClient
+                        .from('work_orders')
+                    .select('id, status, asset_id, type, priority')
+                        .eq('id', workOrderId)
+                        .single();
+                    
+                    if (!verifyResult.error && verifyResult.data) {
+                        // Check if the update actually took effect
+                        if (verifyResult.data.status === dbStatus && verifyResult.data.asset_id === assetId) {
+                            updateSucceeded = true;
+                            console.log('✅ Update verified successfully');
                         
                         // If we had to skip assigned_technician_id, try to update it separately
                         if (technicianId && !cleanPayload.assigned_technician_id) {
@@ -1977,14 +1977,14 @@ const WorkOrderManager = {
                                 }
                             }
                         }
-                    } else {
-                        console.warn('⚠️ Update may not have taken effect');
-                        error = new Error('Update verification failed - changes may not have been saved');
-                    }
+                        } else {
+                            console.warn('⚠️ Update may not have taken effect');
+                            error = new Error('Update verification failed - changes may not have been saved');
+                        }
                 } else if (verifyResult.error) {
                     console.warn('Could not verify update:', verifyResult.error);
                     // Assume success if we got no error from update
-                    updateSucceeded = true;
+                updateSucceeded = true;
                 }
             }
 
@@ -3309,14 +3309,15 @@ const WorkOrderManager = {
             // Fetch technician names if we have IDs
             let techniciansMap = new Map();
             if (techIds.length > 0) {
-                // Try to fetch technicians - handle both UUID and text IDs
-                const { data: techData } = await supabaseClient
+                // Fetch all technicians and match by converting IDs to strings
+                const { data: techData, error: techError } = await supabaseClient
                     .from('technicians')
-                    .select('id, full_name')
-                    .in('id', techIds);
+                    .select('id, full_name');
                 
-                if (techData) {
+                if (!techError && techData) {
                     techData.forEach(tech => {
+                        // Store both UUID and string versions for matching
+                        techniciansMap.set(String(tech.id), tech.full_name);
                         techniciansMap.set(tech.id, tech.full_name);
                     });
                 }
@@ -3973,7 +3974,7 @@ if (typeof WorkOrderManager !== 'undefined') {
             
             // Reset form
             const form = document.getElementById('workorder-form');
-            if (form) form.reset();
+    if (form) form.reset();
             
             // Initialize parts list
             if (typeof WorkOrderParts !== 'undefined') {
