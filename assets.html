@@ -1694,6 +1694,9 @@
                             data = Array.isArray(funcData) ? funcData[0] : funcData;
                             console.log('Successfully inserted model via RPC');
                         }
+                    } else if (lookupContext.type === 'equipment_types' || lookupContext.type === 'equipment_makes' || lookupContext.type === 'equipment_models') {
+                        // MMD entries use direct insert (no RPC functions available)
+                        // Will be handled in fallback section
                     }
                 } catch (funcError) {
                     console.error('RPC function exception:', funcError);
