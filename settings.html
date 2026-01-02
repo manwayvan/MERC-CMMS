@@ -1327,6 +1327,19 @@
                 }, duration);
             }
         }
+        
+        // Mobile menu toggle
+        document.addEventListener('DOMContentLoaded', () => {
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            if (mobileMenuButton && mobileMenu) {
+                mobileMenuButton.addEventListener('click', () => {
+                    mobileMenu.classList.toggle('hidden');
+                    const isExpanded = !mobileMenu.classList.contains('hidden');
+                    mobileMenuButton.setAttribute('aria-expanded', isExpanded);
+                });
+            }
+        });
     </script>
 </body>
 </html>
