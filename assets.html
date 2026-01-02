@@ -277,6 +277,10 @@
                         </table>
                         </div>
                     </div>
+                    <!-- Pagination Controls -->
+                    <div id="assets-pagination" class="px-4 py-2 border-t border-slate-200 bg-white">
+                        <!-- Pagination will be rendered here -->
+                    </div>
                 </div>
                 <div id="empty-state" class="text-center py-16 bg-slate-50 rounded-xl" style="display:none">
                     <i class="fas fa-box-open text-6xl text-gray-300 mb-4"></i>
@@ -1840,10 +1844,20 @@
                         </td>
                     </tr>
                 `;
+                renderPaginationControls();
                 return;
             }
             
-            listBody.innerHTML = filteredAssets.map(asset => {
+            // Calculate pagination
+            const totalPages = Math.ceil(filteredAssets.length / itemsPerPage);
+            if (currentPage > totalPages && totalPages > 0) {
+                currentPage = totalPages;
+            }
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const paginatedAssets = filteredAssets.slice(startIndex, endIndex);
+            
+            listBody.innerHTML = paginatedAssets.map(asset => {
                 // Store asset in map for lookup
                 assetsById.set(asset.id, asset);
                 
