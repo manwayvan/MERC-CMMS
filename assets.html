@@ -1793,6 +1793,56 @@
                     const manufacturerId = lookupContext.parentId;
                     updateModelOptions(manufacturerId, data.id);
                     document.getElementById('model-select').value = data.id;
+                } else if (lookupContext.isMMD) {
+                    // Handle MMD refresh
+                    if (lookupContext.type === 'equipment_types') {
+                        // Refresh type dropdown and select new type
+                        if (window.MMDAssetFormManager) {
+                            await window.MMDAssetFormManager.loadMMDHierarchy();
+                            const typeSelect = document.getElementById('mmd-type-select');
+                            if (typeSelect) {
+                                typeSelect.value = data.id;
+                                window.MMDAssetFormManager.selectedType = data.id;
+                                window.MMDAssetFormManager.populateMakeDropdown(data.id);
+                            }
+                        }
+                    } else if (lookupContext.type === 'equipment_makes') {
+                        // Refresh make dropdown and select new make
+                        if (window.MMDAssetFormManager) {
+                            await window.MMDAssetFormManager.loadMMDHierarchy();
+                            const typeSelect = document.getElementById('mmd-type-select');
+                            const typeId = typeSelect ? typeSelect.value : null;
+                            if (typeId) {
+                                window.MMDAssetFormManager.populateMakeDropdown(typeId);
+                                setTimeout(() => {
+                                    const makeSelect = document.getElementById('mmd-make-select');
+                                    if (makeSelect) {
+                                        makeSelect.value = data.id;
+                                        window.MMDAssetFormManager.selectedMake = data.id;
+                                        window.MMDAssetFormManager.populateModelDropdown(data.id);
+                                    }
+                                }, 100);
+                            }
+                        }
+                    } else if (lookupContext.type === 'equipment_models') {
+                        // Refresh model dropdown and select new model
+                        if (window.MMDAssetFormManager) {
+                            await window.MMDAssetFormManager.loadMMDHierarchy();
+                            const makeSelect = document.getElementById('mmd-make-select');
+                            const makeId = makeSelect ? makeSelect.value : null;
+                            if (makeId) {
+                                await window.MMDAssetFormManager.populateModelDropdown(makeId);
+                                setTimeout(() => {
+                                    const modelSelect = document.getElementById('mmd-model-select');
+                                    if (modelSelect) {
+                                        modelSelect.value = data.id;
+                                        window.MMDAssetFormManager.selectedModel = data.id;
+                                        window.MMDAssetFormManager.updatePMFrequency(data.id);
+                                    }
+                                }, 100);
+                            }
+                        }
+                    }
                 }
                 closeLookupModal();
             } catch (error) {
