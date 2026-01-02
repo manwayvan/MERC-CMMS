@@ -142,6 +142,7 @@
             <a href="customers.html" class="block text-blue-200 hover:text-white transition-colors">Customers</a>
             <a href="assets.html" class="block text-blue-200 hover:text-white transition-colors">Assets</a>
             <a href="work-orders.html" class="block text-blue-200 hover:text-white transition-colors">Work Orders</a>
+            <a href="inventory.html" class="block text-blue-200 hover:text-white transition-colors">Inventory</a>
             <a href="compliance.html" class="block text-blue-200 hover:text-white transition-colors">Compliance</a>
         </div>
     </div>
@@ -286,5 +287,19 @@
     <script src="main.js"></script>
     <script src="js/pm-auto-generator.js"></script>
     <script src="js/pm-automation.js"></script>
+    <script>
+        // Mobile menu toggle
+        document.addEventListener('DOMContentLoaded', () => {
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            if (mobileMenuButton && mobileMenu) {
+                mobileMenuButton.addEventListener('click', () => {
+                    mobileMenu.classList.toggle('hidden');
+                    const isExpanded = !mobileMenu.classList.contains('hidden');
+                    mobileMenuButton.setAttribute('aria-expanded', isExpanded);
+                });
+            }
+        });
+    </script>
 </body>
 </html>

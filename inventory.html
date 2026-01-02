@@ -618,6 +618,17 @@
     <script>
         // Initialize InventoryManager when DOM is ready
         document.addEventListener('DOMContentLoaded', async () => {
+            // Mobile menu toggle
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            if (mobileMenuButton && mobileMenu) {
+                mobileMenuButton.addEventListener('click', () => {
+                    mobileMenu.classList.toggle('hidden');
+                    const isExpanded = !mobileMenu.classList.contains('hidden');
+                    mobileMenuButton.setAttribute('aria-expanded', isExpanded);
+                });
+            }
+            
             if (typeof InventoryManager !== 'undefined') {
                 await InventoryManager.init();
             }
