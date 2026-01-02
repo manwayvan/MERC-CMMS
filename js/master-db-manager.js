@@ -1321,10 +1321,11 @@ const MasterDBManager = {
 
     async loadQuickAddDropdowns() {
         try {
-            // Load types
+            // Load equipment types (MMD system)
             const { data: types } = await this.supabaseClient
-                .from('device_categories')
+                .from('equipment_types')
                 .select('id, name')
+                .is('deleted_at', null)
                 .order('name');
             
             const typeSelect = document.getElementById('quick-type-select');
@@ -1376,9 +1377,10 @@ const MasterDBManager = {
                 makeSelect.disabled = false;
                 try {
                     const { data: makes } = await this.supabaseClient
-                        .from('device_makes')
+                        .from('equipment_makes')
                         .select('id, name')
-                        .eq('category_id', selectedTypeId)
+                        .is('deleted_at', null)
+                        .eq('type_id', selectedTypeId)
                         .order('name');
                     
                     makeSelect.innerHTML = '<option value="">-- Select Existing --</option>' +
@@ -1431,8 +1433,9 @@ const MasterDBManager = {
                 modelSelect.disabled = false;
                 try {
                     const { data: models } = await this.supabaseClient
-                        .from('device_models')
+                        .from('equipment_models')
                         .select('id, name')
+                        .is('deleted_at', null)
                         .eq('make_id', selectedMakeId)
                         .order('name');
                     
