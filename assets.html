@@ -1611,6 +1611,15 @@
                     if (!payload.id || payload.id.length < 2) {
                         payload.id = `${lookupContext.parentId}_model_${Date.now()}`;
                     }
+                } else if (lookupContext.type === 'equipment_types') {
+                    // Generate UUID for equipment_types
+                    payload.id = crypto.randomUUID();
+                } else if (lookupContext.type === 'equipment_makes') {
+                    // Generate UUID for equipment_makes
+                    payload.id = crypto.randomUUID();
+                } else if (lookupContext.type === 'equipment_models') {
+                    // Generate UUID for equipment_models
+                    payload.id = crypto.randomUUID();
                 }
                 
                 // Check for duplicate name with retry
@@ -1622,6 +1631,10 @@
                 if (lookupContext.type === 'manufacturers' && lookupContext.parentId) {
                     duplicateQuery = duplicateQuery.eq('category_id', lookupContext.parentId);
                 } else if (lookupContext.type === 'models' && lookupContext.parentId) {
+                    duplicateQuery = duplicateQuery.eq('make_id', lookupContext.parentId);
+                } else if (lookupContext.type === 'equipment_makes' && lookupContext.parentId) {
+                    duplicateQuery = duplicateQuery.eq('type_id', lookupContext.parentId);
+                } else if (lookupContext.type === 'equipment_models' && lookupContext.parentId) {
                     duplicateQuery = duplicateQuery.eq('make_id', lookupContext.parentId);
                 }
                 
