@@ -739,6 +739,10 @@ const MasterDBManager = {
             if (window.loadPMFrequencies) {
                 window.loadPMFrequencies();
             }
+            // Refresh Asset Modal MMD data if it's loaded
+            if (window.MMDAssetFormManager && window.MMDAssetFormManager.loadMMDHierarchy) {
+                await window.MMDAssetFormManager.loadMMDHierarchy();
+            }
         } catch (error) {
             console.error('Error deleting:', error);
             this.showToast(`Failed to delete: ${error.message}`, 'error');
