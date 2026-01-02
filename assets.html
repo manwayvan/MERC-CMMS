@@ -854,6 +854,7 @@
         let customers = [];
         let locations = [];
         let currentAsset = null;
+        let deviceConfigurations = [];
         let csvData = null;
         let csvHeaders = [];
         let csvSampleRow = {};
@@ -1487,6 +1488,40 @@
         function closeLookupModal() {
             document.getElementById('lookup-modal').classList.remove('active');
             lookupContext = { type: null, label: null, parentId: null, isMMD: false };
+        }
+        
+        function addNewMMD(type, label) {
+            if (!canManageReferenceData) {
+                showToast('You do not have permission to add reference data.', 'warning');
+                return;
+            }
+            let parentId = null;
+            if (type === 'equipment_makes') {
+                const typeSelect = document.getElementById('mmd-type-select');
+                parentId = typeSelect ? typeSelect.value : null;
+                if (!parentId) {
+                    showToast('Select an Equipment Type before adding a Make.', 'warning');
+                    return;
+                }
+            }
+            if (type === 'equipment_models') {
+                const makeSelect = document.getElementById('mmd-make-select');
+                parentId = makeSelect ? makeSelect.value : null;
+                if (!parentId) {
+                    showToast('Select a Make before adding a Model.', 'warning');
+                    return;
+                }
+            }
+            lookupContext = { type, label: label || type.slice(0, -1), parentId, isMMD: true };
+            const modal = document.getElementById('lookup-modal');
+            const title = document.getElementById('lookup-modal-title');
+            const inputLabel = document.getElementById('lookup-modal-label');
+            const input = document.getElementById('lookup-modal-input');
+            title.textContent = `Add New ${lookupContext.label}`;
+            inputLabel.textContent = `${lookupContext.label} Name`;
+            input.value = '';
+            modal.classList.add('active');
+            setTimeout(() => input.focus(), 0);
         }
         
         // Expose addNewMMD to window
