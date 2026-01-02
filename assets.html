@@ -1486,8 +1486,11 @@
 
         function closeLookupModal() {
             document.getElementById('lookup-modal').classList.remove('active');
-            lookupContext = { type: null, label: null, parentId: null };
+            lookupContext = { type: null, label: null, parentId: null, isMMD: false };
         }
+        
+        // Expose addNewMMD to window
+        window.addNewMMD = addNewMMD;
 
         async function saveLookupModal() {
             const input = document.getElementById('lookup-modal-input');
@@ -1523,6 +1526,28 @@
                     payload.make_id = lookupContext.parentId;
                     if (!lookupContext.parentId) {
                         showToast('Please select a manufacturer first.', 'warning');
+                        return;
+                    }
+                } else if (lookupContext.type === 'equipment_types') {
+                    table = 'equipment_types';
+                    tableDisplayName = 'equipment_types';
+                    payload.is_active = true;
+                } else if (lookupContext.type === 'equipment_makes') {
+                    table = 'equipment_makes';
+                    tableDisplayName = 'equipment_makes';
+                    payload.type_id = lookupContext.parentId;
+                    payload.is_active = true;
+                    if (!lookupContext.parentId) {
+                        showToast('Please select an Equipment Type first.', 'warning');
+                        return;
+                    }
+                } else if (lookupContext.type === 'equipment_models') {
+                    table = 'equipment_models';
+                    tableDisplayName = 'equipment_models';
+                    payload.make_id = lookupContext.parentId;
+                    payload.is_active = true;
+                    if (!lookupContext.parentId) {
+                        showToast('Please select a Make first.', 'warning');
                         return;
                     }
                 }
