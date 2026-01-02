@@ -472,7 +472,8 @@ const MasterDBManager = {
                 const fields = document.getElementById('make-fields');
                 if (fields) fields.style.display = 'block';
                 await this.loadCategoryDropdowns();
-                document.getElementById('make-category-id').value = data.category_id || '';
+                const typeId = data.type_id || (data.equipment_types && data.equipment_types.id);
+                document.getElementById('make-type-id').value = typeId || '';
                 document.getElementById('make-name').value = data.name || '';
                 document.getElementById('make-description').value = data.description || '';
             } else if (type === 'model') {
@@ -481,7 +482,8 @@ const MasterDBManager = {
                 await this.loadCategoryDropdowns();
                 const make = this.hierarchyData.makes.find(m => m.id === data.make_id);
                 if (make) {
-                    document.getElementById('model-category-id').value = make.category_id || '';
+                    const typeId = make.type_id || (make.equipment_types && make.equipment_types.id);
+                    document.getElementById('model-type-id').value = typeId || '';
                     await this.updateMakeDropdown();
                 }
                 document.getElementById('model-make-id').value = data.make_id || '';
@@ -1541,21 +1543,20 @@ const MasterDBManager = {
             }
 
             if (!typeId && newTypeName) {
-                // Create new type
-                const typeIdSlug = newTypeName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '').substring(0, 50) || 'type_' + Date.now();
+                // Create new equipment type (uses auto-generated ID from database)
                 const { data: newType, error: typeError } = await this.supabaseClient
-                    .from('device_categories')
+                    .from('equipment_types')
                     .insert([{
-                        id: typeIdSlug,
                         name: newTypeName,
-                        description: typeDescInput.value.trim() || null
+                        description: typeDescInput.value.trim() || null,
+                        is_active: true
                     }])
                     .select()
                     .single();
                 
                 if (typeError) throw typeError;
                 typeId = newType.id;
-                this.showToast('Device Type created', 'success');
+                this.showToast('Equipment Type created', 'success');
             }
 
             // Validate and get/create Make
@@ -1563,27 +1564,26 @@ const MasterDBManager = {
             const newMakeName = makeNameInput.value.trim();
             
             if (!makeId && !newMakeName) {
-                this.showToast('Manufacturer is required', 'error');
+                this.showToast('Make is required', 'error');
                 return;
             }
 
             if (!makeId && newMakeName) {
-                // Create new make
-                const makeIdSlug = `${typeId}_${newMakeName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '').substring(0, 30)}` || `${typeId}_make_${Date.now()}`;
+                // Create new equipment make (uses auto-generated ID from database)
                 const { data: newMake, error: makeError } = await this.supabaseClient
-                    .from('device_makes')
+                    .from('equipment_makes')
                     .insert([{
-                        id: makeIdSlug,
-                        category_id: typeId,
+                        type_id: typeId,
                         name: newMakeName,
-                        description: makeDescInput.value.trim() || null
+                        description: makeDescInput.value.trim() || null,
+                        is_active: true
                     }])
                     .select()
                     .single();
                 
                 if (makeError) throw makeError;
                 makeId = newMake.id;
-                this.showToast('Manufacturer created', 'success');
+                this.showToast('Make created', 'success');
             }
 
             // Validate and get/create Model
@@ -1596,29 +1596,28 @@ const MasterDBManager = {
             }
 
             if (!modelId && newModelName) {
-                // Create new model
-                const modelIdSlug = `${makeId}_${newModelName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '').substring(0, 30)}` || `${makeId}_model_${Date.now()}`;
+                // Create new equipment model (uses auto-generated ID from database)
                 const pmFreqId = pmFreqSelect.value || null;
                 
                 const { data: newModel, error: modelError } = await this.supabaseClient
-                    .from('device_models')
+                    .from('equipment_models')
                     .insert([{
-                        id: modelIdSlug,
                         make_id: makeId,
                         name: newModelName,
                         description: modelDescInput.value.trim() || null,
-                        pm_frequency_id: pmFreqId
+                        pm_frequency_id: pmFreqId,
+                        is_active: true
                     }])
                     .select()
                     .single();
                 
                 if (modelError) throw modelError;
                 modelId = newModel.id;
-                this.showToast('Model created', 'success');
+                this.showToast('Equipment Model created', 'success');
             } else if (modelId && pmFreqSelect.value) {
                 // Update existing model with PM frequency
                 await this.supabaseClient
-                    .from('device_models')
+                    .from('equipment_models')
                     .update({ pm_frequency_id: pmFreqSelect.value })
                     .eq('id', modelId);
             }
