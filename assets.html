@@ -3960,6 +3960,140 @@
                     return '<span class="text-sm text-slate-600">N/A</span>';
             }
         }
+        
+        // Asset Image Upload Functions
+        let assetImageUrls = [];
+        
+        async function handleAssetImageUpload(event) {
+            const files = Array.from(event.target.files);
+            if (files.length === 0) return;
+            
+            if (!supabaseClient) {
+                showToast('Database not connected', 'error');
+                return;
+            }
+            
+            const previewContainer = document.getElementById('asset-images-preview');
+            if (!previewContainer) return;
+            
+            try {
+                showToast('Uploading images...', 'info');
+                
+                for (const file of files) {
+                    // Validate file type
+                    if (!file.type.startsWith('image/')) {
+                        showToast(`Skipping ${file.name}: Not an image file`, 'warning');
+                        continue;
+                    }
+                    
+                    // Validate file size (max 5MB)
+                    if (file.size > 5 * 1024 * 1024) {
+                        showToast(`Skipping ${file.name}: File too large (max 5MB)`, 'warning');
+                        continue;
+                    }
+                    
+                    // Upload to Supabase Storage
+                    const fileExt = file.name.split('.').pop();
+                    const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+                    const filePath = `assets/${fileName}`;
+                    
+                    const { data: uploadData, error: uploadError } = await supabaseClient.storage
+                        .from('asset-images')
+                        .upload(filePath, file, {
+                            cacheControl: '3600',
+                            upsert: false
+                        });
+                    
+                    if (uploadError) {
+                        // Try to create bucket if it doesn't exist
+                        if (uploadError.message.includes('Bucket not found')) {
+                            showToast('Storage bucket "asset-images" not found. Please create it in Supabase Storage.', 'error');
+                            return;
+                        }
+                        throw uploadError;
+                    }
+                    
+                    // Get public URL
+                    const { data: urlData } = supabaseClient.storage
+                        .from('asset-images')
+                        .getPublicUrl(filePath);
+                    
+                    assetImageUrls.push(urlData.publicUrl);
+                    
+                    // Add preview
+                    const previewDiv = document.createElement('div');
+                    previewDiv.className = 'relative group';
+                    previewDiv.innerHTML = `
+                        <img src="${urlData.publicUrl}" alt="Asset image" class="w-full h-32 object-cover rounded-lg border border-gray-200">
+                        <button type="button" onclick="removeAssetImage('${urlData.publicUrl}')" 
+                                class="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <i class="fas fa-times text-xs"></i>
+                        </button>
+                    `;
+                    previewContainer.appendChild(previewDiv);
+                }
+                
+                // Update hidden input
+                document.getElementById('asset-images-urls').value = JSON.stringify(assetImageUrls);
+                showToast(`Uploaded ${files.length} image(s) successfully`, 'success');
+                
+                // Clear file input
+                event.target.value = '';
+            } catch (error) {
+                console.error('Error uploading images:', error);
+                showToast(`Failed to upload images: ${error.message}`, 'error');
+            }
+        }
+        
+        function removeAssetImage(imageUrl) {
+            assetImageUrls = assetImageUrls.filter(url => url !== imageUrl);
+            document.getElementById('asset-images-urls').value = JSON.stringify(assetImageUrls);
+            
+            // Remove preview
+            const previewContainer = document.getElementById('asset-images-preview');
+            if (previewContainer) {
+                const images = previewContainer.querySelectorAll('div');
+                images.forEach(div => {
+                    const img = div.querySelector('img');
+                    if (img && img.src === imageUrl) {
+                        div.remove();
+                    }
+                });
+            }
+        }
+        
+        function loadAssetImages(imageUrls) {
+            assetImageUrls = imageUrls || [];
+            const previewContainer = document.getElementById('asset-images-preview');
+            if (!previewContainer) return;
+            
+            previewContainer.innerHTML = '';
+            
+            if (assetImageUrls.length === 0) {
+                previewContainer.innerHTML = '<p class="text-sm text-gray-500 col-span-full">No images uploaded</p>';
+                return;
+            }
+            
+            assetImageUrls.forEach(url => {
+                const previewDiv = document.createElement('div');
+                previewDiv.className = 'relative group';
+                previewDiv.innerHTML = `
+                    <img src="${url}" alt="Asset image" class="w-full h-32 object-cover rounded-lg border border-gray-200">
+                    <button type="button" onclick="removeAssetImage('${url}')" 
+                            class="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <i class="fas fa-times text-xs"></i>
+                    </button>
+                `;
+                previewContainer.appendChild(previewDiv);
+            });
+            
+            document.getElementById('asset-images-urls').value = JSON.stringify(assetImageUrls);
+        }
+        
+        // Expose functions to window for global access
+        window.handleAssetImageUpload = handleAssetImageUpload;
+        window.removeAssetImage = removeAssetImage;
+        window.loadAssetImages = loadAssetImages;
     </script>
     <script src="js/pm-automation.js"></script>
     <script src="js/pm-management.js"></script>
