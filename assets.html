@@ -885,6 +885,26 @@
         
         let visibleColumns = [];
         
+        // Pagination state
+        let currentPage = 1;
+        let itemsPerPage = 10;
+        
+        // Load pagination settings from localStorage
+        function loadPaginationSettings() {
+            const saved = localStorage.getItem('assetListItemsPerPage');
+            if (saved) {
+                const parsed = parseInt(saved, 10);
+                if (!isNaN(parsed) && parsed > 0) {
+                    itemsPerPage = parsed;
+                }
+            }
+        }
+        
+        // Save pagination settings to localStorage
+        function savePaginationSettings() {
+            localStorage.setItem('assetListItemsPerPage', itemsPerPage.toString());
+        }
+        
         // Load column visibility from localStorage
         function loadColumnVisibility() {
             const saved = localStorage.getItem('assetListVisibleColumns');
