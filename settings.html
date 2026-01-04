@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Settings & Configuration - MERC-CMMS Enterprise</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="mobile-responsive.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
@@ -1328,16 +1329,30 @@
             }
         }
         
-        // Mobile menu toggle
+        // Setup mobile menu using centralized function
         document.addEventListener('DOMContentLoaded', () => {
-            const mobileMenuButton = document.getElementById('mobile-menu-button');
-            const mobileMenu = document.getElementById('mobile-menu');
-            if (mobileMenuButton && mobileMenu) {
-                mobileMenuButton.addEventListener('click', () => {
-                    mobileMenu.classList.toggle('hidden');
-                    const isExpanded = !mobileMenu.classList.contains('hidden');
-                    mobileMenuButton.setAttribute('aria-expanded', isExpanded);
-                });
+            if (typeof setupMobileMenu === 'function') {
+                setupMobileMenu();
+            } else {
+                // Fallback if setupMobileMenu not available
+                const mobileMenuButton = document.getElementById('mobile-menu-button');
+                const mobileMenu = document.getElementById('mobile-menu');
+                if (mobileMenuButton && mobileMenu) {
+                    mobileMenuButton.addEventListener('click', () => {
+                        mobileMenu.classList.toggle('hidden');
+                        const isExpanded = !mobileMenu.classList.contains('hidden');
+                        mobileMenuButton.setAttribute('aria-expanded', isExpanded);
+                    });
+                    // Close menu when clicking links
+                    mobileMenu.querySelectorAll('a').forEach(link => {
+                        link.addEventListener('click', () => {
+                            if (!mobileMenu.classList.contains('hidden')) {
+                                mobileMenu.classList.add('hidden');
+                                mobileMenuButton.setAttribute('aria-expanded', 'false');
+                            }
+                        });
+                    });
+                }
             }
         });
     </script>

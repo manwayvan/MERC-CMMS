@@ -35,8 +35,34 @@ const WorkOrderParts = {
 
             if (error) throw error;
             this.parts = data || [];
+            // Refresh dropdown if modal is open
+            const partSelect = document.getElementById('add-part-select');
+            if (partSelect && this.currentWorkOrderId) {
+                this.populatePartsDropdown();
+            }
         } catch (error) {
             console.error('Error loading parts:', error);
+        }
+    },
+
+    populatePartsDropdown() {
+        const partSelect = document.getElementById('add-part-select');
+        if (!partSelect) return;
+        
+        const currentValue = partSelect.value; // Preserve selection
+        
+        partSelect.innerHTML = '<option value="">Select Part</option>' +
+            this.parts.map(p => {
+                const stockStatus = p.stock_quantity > p.reorder_point ? 'In Stock' : 
+                                   p.stock_quantity > 0 ? 'Low Stock' : 'Out of Stock';
+                return `<option value="${p.id}" data-cost="${p.unit_cost}" data-stock="${p.stock_quantity}">
+                    ${this.escapeHtml(p.part_number)} - ${this.escapeHtml(p.name)} (${stockStatus})
+                </option>`;
+            }).join('');
+        
+        // Restore selection if it still exists
+        if (currentValue) {
+            partSelect.value = currentValue;
         }
     },
 
@@ -138,14 +164,7 @@ const WorkOrderParts = {
         }
 
         // Populate parts dropdown
-        partSelect.innerHTML = '<option value="">Select Part</option>' +
-            this.parts.map(p => {
-                const stockStatus = p.stock_quantity > p.reorder_point ? 'In Stock' : 
-                                   p.stock_quantity > 0 ? 'Low Stock' : 'Out of Stock';
-                return `<option value="${p.id}" data-cost="${p.unit_cost}" data-stock="${p.stock_quantity}">
-                    ${this.escapeHtml(p.part_number)} - ${this.escapeHtml(p.name)} (${stockStatus})
-                </option>`;
-            }).join('');
+        this.populatePartsDropdown();
 
         // Update unit cost when part is selected
         partSelect.addEventListener('change', (e) => {
@@ -365,6 +384,62 @@ function addPartToWorkOrder() {
 
 function closeAddPartModal() {
     WorkOrderParts.closeAddPartModal();
+}
+
+async function openCreatePartFromWorkOrder() {
+    // Close the add part modal temporarily
+    const addPartModal = document.getElementById('add-part-modal');
+    const wasOpen = addPartModal?.classList.contains('active');
+    if (wasOpen) {
+        addPartModal.classList.remove('active');
+    }
+    
+    // Open the part creation modal from inventory manager
+    if (typeof InventoryManager !== 'undefined' && InventoryManager.openPartModal) {
+        await InventoryManager.openPartModal(null);
+        
+        // Listen for part creation success
+        const partForm = document.getElementById('part-form');
+        if (partForm) {
+            const originalSubmit = partForm.onsubmit;
+            partForm.onsubmit = async (e) => {
+                e.preventDefault();
+                try {
+                    // Save the part
+                    await InventoryManager.savePart(e);
+                    
+                    // Reload parts in WorkOrderParts
+                    await WorkOrderParts.loadParts();
+                    
+                    // Reopen the add part modal and select the new part
+                    if (wasOpen) {
+                        const workOrderId = document.getElementById('add-part-wo-id')?.value;
+                        const mode = document.getElementById('add-part-mode')?.value;
+                        if (workOrderId && mode) {
+                            await WorkOrderParts.openAddPartModal(workOrderId, mode);
+                            
+                            // Select the newly created part (last in list)
+                            setTimeout(() => {
+                                const partSelect = document.getElementById('add-part-select');
+                                if (partSelect && WorkOrderParts.parts.length > 0) {
+                                    const newPart = WorkOrderParts.parts[WorkOrderParts.parts.length - 1];
+                                    partSelect.value = newPart.id;
+                                    partSelect.dispatchEvent(new Event('change'));
+                                }
+                            }, 100);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error creating part:', error);
+                }
+            };
+        }
+    } else {
+        WorkOrderParts.showToast('Inventory manager not available', 'error');
+        if (wasOpen) {
+            addPartModal.classList.add('active');
+        }
+    }
 }
 
 // Initialize on page load

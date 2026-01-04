@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Customers & Locations - MERC-CMMS</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="mobile-responsive.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <script src="auth.js"></script>
@@ -397,6 +398,11 @@
                         </div>
                         <!-- Bulk Actions -->
                         <div class="flex gap-2">
+                            <button onclick="resetAllFilters()" class="btn btn-secondary" title="Reset all filters">
+                                <i class="fas fa-filter"></i>
+                                <i class="fas fa-times ml-1 text-xs"></i>
+                                <span class="hidden sm:inline ml-2">Reset Filters</span>
+                            </button>
                             <button class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2" onclick="showBulkImportModal()" data-testid="bulk-import-btn">
                                 <i class="fas fa-file-upload"></i>
                                 <span>Bulk Import</span>
@@ -769,6 +775,24 @@
             customerSearch.addEventListener('input', () => {
                 filterAndRenderCustomers();
             });
+
+            // Reset filters function
+            window.resetAllFilters = function() {
+                // Clear search
+                if (customerSearch) customerSearch.value = '';
+                
+                // Reset filter chips to "All Statuses"
+                filterChips.forEach(chip => {
+                    chip.classList.remove('active');
+                    if (chip.getAttribute('data-status') === 'all') {
+                        chip.classList.add('active');
+                    }
+                });
+                
+                // Re-filter and render
+                filterAndRenderCustomers();
+                showToast('All filters have been reset', 'success');
+            };
 
             // Filter chips
             filterChips.forEach(chip => {
@@ -2123,5 +2147,14 @@
         }
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="main.js"></script>
+    <script>
+        // Setup mobile menu on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof setupMobileMenu === 'function') {
+                setupMobileMenu();
+            }
+        });
+    </script>
 </body>
 </html>

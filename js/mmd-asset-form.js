@@ -43,20 +43,40 @@ class MMDAssetFormManager {
                 return;
             }
 
-            if (data && data.length > 0) {
-                const result = data[0];
+            // Handle RPC response - it returns an array with one object
+            let result = null;
+            if (data && Array.isArray(data) && data.length > 0) {
+                result = data[0];
+            } else if (data && !Array.isArray(data)) {
+                // In case RPC returns a single object instead of array
+                result = data;
+            }
+
+            if (result) {
                 this.mmdData = {
                     types: result.types || [],
                     makes: result.makes || [],
                     models: result.models || [],
                     frequencies: result.frequencies || []
                 };
+                console.log('MMD Asset Form loaded:', {
+                    types: this.mmdData.types.length,
+                    makes: this.mmdData.makes.length,
+                    models: this.mmdData.models.length
+                });
+            } else {
+                // If no data, use fallback
+                console.warn('RPC returned no data, using fallback queries');
+                await this.loadMMDHierarchyFallback();
+                return;
             }
 
             this.populateTypeDropdown();
         } catch (error) {
             console.error('Error loading MMD hierarchy:', error);
             this.showError('Failed to load equipment data. Please refresh the page.');
+            // Try fallback on error
+            await this.loadMMDHierarchyFallback();
         }
     }
 
@@ -142,6 +162,18 @@ class MMDAssetFormManager {
         this.clearModelDropdown();
         this.clearPMFrequency();
         this.updateSummary();
+        
+        // Update visual state - make dropdown is now enabled
+        const makeContainer = document.getElementById('mmd-make-container');
+        if (makeContainer && typeId) {
+            makeContainer.classList.remove('border-gray-200');
+            makeContainer.classList.add('border-blue-200');
+            const label = makeContainer.querySelector('label span');
+            if (label) {
+                label.classList.remove('bg-gray-400');
+                label.classList.add('bg-blue-600');
+            }
+        }
     }
 
     /**
@@ -209,6 +241,18 @@ class MMDAssetFormManager {
 
         this.clearPMFrequency();
         this.updateSummary();
+        
+        // Update visual state - model dropdown is now enabled
+        const modelContainer = document.getElementById('mmd-model-container');
+        if (modelContainer && makeId) {
+            modelContainer.classList.remove('border-gray-200');
+            modelContainer.classList.add('border-blue-200');
+            const label = modelContainer.querySelector('label span');
+            if (label) {
+                label.classList.remove('bg-gray-400');
+                label.classList.add('bg-blue-600');
+            }
+        }
     }
 
     /**
@@ -219,6 +263,17 @@ class MMDAssetFormManager {
         if (modelSelect) {
             modelSelect.innerHTML = '<option value="">-- Select Model --</option>';
             modelSelect.disabled = true;
+        }
+        // Update visual state
+        const modelContainer = document.getElementById('mmd-model-container');
+        if (modelContainer) {
+            modelContainer.classList.remove('border-blue-200');
+            modelContainer.classList.add('border-gray-200');
+            const label = modelContainer.querySelector('label span');
+            if (label) {
+                label.classList.remove('bg-blue-600');
+                label.classList.add('bg-gray-400');
+            }
         }
     }
 
@@ -243,16 +298,16 @@ class MMDAssetFormManager {
 
         if (pmFrequencyId && pmFrequencyName) {
             pmFrequencyDisplay.innerHTML = `
-                <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <div class="bg-green-50 border-2 border-green-300 rounded-lg p-4">
                     <div class="flex items-center justify-between">
                         <div>
-                            <span class="text-sm font-semibold text-blue-900">PM Frequency:</span>
-                            <span class="text-sm text-blue-800 ml-2">${this.escapeHtml(pmFrequencyName)}</span>
-                            ${pmFrequencyDays ? `<span class="text-xs text-blue-600 ml-2">(${pmFrequencyDays} days)</span>` : ''}
+                            <span class="text-sm font-bold text-green-900">PM Frequency:</span>
+                            <span class="text-sm font-semibold text-green-800 ml-2">${this.escapeHtml(pmFrequencyName)}</span>
+                            ${pmFrequencyDays ? `<span class="text-xs text-green-600 ml-2">(${pmFrequencyDays} days)</span>` : ''}
                         </div>
-                        <i class="fas fa-lock text-blue-600"></i>
+                        <i class="fas fa-check-circle text-green-600 text-xl"></i>
                     </div>
-                    <p class="text-xs text-blue-600 mt-1">Auto-populated from selected model</p>
+                    <p class="text-xs text-green-700 mt-2">✓ Auto-populated from selected model</p>
                 </div>
             `;
             this.selectedPMFrequency = {
@@ -267,16 +322,31 @@ class MMDAssetFormManager {
                 pmFrequencyDaysInput.value = pmFrequencyDays || '';
             }
             
+            // Update visual state - PM frequency is now set
+            const pmContainer = document.getElementById('mmd-pm-container');
+            if (pmContainer) {
+                pmContainer.classList.remove('border-gray-200');
+                pmContainer.classList.add('border-green-200');
+                const label = pmContainer.querySelector('label span');
+                if (label) {
+                    label.classList.remove('bg-gray-400');
+                    label.classList.add('bg-green-600');
+                }
+            }
+            
             // Trigger next maintenance calculation if last maintenance is set
             if (typeof calculateNextMaintenance === 'function') {
                 calculateNextMaintenance();
             }
         } else {
             pmFrequencyDisplay.innerHTML = `
-                <div class="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <div class="bg-amber-50 border-2 border-amber-300 rounded-lg p-4">
                     <div class="flex items-center">
-                        <i class="fas fa-exclamation-triangle text-amber-600 mr-2"></i>
-                        <span class="text-sm text-amber-800">No PM frequency assigned to this model</span>
+                        <i class="fas fa-exclamation-triangle text-amber-600 mr-2 text-xl"></i>
+                        <div>
+                            <span class="text-sm font-semibold text-amber-800 block">No PM frequency assigned</span>
+                            <span class="text-xs text-amber-700">This model needs a PM frequency. Please assign one in Settings.</span>
+                        </div>
                     </div>
                 </div>
             `;
@@ -309,37 +379,60 @@ class MMDAssetFormManager {
         const modelName = this.selectedModel ? 
             (document.getElementById('mmd-model-select')?.options[document.getElementById('mmd-model-select').selectedIndex]?.textContent) : null;
         const pmFrequencyName = this.selectedPMFrequency?.name || null;
+        const pmFrequencyDays = this.selectedPMFrequency?.days || null;
 
         if (typeName && makeName && modelName) {
             summaryDiv.innerHTML = `
-                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <h4 class="text-sm font-semibold text-green-900 mb-2">Selected Configuration:</h4>
-                    <div class="space-y-1 text-sm">
-                        <div class="flex items-center">
-                            <span class="font-medium text-green-800 w-20">Type:</span>
-                            <span class="text-green-700">${this.escapeHtml(typeName)}</span>
+                <div class="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-lg p-5">
+                    <div class="flex items-center mb-3">
+                        <i class="fas fa-check-circle text-green-600 text-xl mr-2"></i>
+                        <h4 class="text-base font-bold text-green-900">Configuration Complete</h4>
+                    </div>
+                    <div class="bg-white rounded-lg p-4 space-y-2">
+                        <div class="flex items-center text-sm">
+                            <span class="font-bold text-gray-700 w-24 flex-shrink-0">Type:</span>
+                            <span class="text-gray-900 font-semibold">${this.escapeHtml(typeName)}</span>
+                            <i class="fas fa-arrow-right text-gray-400 mx-2"></i>
                         </div>
-                        <div class="flex items-center">
-                            <span class="font-medium text-green-800 w-20">Make:</span>
-                            <span class="text-green-700">${this.escapeHtml(makeName)}</span>
+                        <div class="flex items-center text-sm">
+                            <span class="font-bold text-gray-700 w-24 flex-shrink-0">Make:</span>
+                            <span class="text-gray-900 font-semibold">${this.escapeHtml(makeName)}</span>
+                            <i class="fas fa-arrow-right text-gray-400 mx-2"></i>
                         </div>
-                        <div class="flex items-center">
-                            <span class="font-medium text-green-800 w-20">Model:</span>
-                            <span class="text-green-700">${this.escapeHtml(modelName)}</span>
+                        <div class="flex items-center text-sm">
+                            <span class="font-bold text-gray-700 w-24 flex-shrink-0">Model:</span>
+                            <span class="text-gray-900 font-semibold">${this.escapeHtml(modelName)}</span>
+                            ${pmFrequencyName ? '<i class="fas fa-arrow-right text-gray-400 mx-2"></i>' : ''}
                         </div>
                         ${pmFrequencyName ? `
-                        <div class="flex items-center">
-                            <span class="font-medium text-green-800 w-20">PM:</span>
-                            <span class="text-green-700">${this.escapeHtml(pmFrequencyName)}</span>
+                        <div class="flex items-center text-sm pt-2 border-t border-gray-200">
+                            <span class="font-bold text-gray-700 w-24 flex-shrink-0">PM Frequency:</span>
+                            <span class="text-green-700 font-semibold">${this.escapeHtml(pmFrequencyName)}</span>
+                            ${pmFrequencyDays ? `<span class="text-xs text-green-600 ml-2">(${pmFrequencyDays} days)</span>` : ''}
                         </div>
-                        ` : ''}
+                        ` : `
+                        <div class="pt-2 border-t border-amber-200">
+                            <p class="text-xs text-amber-700 flex items-center">
+                                <i class="fas fa-exclamation-triangle mr-1"></i>
+                                No PM frequency assigned to this model
+                            </p>
+                        </div>
+                        `}
                     </div>
                 </div>
             `;
         } else {
+            const progress = [];
+            if (typeName) progress.push('Type');
+            if (makeName) progress.push('Make');
+            if (modelName) progress.push('Model');
+            
             summaryDiv.innerHTML = `
                 <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                    <p class="text-sm text-gray-500">Complete the Type → Make → Model selection to see preview</p>
+                    <p class="text-sm text-gray-500 text-center mb-2">Complete the selection above to see your configuration</p>
+                    ${progress.length > 0 ? `
+                    <p class="text-xs text-gray-400 text-center">Progress: ${progress.join(' → ')}</p>
+                    ` : ''}
                 </div>
             `;
         }
@@ -347,6 +440,7 @@ class MMDAssetFormManager {
 
     /**
      * Setup event listeners for cascading dropdowns
+     * Note: We use inline onchange handlers now for better integration with visual feedback
      */
     setupEventListeners() {
         const typeSelect = document.getElementById('mmd-type-select');
@@ -354,27 +448,37 @@ class MMDAssetFormManager {
         const modelSelect = document.getElementById('mmd-model-select');
 
         if (typeSelect) {
-            typeSelect.addEventListener('change', (e) => {
+            // Remove old listener if exists and add new one
+            typeSelect.removeEventListener('change', this._typeChangeHandler);
+            this._typeChangeHandler = (e) => {
                 this.selectedType = e.target.value;
                 this.selectedMake = null;
                 this.selectedModel = null;
                 this.populateMakeDropdown(this.selectedType);
-            });
+                // Visual feedback is handled by handleMMDTypeChange
+            };
+            typeSelect.addEventListener('change', this._typeChangeHandler);
         }
 
         if (makeSelect) {
-            makeSelect.addEventListener('change', async (e) => {
+            makeSelect.removeEventListener('change', this._makeChangeHandler);
+            this._makeChangeHandler = async (e) => {
                 this.selectedMake = e.target.value;
                 this.selectedModel = null;
                 await this.populateModelDropdown(this.selectedMake);
-            });
+                // Visual feedback is handled by handleMMDMakeChange
+            };
+            makeSelect.addEventListener('change', this._makeChangeHandler);
         }
 
         if (modelSelect) {
-            modelSelect.addEventListener('change', (e) => {
+            modelSelect.removeEventListener('change', this._modelChangeHandler);
+            this._modelChangeHandler = (e) => {
                 this.selectedModel = e.target.value;
                 this.updatePMFrequency(this.selectedModel);
-            });
+                // Visual feedback is handled by handleMMDModelChange
+            };
+            modelSelect.addEventListener('change', this._modelChangeHandler);
         }
     }
 

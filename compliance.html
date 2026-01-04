@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Compliance & Reports - MERC-CMMS</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="mobile-responsive.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
         * {
@@ -664,6 +665,10 @@
 
         // Handle custom report form submission and initialize ComplianceManager
         document.addEventListener('DOMContentLoaded', async () => {
+            // Setup mobile menu
+            if (typeof setupMobileMenu === 'function') {
+                setupMobileMenu();
+            }
             const customReportForm = document.getElementById('custom-report-form');
             if (customReportForm) {
                 customReportForm.addEventListener('submit', (e) => {
@@ -679,6 +684,12 @@
                 await complianceManager.init();
                 window.complianceManager = complianceManager; // Store globally for access
             }
+            
+            // Setup mobile menu
+            if (typeof setupMobileMenu === 'function') {
+                setupMobileMenu();
+            }
         });
     </script>
+    <script src="main.js"></script>
    

@@ -122,27 +122,45 @@ const MasterDBManager = {
             // Try RPC function first for efficiency
             const { data: rpcData, error: rpcError } = await this.supabaseClient.rpc('get_mmd_hierarchy');
             
-            if (!rpcError && rpcData && rpcData.length > 0) {
-                const result = rpcData[0];
-                this.hierarchyData = {
-                    categories: result.types || [],
-                    makes: result.makes || [],
-                    models: result.models || []
-                };
-            } else {
-                // Fallback to individual queries
-                const [categoriesResult, makesResult, modelsResult] = await Promise.all([
-                    this.supabaseClient.from('equipment_types').select('*').is('deleted_at', null).order('name'),
-                    this.supabaseClient.from('equipment_makes').select('*, equipment_types:type_id(id, name)').is('deleted_at', null).order('name'),
-                    this.supabaseClient.from('equipment_models').select('*, equipment_makes:make_id(id, name, type_id, equipment_types:type_id(id, name))').is('deleted_at', null).order('name')
-                ]);
-
-                this.hierarchyData = {
-                    categories: categoriesResult.data || [],
-                    makes: makesResult.data || [],
-                    models: modelsResult.data || []
-                };
+            if (!rpcError && rpcData) {
+                // Handle RPC response - it returns an array with one object
+                let result = null;
+                if (Array.isArray(rpcData) && rpcData.length > 0) {
+                    result = rpcData[0];
+                } else if (!Array.isArray(rpcData)) {
+                    // In case RPC returns a single object instead of array
+                    result = rpcData;
+                }
+                
+                if (result) {
+                    this.hierarchyData = {
+                        categories: result.types || [],
+                        makes: result.makes || [],
+                        models: result.models || []
+                    };
+                    console.log('Settings MMD Hierarchy loaded:', {
+                        types: this.hierarchyData.categories.length,
+                        makes: this.hierarchyData.makes.length,
+                        models: this.hierarchyData.models.length
+                    });
+                    this.renderHierarchy();
+                    return;
+                }
             }
+            
+            // Fallback to individual queries if RPC fails or returns no data
+            console.log('Using fallback queries for hierarchy');
+            const [categoriesResult, makesResult, modelsResult] = await Promise.all([
+                this.supabaseClient.from('equipment_types').select('*').is('deleted_at', null).order('name'),
+                this.supabaseClient.from('equipment_makes').select('*, equipment_types:type_id(id, name)').is('deleted_at', null).order('name'),
+                this.supabaseClient.from('equipment_models').select('*, equipment_makes:make_id(id, name, type_id, equipment_types:type_id(id, name))').is('deleted_at', null).order('name')
+            ]);
+
+            this.hierarchyData = {
+                categories: categoriesResult.data || [],
+                makes: makesResult.data || [],
+                models: modelsResult.data || []
+            };
 
             this.renderHierarchy();
         } catch (error) {

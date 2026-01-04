@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Asset Management - MERC-CMMS</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="mobile-responsive.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
 <script src="auth.js"></script>
@@ -24,8 +25,15 @@
 .status-retired { background-color: #dc2626; }
 .asset-header-bg { background-image: url('/resources/asset-header.jpg'); background-size: cover; background-position: center; }
 .form-input { width: 100%; padding: 10px 16px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; transition: all 0.2s; }
+@media (max-width: 768px) {
+    .form-input { padding: 14px 16px; font-size: 16px; min-height: 48px; }
+    input[type="text"], input[type="number"], input[type="date"], input[type="email"], input[type="password"], textarea, select { font-size: 16px !important; }
+}
 .form-input:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
-.btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s; border: none; }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s; border: none; min-height: 44px; min-width: 44px; }
+@media (max-width: 768px) {
+    .btn { padding: 14px 20px; font-size: 16px; min-height: 48px; }
+}
 .btn-primary { background: #2563eb; color: white; }
 .btn-primary:hover { background: #1d4ed8; }
 .btn-secondary { background: #e2e8f0; color: #475569; }
@@ -47,7 +55,21 @@
 .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 1000; }
 .modal.active { display: flex; align-items: center; justify-content: center; }
 .modal-content { background: white; border-radius: 16px; max-width: 900px; width: 95%; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); }
-.tab-button { padding: 12px 24px; border-bottom: 2px solid transparent; font-weight: 600; cursor: pointer; transition: all 0.2s; color: #64748b; }
+@media (max-width: 768px) {
+    .modal-content { width: 100%; max-width: 100%; max-height: 100vh; border-radius: 0; margin: 0; }
+    .modal { padding: 0; align-items: flex-start; }
+    .modal.active { padding-top: 0; }
+}
+.tab-button { padding: 12px 24px; border-bottom: 2px solid transparent; font-weight: 600; cursor: pointer; transition: all 0.2s; color: #64748b; min-height: 44px; }
+@media (max-width: 768px) {
+    .tab-button { padding: 14px 16px; font-size: 14px; min-height: 48px; }
+    .tab-button i { margin-right: 6px; }
+}
+.column-item { user-select: none; }
+.column-item.dragging { opacity: 0.5; }
+.column-item.drag-over { border-color: #2563eb !important; background-color: #eff6ff !important; transform: scale(1.02); }
+.column-item .fa-grip-vertical { transition: color 0.2s; }
+.column-item:hover .fa-grip-vertical { color: #64748b; }
 .tab-button.active { color: #2563eb; border-bottom-color: #2563eb; background: #eff6ff; }
 .tab-button:hover { background: #f8fafc; }
 .tab-content { display: none; }
@@ -222,7 +244,17 @@
                     <i class="fas fa-columns"></i>
                     <span class="hidden sm:inline ml-2">Columns</span>
                 </button>
-                <div class="flex gap-2 flex-wrap">
+                <button onclick="resetAllFilters()" class="btn btn-secondary" title="Reset all filters">
+                    <i class="fas fa-filter"></i>
+                    <i class="fas fa-times ml-1 text-xs"></i>
+                    <span class="hidden sm:inline ml-2">Reset Filters</span>
+                </button>
+                <div class="flex gap-2 flex-wrap items-center">
+                    <button id="bulk-edit-btn" onclick="showBulkEditModal()" class="btn btn-secondary hidden" title="Bulk edit selected assets">
+                        <i class="fas fa-edit"></i>
+                        <span class="hidden sm:inline ml-2">Bulk Edit</span>
+                        <span id="selected-count-badge" class="ml-2 bg-blue-600 text-white text-xs px-2 py-1 rounded-full">0</span>
+                    </button>
                     <button onclick="showPMManagement()" class="btn btn-secondary">
                         <i class="fas fa-calendar-check"></i>
                         <span class="hidden sm:inline ml-2">PM Management</span>
@@ -433,7 +465,7 @@
                 </div>
             </div>
             <div class="p-6">
-                <p class="text-sm text-gray-600 mb-4">Select which columns to display in the list view.</p>
+                <p class="text-sm text-gray-600 mb-4">Select which columns to display and drag to reorder them.</p>
                 <div id="column-visibility-list" class="space-y-2 max-h-96 overflow-y-auto">
                     <!-- Will be populated by JavaScript -->
                 </div>
@@ -448,6 +480,75 @@
                         </button>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Edit Modal -->
+    <div id="bulk-edit-modal" class="modal">
+        <div class="modal-content" style="max-width: 700px; width: 95vw;">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-2xl font-bold text-gray-900">Bulk Edit Assets</h2>
+                    <button onclick="closeBulkEditModal()" class="text-gray-400 hover:text-gray-600 text-2xl">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <p class="text-sm text-gray-600 mt-2">
+                    <span id="bulk-edit-count">0</span> asset(s) selected
+                </p>
+            </div>
+            <div class="p-6">
+                <form id="bulk-edit-form">
+                    <p class="text-sm text-gray-600 mb-4">
+                        Only fill in the fields you want to update. Leave fields empty to keep existing values.
+                    </p>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Status</label>
+                            <select name="status" class="form-input">
+                                <option value="">-- Keep existing --</option>
+                                <option value="active">Active</option>
+                                <option value="maintenance">Maintenance</option>
+                                <option value="inactive">Inactive</option>
+                                <option value="retired">Retired</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Location</label>
+                            <select name="location_id" id="bulk-edit-location" class="form-input">
+                                <option value="">-- Keep existing --</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Customer</label>
+                            <select name="customer_id" id="bulk-edit-customer" class="form-input">
+                                <option value="">-- Keep existing --</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Last Maintenance Date</label>
+                            <input type="date" name="last_maintenance" class="form-input">
+                            <p class="text-xs text-gray-500 mt-1">Leave empty to keep existing value</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Next Maintenance Date</label>
+                            <input type="date" name="next_maintenance" class="form-input">
+                            <p class="text-xs text-gray-500 mt-1">Leave empty to keep existing value</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Warranty Expiry</label>
+                            <input type="date" name="warranty_expiry" class="form-input">
+                            <p class="text-xs text-gray-500 mt-1">Leave empty to keep existing value</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200">
+                        <button type="button" onclick="closeBulkEditModal()" class="btn btn-secondary">Cancel</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save mr-2"></i>Update Selected Assets
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -595,76 +696,121 @@
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Asset Name *</label>
                             <input type="text" name="name" required class="form-input" placeholder="e.g., MRI Scanner">
                         </div>
-                        <!-- MMD Hierarchy Selection (Type → Make → Model → PM Frequency) -->
+                        <!-- Master Database (MMD) Selection - Improved Design -->
                         <div class="md:col-span-2">
-                            <!-- Cascading Dropdowns -->
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                                <!-- Equipment Type -->
-                                <div>
-                                    <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                        Equipment Type <span class="text-red-500">*</span>
-                                    </label>
-                                    <div class="flex gap-2">
-                                        <select id="mmd-type-select" required class="form-input flex-1">
-                                            <option value="">-- Select Type --</option>
-                                        </select>
-                                        <button type="button" onclick="addNewMMD('equipment_types', 'Equipment Type')" 
-                                                class="btn btn-secondary px-3" title="Add new equipment type">
-                                            <i class="fas fa-plus"></i>
-                                        </button>
+                            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-6">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div>
+                                        <h3 class="text-lg font-bold text-gray-900 flex items-center">
+                                            <i class="fas fa-database text-blue-600 mr-2"></i>
+                                            Master Database Selection
+                                        </h3>
+                                        <p class="text-sm text-gray-600 mt-1">Select or add equipment from the master database</p>
+                                    </div>
+                                    <button type="button" onclick="showQuickAddMMDModal()" 
+                                            class="btn btn-primary text-sm px-4 py-2" 
+                                            title="Quick Add: Add Type, Make, Model, and PM Frequency at once">
+                                        <i class="fas fa-bolt mr-2"></i>Quick Add
+                                    </button>
+                                </div>
+                                
+                                <!-- Visual Hierarchy Path -->
+                                <div class="mb-6">
+                                    <div class="flex items-center space-x-2 text-sm font-medium text-gray-700 mb-4">
+                                        <span class="px-3 py-1 bg-white rounded-lg border border-gray-300">Step 1</span>
+                                        <i class="fas fa-arrow-right text-gray-400"></i>
+                                        <span class="px-3 py-1 bg-white rounded-lg border border-gray-300">Step 2</span>
+                                        <i class="fas fa-arrow-right text-gray-400"></i>
+                                        <span class="px-3 py-1 bg-white rounded-lg border border-gray-300">Step 3</span>
+                                        <i class="fas fa-arrow-right text-gray-400"></i>
+                                        <span class="px-3 py-1 bg-white rounded-lg border border-gray-300">Step 4</span>
+                                    </div>
+                                    
+                                    <!-- Step-by-step Selection -->
+                                    <div class="space-y-4">
+                                        <!-- Step 1: Equipment Type -->
+                                        <div class="bg-white rounded-lg border-2 border-blue-200 p-4">
+                                            <label class="block text-sm font-bold text-gray-900 mb-2 flex items-center">
+                                                <span class="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs mr-2">1</span>
+                                                Equipment Type <span class="text-red-500 ml-1">*</span>
+                                            </label>
+                                            <div class="flex gap-2">
+                                                <select id="mmd-type-select" required 
+                                                        class="form-input flex-1 border-2 border-blue-300 focus:border-blue-500"
+                                                        onchange="handleMMDTypeChange()">
+                                                    <option value="">-- Select or Add Type --</option>
+                                                </select>
+                                                <button type="button" onclick="addNewMMD('equipment_types', 'Equipment Type')" 
+                                                        class="btn btn-secondary px-4" title="Add new equipment type">
+                                                    <i class="fas fa-plus mr-1"></i>Add
+                                                </button>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Step 2: Make -->
+                                        <div class="bg-white rounded-lg border-2 border-gray-200 p-4" id="mmd-make-container">
+                                            <label class="block text-sm font-bold text-gray-700 mb-2 flex items-center">
+                                                <span class="bg-gray-400 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs mr-2">2</span>
+                                                Make <span class="text-red-500 ml-1">*</span>
+                                            </label>
+                                            <div class="flex gap-2">
+                                                <select id="mmd-make-select" required disabled 
+                                                        class="form-input flex-1 border-2 border-gray-300"
+                                                        onchange="handleMMDMakeChange()">
+                                                    <option value="">-- Select Type First --</option>
+                                                </select>
+                                                <button type="button" onclick="addNewMMD('equipment_makes', 'Make')" 
+                                                        class="btn btn-secondary px-4" title="Add new make" id="add-mmd-make-btn" disabled>
+                                                    <i class="fas fa-plus mr-1"></i>Add
+                                                </button>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Step 3: Model -->
+                                        <div class="bg-white rounded-lg border-2 border-gray-200 p-4" id="mmd-model-container">
+                                            <label class="block text-sm font-bold text-gray-700 mb-2 flex items-center">
+                                                <span class="bg-gray-400 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs mr-2">3</span>
+                                                Model <span class="text-red-500 ml-1">*</span>
+                                            </label>
+                                            <div class="flex gap-2">
+                                                <select id="mmd-model-select" name="model_id" required disabled 
+                                                        class="form-input flex-1 border-2 border-gray-300"
+                                                        onchange="handleMMDModelChange()">
+                                                    <option value="">-- Select Make First --</option>
+                                                </select>
+                                                <button type="button" onclick="addNewMMD('equipment_models', 'Model')" 
+                                                        class="btn btn-secondary px-4" title="Add new model" id="add-mmd-model-btn" disabled>
+                                                    <i class="fas fa-plus mr-1"></i>Add
+                                                </button>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Step 4: PM Frequency (Auto-populated) -->
+                                        <div class="bg-white rounded-lg border-2 border-gray-200 p-4" id="mmd-pm-container">
+                                            <label class="block text-sm font-bold text-gray-700 mb-2 flex items-center">
+                                                <span class="bg-gray-400 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs mr-2">4</span>
+                                                PM Frequency
+                                            </label>
+                                            <div id="mmd-pm-frequency-display">
+                                                <p class="text-sm text-gray-500 italic">Select a model to see PM frequency</p>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 
-                                <!-- Equipment Make -->
-                                <div>
-                                    <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                        Make <span class="text-red-500">*</span>
-                                    </label>
-                                    <div class="flex gap-2">
-                                        <select id="mmd-make-select" required disabled class="form-input flex-1">
-                                            <option value="">-- Select Make --</option>
-                                        </select>
-                                        <button type="button" onclick="addNewMMD('equipment_makes', 'Make')" 
-                                                class="btn btn-secondary px-3" title="Add new make" id="add-mmd-make-btn">
-                                            <i class="fas fa-plus"></i>
-                                        </button>
+                                <!-- Selected Configuration Summary -->
+                                <div id="mmd-summary" class="mt-4">
+                                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                                        <p class="text-sm text-gray-500 text-center">Complete the selection above to see your configuration</p>
                                     </div>
                                 </div>
                                 
-                                <!-- Equipment Model -->
-                                <div>
-                                    <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                        Model <span class="text-red-500">*</span>
-                                    </label>
-                                    <div class="flex gap-2">
-                                        <select id="mmd-model-select" name="model_id" required disabled class="form-input flex-1">
-                                            <option value="">-- Select Model --</option>
-                                        </select>
-                                        <button type="button" onclick="addNewMMD('equipment_models', 'Model')" 
-                                                class="btn btn-secondary px-3" title="Add new model" id="add-mmd-model-btn">
-                                            <i class="fas fa-plus"></i>
-                                        </button>
-                                    </div>
-                                </div>
+                                <!-- Hidden fields for form submission -->
+                                <input type="hidden" id="mmd-type-id" name="type_id">
+                                <input type="hidden" id="mmd-make-id" name="make_id">
+                                <input type="hidden" id="mmd-pm-frequency-id" name="pm_frequency_id">
+                                <input type="hidden" id="mmd-pm-frequency-days" name="pm_frequency_days">
                             </div>
-                            
-                            <!-- PM Frequency Display (Read-only, auto-populated) -->
-                            <div id="mmd-pm-frequency-display" class="mb-4">
-                                <p class="text-sm text-gray-500">Select a model to see PM frequency</p>
-                            </div>
-                            
-                            <!-- Summary Preview -->
-                            <div id="mmd-summary" class="mb-2">
-                                <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                                    <p class="text-sm text-gray-500">Complete the Type → Make → Model selection to see preview</p>
-                                </div>
-                            </div>
-                            
-                            <!-- Hidden fields for form submission -->
-                            <input type="hidden" id="mmd-type-id" name="type_id">
-                            <input type="hidden" id="mmd-make-id" name="make_id">
-                            <input type="hidden" id="mmd-pm-frequency-id" name="pm_frequency_id">
-                            <input type="hidden" id="mmd-pm-frequency-days" name="pm_frequency_days">
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Serial Number *</label>
@@ -819,6 +965,76 @@
     </div>
 
     <!-- Lookup Add New Modal -->
+    <!-- Quick Add MMD Modal -->
+    <div id="quick-add-mmd-modal" class="modal">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-2xl font-bold text-gray-900">Quick Add Equipment</h2>
+                    <button onclick="closeQuickAddMMDModal()" class="text-gray-400 hover:text-gray-600 text-2xl">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <p class="text-sm text-gray-600 mt-2">Add Type, Make, Model, and PM Frequency all at once</p>
+            </div>
+            <div class="p-6">
+                <form id="quick-add-mmd-form" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            Equipment Type <span class="text-red-500">*</span>
+                        </label>
+                        <div class="flex gap-2">
+                            <select id="quick-type-select" class="form-input flex-1" required>
+                                <option value="">-- Select Existing Type --</option>
+                            </select>
+                            <input type="text" id="quick-type-new" class="form-input flex-1" 
+                                   placeholder="Or enter new type name">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            Make <span class="text-red-500">*</span>
+                        </label>
+                        <div class="flex gap-2">
+                            <select id="quick-make-select" class="form-input flex-1" required disabled>
+                                <option value="">-- Select Type First --</option>
+                            </select>
+                            <input type="text" id="quick-make-new" class="form-input flex-1" 
+                                   placeholder="Or enter new make name" disabled>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            Model <span class="text-red-500">*</span>
+                        </label>
+                        <div class="flex gap-2">
+                            <select id="quick-model-select" class="form-input flex-1" required disabled>
+                                <option value="">-- Select Make First --</option>
+                            </select>
+                            <input type="text" id="quick-model-new" class="form-input flex-1" 
+                                   placeholder="Or enter new model name" disabled>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            PM Frequency <span class="text-red-500">*</span>
+                        </label>
+                        <select id="quick-pm-frequency" class="form-input" required disabled>
+                            <option value="">-- Select Model First --</option>
+                        </select>
+                        <p class="text-xs text-gray-500 mt-1">PM frequency is required for the model</p>
+                    </div>
+                    <div class="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                        <button type="button" onclick="closeQuickAddMMDModal()" class="btn btn-secondary">Cancel</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save mr-2"></i>Save & Apply
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <div id="lookup-modal" class="modal">
         <div class="modal-content" style="max-width: 480px;">
             <div class="p-6 border-b border-gray-200">
@@ -898,6 +1114,10 @@
         let currentPage = 1;
         let itemsPerPage = 10;
         
+        // Sorting state
+        let currentSortColumn = null;
+        let currentSortDirection = 'asc'; // 'asc' or 'desc'
+        
         // Load pagination settings from localStorage
         function loadPaginationSettings() {
             const saved = localStorage.getItem('assetListItemsPerPage');
@@ -945,12 +1165,29 @@
         loadColumnVisibility();
 
         document.addEventListener('DOMContentLoaded', async () => {
-            const mobileMenuButton = document.getElementById('mobile-menu-button');
-            const mobileMenu = document.getElementById('mobile-menu');
-            if (mobileMenuButton && mobileMenu) {
-                mobileMenuButton.addEventListener('click', () => {
-                    mobileMenu.classList.toggle('hidden');
-                });
+            // Setup mobile menu using centralized function
+            if (typeof setupMobileMenu === 'function') {
+                setupMobileMenu();
+            } else {
+                // Fallback if setupMobileMenu not available
+                const mobileMenuButton = document.getElementById('mobile-menu-button');
+                const mobileMenu = document.getElementById('mobile-menu');
+                if (mobileMenuButton && mobileMenu) {
+                    mobileMenuButton.addEventListener('click', () => {
+                        mobileMenu.classList.toggle('hidden');
+                        const isExpanded = !mobileMenu.classList.contains('hidden');
+                        mobileMenuButton.setAttribute('aria-expanded', isExpanded);
+                    });
+                    // Close menu when clicking links
+                    mobileMenu.querySelectorAll('a').forEach(link => {
+                        link.addEventListener('click', () => {
+                            if (!mobileMenu.classList.contains('hidden')) {
+                                mobileMenu.classList.add('hidden');
+                                mobileMenuButton.setAttribute('aria-expanded', 'false');
+                            }
+                        });
+                    });
+                }
             }
 
             // Use shared Supabase client from auth.js to avoid multiple instances
@@ -973,7 +1210,172 @@
             setupDragDrop();
             renderTableHeader(); // Render table header with visible columns
             initializeView(); // Initialize to list view
+            updateBulkEditButton(); // Initialize bulk edit button (hidden initially)
+            
+            // Setup Quick Add MMD form event listeners
+            setupQuickAddMMDListeners();
         });
+        
+        function setupQuickAddMMDListeners() {
+            const typeSelect = document.getElementById('quick-type-select');
+            const typeNew = document.getElementById('quick-type-new');
+            const makeSelect = document.getElementById('quick-make-select');
+            const makeNew = document.getElementById('quick-make-new');
+            const modelSelect = document.getElementById('quick-model-select');
+            const modelNew = document.getElementById('quick-model-new');
+            const pmSelect = document.getElementById('quick-pm-frequency');
+            
+            // Type selection - enable/disable make fields
+            if (typeSelect) {
+                typeSelect.addEventListener('change', async (e) => {
+                    const typeId = e.target.value;
+                    if (typeId) {
+                        // Load makes for this type
+                        if (supabaseClient) {
+                            try {
+                                const { data: makes } = await supabaseClient
+                                    .from('equipment_makes')
+                                    .select('id, name')
+                                    .eq('type_id', typeId)
+                                    .is('deleted_at', null)
+                                    .order('name');
+                                
+                                if (makeSelect) {
+                                    makeSelect.innerHTML = '<option value="">-- Select Existing Make --</option>' +
+                                        (makes || []).map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('');
+                                    makeSelect.disabled = false;
+                                }
+                                if (makeNew) {
+                                    makeNew.disabled = false;
+                                }
+                            } catch (error) {
+                                console.error('Error loading makes:', error);
+                            }
+                        }
+                    } else {
+                        if (makeSelect) {
+                            makeSelect.innerHTML = '<option value="">-- Select Type First --</option>';
+                            makeSelect.disabled = true;
+                        }
+                        if (makeNew) makeNew.disabled = true;
+                        if (modelSelect) {
+                            modelSelect.innerHTML = '<option value="">-- Select Make First --</option>';
+                            modelSelect.disabled = true;
+                        }
+                        if (modelNew) modelNew.disabled = true;
+                        if (pmSelect) {
+                            pmSelect.innerHTML = '<option value="">-- Select Model First --</option>';
+                            pmSelect.disabled = true;
+                        }
+                    }
+                });
+            }
+            
+            // Make selection - enable/disable model fields
+            if (makeSelect) {
+                makeSelect.addEventListener('change', async (e) => {
+                    const makeId = e.target.value;
+                    if (makeId) {
+                        // Load models for this make
+                        if (supabaseClient) {
+                            try {
+                                const { data: models } = await supabaseClient
+                                    .from('equipment_models')
+                                    .select('id, name, pm_frequency_id')
+                                    .eq('make_id', makeId)
+                                    .is('deleted_at', null)
+                                    .order('name');
+                                
+                                if (modelSelect) {
+                                    modelSelect.innerHTML = '<option value="">-- Select Existing Model --</option>' +
+                                        (models || []).map(m => `<option value="${m.id}" data-pm-freq="${m.pm_frequency_id || ''}">${escapeHtml(m.name)}</option>`).join('');
+                                    modelSelect.disabled = false;
+                                }
+                                if (modelNew) {
+                                    modelNew.disabled = false;
+                                }
+                            } catch (error) {
+                                console.error('Error loading models:', error);
+                            }
+                        }
+                    } else {
+                        if (modelSelect) {
+                            modelSelect.innerHTML = '<option value="">-- Select Make First --</option>';
+                            modelSelect.disabled = true;
+                        }
+                        if (modelNew) modelNew.disabled = true;
+                        if (pmSelect) {
+                            pmSelect.innerHTML = '<option value="">-- Select Model First --</option>';
+                            pmSelect.disabled = true;
+                        }
+                    }
+                });
+            }
+            
+            // Model selection - load PM frequencies
+            if (modelSelect) {
+                modelSelect.addEventListener('change', async (e) => {
+                    const modelId = e.target.value;
+                    const selectedOption = e.target.options[e.target.selectedIndex];
+                    const pmFreqId = selectedOption?.dataset.pmFreq;
+                    
+                    if (modelId && pmFreqId) {
+                        // Model already has PM frequency, just enable the select
+                        if (pmSelect) {
+                            pmSelect.value = pmFreqId;
+                            pmSelect.disabled = false;
+                        }
+                    } else if (modelId) {
+                        // Model doesn't have PM frequency, need to select one
+                        if (supabaseClient) {
+                            try {
+                                const { data: frequencies } = await supabaseClient
+                                    .from('pm_frequencies')
+                                    .select('id, name, days')
+                                    .eq('is_active', true)
+                                    .order('sort_order');
+                                
+                                if (pmSelect) {
+                                    pmSelect.innerHTML = '<option value="">-- Select PM Frequency --</option>' +
+                                        (frequencies || []).map(f => `<option value="${f.id}">${escapeHtml(f.name)} (${f.days} days)</option>`).join('');
+                                    pmSelect.disabled = false;
+                                }
+                            } catch (error) {
+                                console.error('Error loading PM frequencies:', error);
+                            }
+                        }
+                    } else {
+                        if (pmSelect) {
+                            pmSelect.innerHTML = '<option value="">-- Select Model First --</option>';
+                            pmSelect.disabled = true;
+                        }
+                    }
+                });
+            }
+            
+            // When creating new model, always need PM frequency
+            if (modelNew) {
+                modelNew.addEventListener('input', () => {
+                    if (modelNew.value.trim() && supabaseClient) {
+                        // Load PM frequencies if not already loaded
+                        if (pmSelect && pmSelect.disabled) {
+                            supabaseClient
+                                .from('pm_frequencies')
+                                .select('id, name, days')
+                                .eq('is_active', true)
+                                .order('sort_order')
+                                .then(({ data: frequencies }) => {
+                                    if (pmSelect && frequencies) {
+                                        pmSelect.innerHTML = '<option value="">-- Select PM Frequency --</option>' +
+                                            frequencies.map(f => `<option value="${f.id}">${escapeHtml(f.name)} (${f.days} days)</option>`).join('');
+                                        pmSelect.disabled = false;
+                                    }
+                                });
+                        }
+                    }
+                });
+            }
+        }
 
         async function detectAssetSchema() {
             // Use actual schema from database - assets table has:
@@ -1186,6 +1588,7 @@
             window.referenceMaps = referenceMaps;
         }
 
+        // Apply sorting when assets are loaded
         async function loadAssets() {
             try {
                 showLoading(true);
@@ -1230,6 +1633,11 @@
 
                 allAssets = enrichedAssets;
                 filteredAssets = [...allAssets];
+                
+                // Apply sorting if active
+                if (currentSortColumn) {
+                    applySorting();
+                }
                 
                 // Store all assets in map for quick lookup
                 assetsById.clear();
@@ -1613,21 +2021,23 @@
                         payload.id = `${lookupContext.parentId}_model_${Date.now()}`;
                     }
                 } else if (lookupContext.type === 'equipment_types') {
-                    // Generate UUID for equipment_types
-                    payload.id = crypto.randomUUID();
+                    // Don't set ID - let database generate it using default (ET-YYYYMMDD-XXXXXX)
+                    // payload.id will be undefined, allowing the database default to generate it
                 } else if (lookupContext.type === 'equipment_makes') {
-                    // Generate UUID for equipment_makes
-                    payload.id = crypto.randomUUID();
+                    // Don't set ID - let database generate it using default (EM-YYYYMMDD-XXXXXX)
+                    // payload.id will be undefined, allowing the database default to generate it
                 } else if (lookupContext.type === 'equipment_models') {
-                    // Generate UUID for equipment_models
-                    payload.id = crypto.randomUUID();
+                    // Don't set ID - let database generate it using default (EMOD-YYYYMMDD-XXXXXX)
+                    // payload.id will be undefined, allowing the database default to generate it
                 }
                 
                 // Check for duplicate name with retry
                 // For manufacturers and models, also check parent relationship
+                // Note: For MMD entries, we don't check duplicates by ID since ID is auto-generated
                 let duplicateQuery = supabaseClient
                     .from(table)
-                    .select('id, name');
+                    .select('id, name')
+                    .is('deleted_at', null); // Only check non-deleted records
                 
                 if (lookupContext.type === 'manufacturers' && lookupContext.parentId) {
                     duplicateQuery = duplicateQuery.eq('category_id', lookupContext.parentId);
@@ -1697,7 +2107,32 @@
                         }
                     } else if (lookupContext.type === 'equipment_types' || lookupContext.type === 'equipment_makes' || lookupContext.type === 'equipment_models') {
                         // MMD entries use direct insert (no RPC functions available)
-                        // Will be handled in fallback section
+                        // Database will auto-generate IDs using defaults (ET-YYYYMMDD-XXXXXX, etc.)
+                        console.log('MMD entry - using direct insert for', lookupContext.type);
+                        try {
+                            // Insert with select to get the created record (database generates ID)
+                            const { data: insertData, error: insertError } = await supabaseClient
+                                .from(table)
+                                .insert([payload])
+                                .select('id, name')
+                                .single();
+                            
+                            if (insertError) {
+                                error = insertError;
+                                console.error('Direct insert error for', lookupContext.type, ':', insertError);
+                            } else if (insertData) {
+                                data = insertData;
+                                error = null;
+                                console.log('Successfully inserted MMD entry via direct insert:', data);
+                            } else {
+                                // If no error but also no data, something went wrong
+                                error = { message: 'Insert succeeded but no data returned' };
+                                console.error('Insert succeeded but no data returned for', lookupContext.type);
+                            }
+                        } catch (mmdError) {
+                            console.error('MMD direct insert failed:', mmdError);
+                            error = mmdError;
+                        }
                     }
                 } catch (funcError) {
                     console.error('RPC function exception:', funcError);
@@ -1705,7 +2140,7 @@
                 }
                 
                 // If RPC failed, try direct insert as fallback (without select to avoid ambiguous column)
-                if (error && !data) {
+                if (error && !data && !lookupContext.isMMD) {
                     console.log('RPC failed, trying direct insert as fallback...');
                     try {
                         // Insert without select first
@@ -1795,7 +2230,15 @@
                     updateModelOptions(manufacturerId, data.id);
                     document.getElementById('model-select').value = data.id;
                 } else if (lookupContext.isMMD) {
-                    // Handle MMD refresh
+                    // Validate data exists before using it
+                    if (!data || !data.id) {
+                        console.error('Failed to get created record data for', lookupContext.type);
+                        showToast(`Failed to add ${lookupContext.label}: Could not retrieve created record.`, 'error');
+                        closeLookupModal();
+                        return;
+                    }
+                    
+                    // Handle MMD refresh - update both Asset Modal and Settings page
                     if (lookupContext.type === 'equipment_types') {
                         // Refresh type dropdown and select new type
                         if (window.MMDAssetFormManager) {
@@ -1805,7 +2248,15 @@
                                 typeSelect.value = data.id;
                                 window.MMDAssetFormManager.selectedType = data.id;
                                 window.MMDAssetFormManager.populateMakeDropdown(data.id);
+                                // Update visual feedback
+                                if (typeof handleMMDTypeChange === 'function') {
+                                    handleMMDTypeChange();
+                                }
                             }
+                        }
+                        // Also refresh Settings page if it's open
+                        if (window.MasterDBManager && typeof window.MasterDBManager.loadHierarchy === 'function') {
+                            await window.MasterDBManager.loadHierarchy();
                         }
                     } else if (lookupContext.type === 'equipment_makes') {
                         // Refresh make dropdown and select new make
@@ -1821,9 +2272,17 @@
                                         makeSelect.value = data.id;
                                         window.MMDAssetFormManager.selectedMake = data.id;
                                         window.MMDAssetFormManager.populateModelDropdown(data.id);
+                                        // Update visual feedback
+                                        if (typeof handleMMDMakeChange === 'function') {
+                                            handleMMDMakeChange();
+                                        }
                                     }
                                 }, 100);
                             }
+                        }
+                        // Also refresh Settings page if it's open
+                        if (window.MasterDBManager && typeof window.MasterDBManager.loadHierarchy === 'function') {
+                            await window.MasterDBManager.loadHierarchy();
                         }
                     } else if (lookupContext.type === 'equipment_models') {
                         // Refresh model dropdown and select new model
@@ -1839,9 +2298,17 @@
                                         modelSelect.value = data.id;
                                         window.MMDAssetFormManager.selectedModel = data.id;
                                         window.MMDAssetFormManager.updatePMFrequency(data.id);
+                                        // Update visual feedback
+                                        if (typeof handleMMDModelChange === 'function') {
+                                            handleMMDModelChange();
+                                        }
                                     }
                                 }, 100);
                             }
+                        }
+                        // Also refresh Settings page if it's open
+                        if (window.MasterDBManager && typeof window.MasterDBManager.loadHierarchy === 'function') {
+                            await window.MasterDBManager.loadHierarchy();
                         }
                     }
                 }
@@ -1927,7 +2394,7 @@
             if (!listBody) return;
             
             if (filteredAssets.length === 0) {
-                const emptyColspan = visibleColumns.length + 1; // +1 for Actions column
+                const emptyColspan = visibleColumns.length + 2; // +1 for checkbox, +1 for Actions column
                 listBody.innerHTML = `
                     <tr>
                         <td colspan="${emptyColspan}" class="px-6 py-12 text-center text-slate-500">
@@ -1941,6 +2408,7 @@
                     </tr>
                 `;
                 renderPaginationControls();
+                updateBulkEditButton(); // Clear bulk edit button when no assets
                 return;
             }
             
@@ -1956,6 +2424,16 @@
             listBody.innerHTML = paginatedAssets.map(asset => {
                 // Store asset in map for lookup
                 assetsById.set(asset.id, asset);
+                
+                // Add checkbox cell first
+                const checkboxCell = `
+                    <td class="px-4 py-4 whitespace-nowrap text-center" onclick="event.stopPropagation();">
+                        <input type="checkbox" class="asset-checkbox h-4 w-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500" 
+                               data-asset-id="${asset.id}" 
+                               onclick="handleAssetCheckboxClick(event, this)"
+                               onchange="handleAssetCheckboxClick(event, this)">
+                    </td>
+                `;
                 
                 // Generate cells based on visible columns
                 const cells = visibleColumns.map(colId => {
@@ -1976,13 +2454,19 @@
                 
                 return `
                     <tr class="hover:bg-slate-50 transition-colors cursor-pointer" data-asset-id="${asset.id}" title="Click to view/edit asset">
-                        ${cells}${actionsCell}
+                        ${checkboxCell}${cells}${actionsCell}
                     </tr>
                 `;
             }).join('');
             
             // Update colspan for empty state
-            const emptyColspan = visibleColumns.length + 1; // +1 for Actions column
+            const emptyColspan = visibleColumns.length + 2; // +1 for checkbox, +1 for Actions column
+            
+            // Update bulk edit button visibility
+            updateBulkEditButton();
+            
+            // Render pagination controls
+            renderPaginationControls();
         }
 
         function createAssetCard(asset) {
@@ -2570,6 +3054,12 @@
         }
 
         async function deleteAsset(assetId) {
+            // Check if Supabase client is available
+            if (!supabaseClient) {
+                showToast('Database connection not available. Please refresh the page.', 'error');
+                return;
+            }
+            
             // Check for related work orders first
             try {
                 const { data: workOrders, error: woError } = await supabaseClient
@@ -2635,6 +3125,9 @@
                 pm_interval_days: formData.get('pm_interval_days') ? parseInt(formData.get('pm_interval_days')) : null,
                 auto_generate_wo: formData.get('auto_generate_wo') === 'on' || formData.get('auto_generate_wo') === true
             };
+            // Get assetId first (needed for validation logic)
+            const assetId = document.getElementById('edit-asset-id').value;
+            
             // MMD-based asset creation - model_id is required
             // Get model_id from MMD form manager (primary) or form field (fallback)
             let modelId = null;
@@ -2669,7 +3162,6 @@
             }
             
             // Validate MMD selection for new assets
-            const assetId = document.getElementById('edit-asset-id').value;
             if (!assetId) {
                 // New asset - must have MMD selection
                 if (window.MMDAssetFormManager) {
@@ -2740,6 +3232,12 @@
                 assetData.image_urls = assetImageUrls.length > 0 ? assetImageUrls : null;
             }
             
+            // Check if Supabase client is available
+            if (!supabaseClient) {
+                showToast('Database connection not available. Please refresh the page.', 'error');
+                return;
+            }
+            
             try {
                 if (assetId) {
                     // Update existing asset - allow model_id update
@@ -2759,6 +3257,7 @@
                 closeAssetModal();
                 await loadAssets();
             } catch (error) {
+                console.error('Error saving asset:', error);
                 showToast(`Failed to save asset: ${error.message}`, 'error');
             }
         });
@@ -2769,6 +3268,170 @@
             const option = select.selectedOptions?.[0];
             if (!option || !select.value) return '';
             return option.textContent?.trim() || '';
+        }
+
+        // Bulk Edit Functions
+        let selectedAssetIds = new Set();
+        let lastClickedCheckbox = null; // Track last clicked checkbox for shift+click range selection
+
+        function toggleSelectAllAssets(checked) {
+            const checkboxes = document.querySelectorAll('.asset-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = checked;
+                const assetId = checkbox.getAttribute('data-asset-id');
+                if (checked) {
+                    selectedAssetIds.add(assetId);
+                } else {
+                    selectedAssetIds.delete(assetId);
+                }
+            });
+            lastClickedCheckbox = null; // Reset last clicked when using select all
+            updateBulkEditButton();
+        }
+        
+        function handleAssetCheckboxClick(event, checkbox) {
+            const assetId = checkbox.getAttribute('data-asset-id');
+            const isShiftClick = event.shiftKey;
+            
+            if (isShiftClick && lastClickedCheckbox && lastClickedCheckbox !== checkbox) {
+                // Range selection: select all checkboxes between last clicked and current
+                const allCheckboxes = Array.from(document.querySelectorAll('.asset-checkbox'));
+                const lastIndex = allCheckboxes.indexOf(lastClickedCheckbox);
+                const currentIndex = allCheckboxes.indexOf(checkbox);
+                
+                if (lastIndex !== -1 && currentIndex !== -1) {
+                    const startIndex = Math.min(lastIndex, currentIndex);
+                    const endIndex = Math.max(lastIndex, currentIndex);
+                    const targetState = checkbox.checked; // Use the state of the clicked checkbox
+                    
+                    // Select/deselect all checkboxes in the range
+                    for (let i = startIndex; i <= endIndex; i++) {
+                        const cb = allCheckboxes[i];
+                        cb.checked = targetState;
+                        const id = cb.getAttribute('data-asset-id');
+                        if (targetState) {
+                            selectedAssetIds.add(id);
+                        } else {
+                            selectedAssetIds.delete(id);
+                        }
+                    }
+                }
+            } else {
+                // Normal click: just update this checkbox
+                if (checkbox.checked) {
+                    selectedAssetIds.add(assetId);
+                } else {
+                    selectedAssetIds.delete(assetId);
+                }
+            }
+            
+            // Update last clicked checkbox (only if not shift+click, to allow multiple ranges)
+            if (!isShiftClick) {
+                lastClickedCheckbox = checkbox;
+            }
+            
+            updateBulkEditButton();
+        }
+
+        function clearAssetSelections() {
+            selectedAssetIds.clear();
+            document.querySelectorAll('.asset-checkbox').forEach(cb => cb.checked = false);
+            const selectAllCheckbox = document.getElementById('select-all-assets');
+            if (selectAllCheckbox) selectAllCheckbox.checked = false;
+            lastClickedCheckbox = null; // Reset last clicked when clearing
+            updateBulkEditButton();
+        }
+
+        function updateBulkEditButton() {
+            const checkboxes = document.querySelectorAll('.asset-checkbox:checked');
+            const selectedCount = checkboxes.length;
+            const bulkEditBtn = document.getElementById('bulk-edit-btn');
+            const badge = document.getElementById('selected-count-badge');
+            
+            if (bulkEditBtn) {
+                if (selectedCount > 0) {
+                    bulkEditBtn.classList.remove('hidden');
+                    if (badge) badge.textContent = selectedCount;
+                } else {
+                    bulkEditBtn.classList.add('hidden');
+                }
+            }
+            
+            // Update selectedAssetIds set
+            selectedAssetIds.clear();
+            checkboxes.forEach(checkbox => {
+                selectedAssetIds.add(checkbox.getAttribute('data-asset-id'));
+            });
+        }
+
+        function getSelectedAssetIds() {
+            return Array.from(selectedAssetIds);
+        }
+
+        function showBulkEditModal() {
+            const selectedIds = getSelectedAssetIds();
+            if (selectedIds.length === 0) {
+                showToast('Please select at least one asset', 'warning');
+                return;
+            }
+
+            const modal = document.getElementById('bulk-edit-modal');
+            const countEl = document.getElementById('bulk-edit-count');
+            if (countEl) countEl.textContent = selectedIds.length;
+            
+            // Populate location and customer dropdowns
+            populateBulkEditDropdowns();
+            
+            // Reset form
+            const form = document.getElementById('bulk-edit-form');
+            if (form) form.reset();
+            
+            if (modal) modal.classList.add('active');
+        }
+
+        function closeBulkEditModal() {
+            const modal = document.getElementById('bulk-edit-modal');
+            if (modal) modal.classList.remove('active');
+        }
+
+        async function populateBulkEditDropdowns() {
+            if (!supabaseClient) return;
+
+            try {
+                // Load locations
+                const { data: locations } = await supabaseClient
+                    .from('locations')
+                    .select('id, name')
+                    .eq('status', 'active')
+                    .order('name');
+                
+                const locationSelect = document.getElementById('bulk-edit-location');
+                if (locationSelect && locations) {
+                    const currentValue = locationSelect.value;
+                    locationSelect.innerHTML = '<option value="">-- Keep existing --</option>' +
+                        locations.map(loc => `<option value="${loc.id}">${escapeHtml(loc.name)}</option>`).join('');
+                    if (currentValue) locationSelect.value = currentValue;
+                }
+
+                // Load customers
+                if (assetSchema.hasCustomerId) {
+                    const { data: customers } = await supabaseClient
+                        .from('customers')
+                        .select('id, name')
+                        .eq('status', 'active')
+                        .order('name');
+                    
+                    const customerSelect = document.getElementById('bulk-edit-customer');
+                    if (customerSelect && customers) {
+                        const currentValue = customerSelect.value;
+                        customerSelect.innerHTML = '<option value="">-- Keep existing --</option>' +
+                            customers.map(cust => `<option value="${cust.id}">${escapeHtml(cust.name)}</option>`).join('');
+                        if (currentValue) customerSelect.value = currentValue;
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading dropdowns for bulk edit:', error);
+            }
         }
 
         // PM schedule form was removed - maintenance dates are now saved with the main asset form
@@ -2844,6 +3507,89 @@
             const randomPart = Math.random().toString(36).slice(2, 6).toUpperCase();
             return `AST-${dateStamp}-${randomPart}`;
         }
+
+        // Handle bulk edit form submission
+        document.addEventListener('DOMContentLoaded', () => {
+            const bulkEditForm = document.getElementById('bulk-edit-form');
+            if (bulkEditForm) {
+                bulkEditForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    
+                    const selectedIds = getSelectedAssetIds();
+                    if (selectedIds.length === 0) {
+                        showToast('No assets selected', 'warning');
+                        return;
+                    }
+
+                    if (!supabaseClient) {
+                        showToast('Database connection not available. Please refresh the page.', 'error');
+                        return;
+                    }
+
+                    const formData = new FormData(e.target);
+                    const updateData = {};
+
+                    // Only include fields that have values
+                    const status = formData.get('status');
+                    if (status) updateData.status = status;
+
+                    const locationId = formData.get('location_id');
+                    if (locationId) updateData.location_id = locationId;
+
+                    const customerId = formData.get('customer_id');
+                    if (customerId) updateData.customer_id = customerId;
+
+                    const lastMaintenance = formData.get('last_maintenance');
+                    if (lastMaintenance) {
+                        updateData.last_maintenance = new Date(lastMaintenance).toISOString();
+                    }
+
+                    const nextMaintenance = formData.get('next_maintenance');
+                    if (nextMaintenance) {
+                        updateData.next_maintenance = new Date(nextMaintenance).toISOString();
+                    }
+
+                    const warrantyExpiry = formData.get('warranty_expiry');
+                    if (warrantyExpiry) {
+                        updateData.warranty_expiry = new Date(warrantyExpiry).toISOString();
+                    }
+
+                    // Check if any fields were filled
+                    if (Object.keys(updateData).length === 0) {
+                        showToast('Please fill in at least one field to update', 'warning');
+                        return;
+                    }
+
+                    try {
+                        showToast(`Updating ${selectedIds.length} asset(s)...`, 'info');
+                        
+                        // Update all selected assets
+                        const { error } = await supabaseClient
+                            .from('assets')
+                            .update(updateData)
+                            .in('id', selectedIds);
+
+                        if (error) throw error;
+
+                        showToast(`Successfully updated ${selectedIds.length} asset(s)`, 'success');
+                        
+                        // Clear selections
+                        selectedAssetIds.clear();
+                        document.querySelectorAll('.asset-checkbox').forEach(cb => cb.checked = false);
+                        const selectAllCheckbox = document.getElementById('select-all-assets');
+                        if (selectAllCheckbox) selectAllCheckbox.checked = false;
+                        updateBulkEditButton();
+                        
+                        // Close modal and refresh assets
+                        closeBulkEditModal();
+                        await loadAssets();
+                    } catch (error) {
+                        console.error('Error updating assets:', error);
+                        showToast(`Failed to update assets: ${error.message}`, 'error');
+                    }
+                });
+            }
+        });
 
         function setupEventListeners() {
             // Add event delegation for asset clicks (more reliable than inline onclick)
@@ -3881,25 +4627,151 @@
         }
         
         // Column Visibility Functions
+        let draggedColumnId = null;
+        let draggedOverElement = null;
+        
         function showColumnVisibilityModal() {
             const modal = document.getElementById('column-visibility-modal');
             const list = document.getElementById('column-visibility-list');
             if (!modal || !list) return;
             
-            // Render checkboxes for all available columns
-            list.innerHTML = availableColumns.map(col => {
-                const isVisible = visibleColumns.includes(col.id);
+            // Create a map of columns by ID for quick lookup
+            const columnMap = {};
+            availableColumns.forEach(col => {
+                columnMap[col.id] = col;
+            });
+            
+            // Build ordered list: first visible columns in their current order, then hidden columns
+            const orderedColumns = [];
+            const visibleSet = new Set(visibleColumns);
+            
+            // Add visible columns in their current order
+            visibleColumns.forEach(colId => {
+                if (columnMap[colId]) {
+                    orderedColumns.push({ ...columnMap[colId], isVisible: true });
+                }
+            });
+            
+            // Add hidden columns
+            availableColumns.forEach(col => {
+                if (!visibleSet.has(col.id)) {
+                    orderedColumns.push({ ...col, isVisible: false });
+                }
+            });
+            
+            // Render columns with drag-and-drop support
+            list.innerHTML = orderedColumns.map((col, index) => {
                 return `
-                    <label class="flex items-center p-3 hover:bg-slate-50 rounded-lg cursor-pointer">
-                        <input type="checkbox" class="mr-3 h-4 w-4 text-blue-600 rounded" 
-                               data-column-id="${col.id}" ${isVisible ? 'checked' : ''}>
-                        <span class="text-sm font-medium text-gray-900">${col.label}</span>
-                        ${col.default ? '<span class="ml-auto text-xs text-gray-500">(Default)</span>' : ''}
-                    </label>
+                    <div class="column-item flex items-center p-3 hover:bg-slate-50 rounded-lg border border-transparent transition-all cursor-move" 
+                         draggable="true"
+                         data-column-id="${col.id}"
+                         data-index="${index}">
+                        <i class="fas fa-grip-vertical text-gray-400 mr-3 cursor-grab active:cursor-grabbing" 
+                           style="user-select: none;"></i>
+                        <label class="flex items-center flex-1 cursor-pointer" onclick="event.stopPropagation()">
+                            <input type="checkbox" class="mr-3 h-4 w-4 text-blue-600 rounded" 
+                                   data-column-id="${col.id}" 
+                                   ${col.isVisible ? 'checked' : ''}>
+                            <span class="text-sm font-medium text-gray-900">${col.label}</span>
+                            ${col.default ? '<span class="ml-auto text-xs text-gray-500">(Default)</span>' : ''}
+                        </label>
+                    </div>
                 `;
             }).join('');
             
+            // Attach drag-and-drop event listeners
+            attachDragAndDropListeners();
+            
             modal.classList.add('active');
+        }
+        
+        function attachDragAndDropListeners() {
+            const items = document.querySelectorAll('#column-visibility-list .column-item');
+            
+            items.forEach(item => {
+                item.addEventListener('dragstart', handleDragStart);
+                item.addEventListener('dragenter', handleDragEnter);
+                item.addEventListener('dragover', handleDragOver);
+                item.addEventListener('dragleave', handleDragLeave);
+                item.addEventListener('drop', handleDrop);
+                item.addEventListener('dragend', handleDragEnd);
+            });
+        }
+        
+        function handleDragStart(e) {
+            draggedColumnId = this.getAttribute('data-column-id');
+            this.classList.add('opacity-50', 'border-blue-400', 'dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/html', this.outerHTML);
+        }
+        
+        function handleDragEnter(e) {
+            if (this.getAttribute('data-column-id') !== draggedColumnId) {
+                this.classList.add('border-blue-400', 'bg-blue-50', 'drag-over');
+                draggedOverElement = this;
+            }
+        }
+        
+        function handleDragOver(e) {
+            if (e.preventDefault) {
+                e.preventDefault();
+            }
+            e.dataTransfer.dropEffect = 'move';
+            return false;
+        }
+        
+        function handleDragLeave(e) {
+            this.classList.remove('border-blue-400', 'bg-blue-50', 'drag-over');
+        }
+        
+        function handleDrop(e) {
+            if (e.stopPropagation) {
+                e.stopPropagation();
+            }
+            
+            if (draggedColumnId && draggedOverElement) {
+                const targetColumnId = draggedOverElement.getAttribute('data-column-id');
+                if (targetColumnId !== draggedColumnId) {
+                    reorderColumns(draggedColumnId, targetColumnId);
+                }
+            }
+            
+            return false;
+        }
+        
+        function handleDragEnd(e) {
+            const items = document.querySelectorAll('#column-visibility-list .column-item');
+            items.forEach(item => {
+                item.classList.remove('opacity-50', 'border-blue-400', 'bg-blue-50', 'dragging', 'drag-over');
+            });
+            draggedColumnId = null;
+            draggedOverElement = null;
+        }
+        
+        function reorderColumns(draggedId, targetId) {
+            // Get current order from DOM
+            const items = Array.from(document.querySelectorAll('#column-visibility-list .column-item'));
+            const currentOrder = items.map(item => item.getAttribute('data-column-id'));
+            
+            // Find indices
+            const draggedIndex = currentOrder.indexOf(draggedId);
+            const targetIndex = currentOrder.indexOf(targetId);
+            
+            if (draggedIndex === -1 || targetIndex === -1) return;
+            
+            // Remove dragged item and insert at target position
+            currentOrder.splice(draggedIndex, 1);
+            currentOrder.splice(targetIndex, 0, draggedId);
+            
+            // Update visibleColumns to match new order (only for visible columns)
+            const checkboxes = document.querySelectorAll('#column-visibility-list input[type="checkbox"]:checked');
+            visibleColumns = Array.from(checkboxes)
+                .map(cb => cb.getAttribute('data-column-id'))
+                .filter(id => currentOrder.includes(id))
+                .sort((a, b) => currentOrder.indexOf(a) - currentOrder.indexOf(b));
+            
+            // Re-render the list to reflect new order
+            showColumnVisibilityModal();
         }
         
         function closeColumnVisibilityModal() {
@@ -3909,24 +4781,21 @@
         
         function resetColumnVisibility() {
             visibleColumns = availableColumns.filter(c => c.default).map(c => c.id);
-            // Update checkboxes
-            availableColumns.forEach(col => {
-                const checkbox = document.querySelector(`input[data-column-id="${col.id}"]`);
-                if (checkbox) {
-                    checkbox.checked = col.default;
-                }
-            });
+            // Re-render the modal to show default order
+            showColumnVisibilityModal();
         }
         
         function applyColumnVisibility() {
-            const checkboxes = document.querySelectorAll('#column-visibility-list input[type="checkbox"]');
-            visibleColumns = [];
+            // Get order from DOM (preserving the drag-and-drop order)
+            const items = Array.from(document.querySelectorAll('#column-visibility-list .column-item'));
+            const checkboxes = items
+                .map(item => {
+                    const checkbox = item.querySelector('input[type="checkbox"]');
+                    return checkbox && checkbox.checked ? item.getAttribute('data-column-id') : null;
+                })
+                .filter(id => id !== null);
             
-            checkboxes.forEach(checkbox => {
-                if (checkbox.checked) {
-                    visibleColumns.push(checkbox.getAttribute('data-column-id'));
-                }
-            });
+            visibleColumns = checkboxes;
             
             // Ensure at least one column is visible
             if (visibleColumns.length === 0) {
@@ -3943,12 +4812,20 @@
             renderTableHeader();
             renderAssetsList();
             closeColumnVisibilityModal();
-            showToast('Column visibility updated', 'success');
+            showToast('Column visibility and order updated', 'success');
         }
         
         function renderTableHeader() {
             const headerRow = document.getElementById('assets-list-header-row');
             if (!headerRow) return;
+            
+            // Add checkbox column header first
+            const checkboxHeader = `
+                <th class="px-4 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider w-12">
+                    <input type="checkbox" id="select-all-assets" class="h-4 w-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500" 
+                           onchange="toggleSelectAllAssets(this.checked)" title="Select all assets">
+                </th>
+            `;
             
             const headers = visibleColumns.map(colId => {
                 const col = availableColumns.find(c => c.id === colId);
@@ -3957,22 +4834,132 @@
                 const alignClass = colId === 'actions' ? 'text-right' : 'text-left';
                 // Add filter input for each column
                 const filterInput = getFilterInputForColumn(colId, col.label);
+                
+                // Add sort indicator and click handler for sortable columns
+                const isSortable = colId !== 'actions' && colId !== 'compliance'; // Compliance is calculated, not directly sortable
+                const sortIcon = isSortable ? getSortIcon(colId) : '';
+                const sortTitle = isSortable ? 'Click to sort' : '';
+                
+                // Make only the label area clickable for sorting, not the entire cell
+                const sortableLabel = isSortable ? `
+                    <div class="mb-2 flex items-center justify-between cursor-pointer hover:bg-slate-100 select-none rounded px-1 py-0.5 -mx-1" 
+                         onclick="sortAssets('${colId}')" 
+                         title="${sortTitle}">
+                        <span>${col.label}</span>
+                        ${sortIcon}
+                    </div>
+                ` : `
+                    <div class="mb-2 flex items-center justify-between">
+                        <span>${col.label}</span>
+                    </div>
+                `;
+                
                 return `
                     <th class="px-6 py-3 ${alignClass} text-xs font-medium text-slate-500 uppercase tracking-wider">
-                        <div class="mb-2">${col.label}</div>
+                        ${sortableLabel}
                         ${filterInput}
                     </th>
                 `;
             }).filter(h => h).join('');
             
-            // Always add Actions column at the end (no filter)
-            headerRow.innerHTML = headers + '<th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>';
+            // Always add Actions column at the end (no filter, no sort)
+            headerRow.innerHTML = checkboxHeader + headers + '<th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>';
             
             // Attach event listeners to filter inputs
             attachColumnFilterListeners();
             
             // Update table width based on number of columns
             updateTableWidth();
+        }
+        
+        function getSortIcon(colId) {
+            if (currentSortColumn !== colId) {
+                return '<i class="fas fa-sort text-slate-400 ml-2"></i>';
+            }
+            if (currentSortDirection === 'asc') {
+                return '<i class="fas fa-sort-up text-blue-600 ml-2"></i>';
+            }
+            return '<i class="fas fa-sort-down text-blue-600 ml-2"></i>';
+        }
+        
+        function sortAssets(columnId) {
+            // Toggle sort direction if clicking the same column
+            if (currentSortColumn === columnId) {
+                currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSortColumn = columnId;
+                currentSortDirection = 'asc';
+            }
+            
+            // Apply sorting
+            applySorting();
+            
+            // Re-render table header to show sort indicator
+            renderTableHeader();
+            
+            // Re-render assets list
+            renderAssetsList();
+        }
+        
+        function applySorting() {
+            if (!currentSortColumn) return;
+            
+            filteredAssets.sort((a, b) => {
+                let aValue = getSortValue(a, currentSortColumn);
+                let bValue = getSortValue(b, currentSortColumn);
+                
+                // Handle null/undefined values
+                if (aValue === null || aValue === undefined) aValue = '';
+                if (bValue === null || bValue === undefined) bValue = '';
+                
+                // Convert to strings for comparison
+                aValue = String(aValue).toLowerCase();
+                bValue = String(bValue).toLowerCase();
+                
+                let comparison = 0;
+                if (aValue > bValue) {
+                    comparison = 1;
+                } else if (aValue < bValue) {
+                    comparison = -1;
+                }
+                
+                return currentSortDirection === 'asc' ? comparison : -comparison;
+            });
+        }
+        
+        function getSortValue(asset, columnId) {
+            switch(columnId) {
+                case 'status':
+                    return asset.status || '';
+                case 'name':
+                    return asset.name || '';
+                case 'category':
+                    return asset.category || '';
+                case 'serial_number':
+                    return asset.serial_number || '';
+                case 'next_maintenance':
+                    return asset.next_maintenance ? new Date(asset.next_maintenance).getTime() : 0;
+                case 'last_maintenance':
+                    return asset.last_maintenance ? new Date(asset.last_maintenance).getTime() : 0;
+                case 'location':
+                    return asset.locations?.name || asset.location || '';
+                case 'customer':
+                    return asset.customers?.name || asset.customer || '';
+                case 'purchase_date':
+                    return asset.purchase_date ? new Date(asset.purchase_date).getTime() : 0;
+                case 'purchase_cost':
+                    return asset.purchase_cost ? parseFloat(asset.purchase_cost) : 0;
+                case 'warranty_expiry':
+                    return asset.warranty_expiry ? new Date(asset.warranty_expiry).getTime() : 0;
+                case 'model':
+                    return asset.model || '';
+                case 'manufacturer':
+                    return asset.manufacturer || '';
+                case 'description':
+                    return asset.description || '';
+                default:
+                    return '';
+            }
         }
         
         function updateTableWidth() {
@@ -3985,6 +4972,149 @@
             }
         }
         
+        function renderPaginationControls() {
+            const paginationEl = document.getElementById('assets-pagination');
+            if (!paginationEl) return;
+            
+            const totalPages = Math.ceil(filteredAssets.length / itemsPerPage);
+            const startItem = filteredAssets.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+            const endItem = Math.min(currentPage * itemsPerPage, filteredAssets.length);
+            
+            if (totalPages <= 1 && filteredAssets.length <= itemsPerPage) {
+                // Show items per page selector even if only one page
+                paginationEl.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div class="text-sm text-slate-600">
+                            Showing ${filteredAssets.length} of ${filteredAssets.length} assets
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <label class="text-sm text-slate-600">Items per page:</label>
+                            <select id="items-per-page-select" onchange="changeItemsPerPage(this.value)" class="border border-slate-300 rounded-lg px-3 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option value="10" ${itemsPerPage === 10 ? 'selected' : ''}>10</option>
+                                <option value="25" ${itemsPerPage === 25 ? 'selected' : ''}>25</option>
+                                <option value="50" ${itemsPerPage === 50 ? 'selected' : ''}>50</option>
+                                <option value="100" ${itemsPerPage === 100 ? 'selected' : ''}>100</option>
+                                <option value="all" ${itemsPerPage >= filteredAssets.length ? 'selected' : ''}>All</option>
+                            </select>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Build page numbers (show max 5 pages around current)
+            const pageNumbers = [];
+            const maxPagesToShow = 5;
+            let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
+            let endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
+            
+            // Adjust if we're near the end
+            if (endPage - startPage < maxPagesToShow - 1) {
+                startPage = Math.max(1, endPage - maxPagesToShow + 1);
+            }
+            
+            if (startPage > 1) {
+                pageNumbers.push(1);
+                if (startPage > 2) pageNumbers.push('...');
+            }
+            
+            for (let i = startPage; i <= endPage; i++) {
+                pageNumbers.push(i);
+            }
+            
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) pageNumbers.push('...');
+                pageNumbers.push(totalPages);
+            }
+            
+            paginationEl.innerHTML = `
+                <div class="flex items-center justify-between flex-wrap gap-4">
+                    <div class="text-sm text-slate-600">
+                        Showing ${startItem} to ${endItem} of ${filteredAssets.length} assets
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="flex items-center gap-2">
+                            <label class="text-sm text-slate-600">Items per page:</label>
+                            <select id="items-per-page-select" onchange="changeItemsPerPage(this.value)" class="border border-slate-300 rounded-lg px-3 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option value="10" ${itemsPerPage === 10 ? 'selected' : ''}>10</option>
+                                <option value="25" ${itemsPerPage === 25 ? 'selected' : ''}>25</option>
+                                <option value="50" ${itemsPerPage === 50 ? 'selected' : ''}>50</option>
+                                <option value="100" ${itemsPerPage === 100 ? 'selected' : ''}>100</option>
+                                <option value="all" ${itemsPerPage >= filteredAssets.length ? 'selected' : ''}>All</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="goToPage(${currentPage - 1})" 
+                                    ${currentPage === 1 ? 'disabled' : ''} 
+                                    class="px-3 py-1 text-sm border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            ${pageNumbers.map(page => {
+                                if (page === '...') {
+                                    return '<span class="px-2 text-slate-400">...</span>';
+                                }
+                                const isActive = page === currentPage;
+                                return `
+                                    <button onclick="goToPage(${page})" 
+                                            class="px-3 py-1 text-sm border rounded-lg transition-colors ${
+                                                isActive 
+                                                    ? 'bg-blue-600 text-white border-blue-600' 
+                                                    : 'border-slate-300 hover:bg-slate-50'
+                                            }">
+                                        ${page}
+                                    </button>
+                                `;
+                            }).join('')}
+                            <button onclick="goToPage(${currentPage + 1})" 
+                                    ${currentPage === totalPages ? 'disabled' : ''} 
+                                    class="px-3 py-1 text-sm border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function goToPage(page) {
+            const totalPages = Math.ceil(filteredAssets.length / itemsPerPage);
+            if (page < 1 || page > totalPages) return;
+            currentPage = page;
+            renderAssetsList();
+            // Scroll to top of table
+            const table = document.getElementById('assets-table');
+            if (table) {
+                table.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+        
+        function changeItemsPerPage(value) {
+            if (value === 'all') {
+                itemsPerPage = filteredAssets.length || 1000; // Use a large number for "all"
+            } else {
+                const parsed = parseInt(value, 10);
+                if (!isNaN(parsed) && parsed > 0) {
+                    itemsPerPage = parsed;
+                }
+            }
+            
+            // Reset to first page
+            currentPage = 1;
+            
+            // Save to localStorage
+            savePaginationSettings();
+            
+            // Re-render
+            renderAssetsList();
+        }
+        
+        // Expose functions globally for onclick handlers
+        window.goToPage = goToPage;
+        window.changeItemsPerPage = changeItemsPerPage;
+        window.sortAssets = sortAssets;
+        window.toggleSelectAllAssets = toggleSelectAllAssets;
+        window.handleAssetCheckboxClick = handleAssetCheckboxClick;
+        
         function getFilterInputForColumn(colId, label) {
             // Don't show filter for compliance (calculated field)
             if (colId === 'compliance' || colId === 'actions') {
@@ -3992,9 +5122,13 @@
             }
             
             // Different input types based on column - make larger for mobile
+            // Add stopPropagation to prevent sorting when clicking filter inputs
             if (colId === 'status') {
                 return `
-                    <select class="column-filter text-sm border border-gray-300 rounded px-2 py-1.5 w-full min-h-[36px]" data-column="${colId}">
+                    <select class="column-filter text-sm border border-gray-300 rounded px-2 py-1.5 w-full min-h-[36px]" 
+                            data-column="${colId}" 
+                            onclick="event.stopPropagation()" 
+                            onmousedown="event.stopPropagation()">
                         <option value="">All</option>
                         <option value="active">Active</option>
                         <option value="maintenance">Maintenance</option>
@@ -4005,12 +5139,18 @@
             } else if (colId === 'purchase_cost') {
                 return `
                     <input type="text" class="column-filter text-sm border border-gray-300 rounded px-2 py-1.5 w-full min-h-[36px]" 
-                           data-column="${colId}" placeholder="Filter..." />
+                           data-column="${colId}" 
+                           placeholder="Filter..." 
+                           onclick="event.stopPropagation()" 
+                           onmousedown="event.stopPropagation()" />
                 `;
             } else {
                 return `
                     <input type="text" class="column-filter text-sm border border-gray-300 rounded px-2 py-1.5 w-full min-h-[36px]" 
-                           data-column="${colId}" placeholder="Filter..." />
+                           data-column="${colId}" 
+                           placeholder="Filter..." 
+                           onclick="event.stopPropagation()" 
+                           onmousedown="event.stopPropagation()" />
                 `;
             }
         }
@@ -4039,7 +5179,55 @@
             });
         }
         
+        function resetAllFilters() {
+            // Clear search input
+            const searchInput = document.getElementById('search-input');
+            if (searchInput) searchInput.value = '';
+            
+            // Clear category and status filters
+            const categoryFilter = document.getElementById('category-filter');
+            if (categoryFilter) categoryFilter.value = '';
+            const statusFilter = document.getElementById('status-filter');
+            if (statusFilter) statusFilter.value = '';
+            
+            // Clear all column filters
+            columnFilters = {};
+            document.querySelectorAll('.column-filter').forEach(input => {
+                if (input.tagName === 'INPUT') {
+                    input.value = '';
+                } else if (input.tagName === 'SELECT') {
+                    input.value = '';
+                }
+            });
+            
+            // Reset sorting
+            currentSortColumn = null;
+            currentSortDirection = 'asc';
+            
+            // Reset pagination
+            currentPage = 1;
+            
+            // Clear selections
+            clearAssetSelections();
+            
+            // Reset filtered assets to all assets
+            filteredAssets = [...allAssets];
+            
+            // Re-render table header to update sort indicators
+            renderTableHeader();
+            
+            // Re-render assets
+            renderAssets();
+            
+            showToast('All filters have been reset', 'success');
+        }
+        
+        // Expose reset function globally
+        window.resetAllFilters = resetAllFilters;
+        
         function applyColumnFilters() {
+            // Clear selections when filters change
+            clearAssetSelections();
             filteredAssets = allAssets.filter(asset => {
                 return Object.entries(columnFilters).every(([colId, filterValue]) => {
                     if (!filterValue) return true;
@@ -4087,6 +5275,11 @@
                     }
                 });
             });
+            
+            // Apply sorting if active
+            if (currentSortColumn) {
+                applySorting();
+            }
             
             renderAssets();
         }
@@ -4371,6 +5564,8 @@
         }
         
         function applyMobileFilters() {
+            // Clear selections when filters change
+            clearAssetSelections();
             // Apply search filter
             const searchInput = document.getElementById('search-input');
             const mobileSearch = document.getElementById('mobile-search-filter');

@@ -1,0 +1,305 @@
+/* Mobile Responsive Enhancements for MERC-CMMS */
+
+/* Base Mobile Styles */
+@media (max-width: 768px) {
+    /* Touch-friendly buttons - minimum 44x44px, preferably 48px */
+    .btn {
+        padding: 14px 20px !important;
+        font-size: 16px !important;
+        min-height: 48px !important;
+        min-width: 48px !important;
+    }
+    
+    /* Prevent iOS zoom on input focus - use 16px font size */
+    input[type="text"],
+    input[type="number"],
+    input[type="date"],
+    input[type="email"],
+    input[type="password"],
+    input[type="tel"],
+    input[type="url"],
+    textarea,
+    select {
+        font-size: 16px !important;
+        padding: 14px 16px !important;
+        min-height: 48px !important;
+    }
+    
+    /* Form inputs */
+    .form-input {
+        padding: 14px 16px !important;
+        font-size: 16px !important;
+        min-height: 48px !important;
+    }
+    
+    /* Modals - full screen on mobile */
+    .modal-content {
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: 100vh !important;
+        border-radius: 0 !important;
+        margin: 0 !important;
+    }
+    
+    .modal {
+        padding: 0 !important;
+        align-items: flex-start !important;
+    }
+    
+    .modal.active {
+        padding-top: 0 !important;
+    }
+    
+    /* Tab buttons - touch friendly */
+    .tab-button {
+        padding: 14px 16px !important;
+        font-size: 14px !important;
+        min-height: 48px !important;
+    }
+    
+    /* Tables - horizontal scroll */
+    table {
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        white-space: nowrap;
+    }
+    
+    /* Grid layouts - stack on mobile */
+    .grid {
+        grid-template-columns: 1fr !important;
+    }
+    
+    /* Cards - better spacing */
+    .card, .customer-card, .location-card, .workorder-card, .wo-card {
+        margin-bottom: 16px;
+        padding: 16px !important;
+    }
+    
+    /* Statistics cards - stack */
+    .stats-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+    
+    /* Header adjustments */
+    nav {
+        padding: 8px 12px !important;
+    }
+    
+    /* Mobile menu - full width */
+    #mobile-menu {
+        padding: 1rem !important;
+    }
+    
+    #mobile-menu a {
+        padding: 12px 16px !important;
+        font-size: 16px !important;
+        min-height: 48px !important;
+        display: flex;
+        align-items: center;
+    }
+    
+    /* Toast notifications - mobile friendly */
+    #toast-container {
+        bottom: 10px !important;
+        right: 10px !important;
+        left: 10px !important;
+        max-width: calc(100% - 20px) !important;
+    }
+    
+    .toast {
+        max-width: 100% !important;
+        font-size: 14px !important;
+        padding: 14px 18px !important;
+    }
+    
+    /* Spacing adjustments */
+    .px-4, .px-6, .px-8 {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+    }
+    
+    .py-4, .py-6, .py-8 {
+        padding-top: 1rem !important;
+        padding-bottom: 1rem !important;
+    }
+    
+    /* Text sizes - ensure readability */
+    h1 {
+        font-size: 2rem !important;
+    }
+    
+    h2 {
+        font-size: 1.5rem !important;
+    }
+    
+    h3 {
+        font-size: 1.25rem !important;
+    }
+    
+    /* Button groups - stack vertically */
+    .flex.gap-2, .flex.gap-3, .flex.gap-4 {
+        flex-wrap: wrap;
+    }
+    
+    /* Filter sections - full width */
+    .filter-section, .search-section {
+        width: 100% !important;
+        margin-bottom: 16px;
+    }
+    
+    /* Kanban boards - stack columns */
+    .kanban-column {
+        min-height: auto !important;
+        margin-bottom: 16px;
+    }
+    
+    /* Compliance matrix - scrollable */
+    .compliance-matrix {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Settings tabs - scrollable horizontal */
+    .tabs-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .tab-button {
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    
+    /* MMD Quick Add modal - mobile optimized */
+    #quick-add-mmd-modal .modal-content {
+        padding: 1rem !important;
+    }
+    
+    #quick-add-mmd-modal .form-input,
+    #quick-add-mmd-modal select {
+        font-size: 16px !important;
+        padding: 14px 16px !important;
+        min-height: 48px !important;
+    }
+    
+    /* Asset modal - mobile optimized */
+    #asset-modal .modal-content {
+        padding: 1rem !important;
+    }
+    
+    #asset-modal .grid {
+        grid-template-columns: 1fr !important;
+        gap: 1rem !important;
+    }
+    
+    /* Work order modal - mobile optimized */
+    #workorder-modal .modal-content {
+        padding: 1rem !important;
+    }
+    
+    /* Pagination - touch friendly */
+    .pagination button,
+    .pagination a {
+        min-height: 48px !important;
+        min-width: 48px !important;
+        padding: 12px !important;
+    }
+    
+    /* Checkboxes and radio buttons - larger touch targets */
+    input[type="checkbox"],
+    input[type="radio"] {
+        width: 20px !important;
+        height: 20px !important;
+        margin-right: 8px;
+    }
+    
+    /* Icon buttons - minimum touch target */
+    button i.fas,
+    button i.far,
+    a i.fas,
+    a i.far {
+        min-width: 44px;
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    /* View toggle buttons - larger */
+    .view-toggle-btn {
+        min-height: 48px !important;
+        min-width: 48px !important;
+        padding: 12px !important;
+    }
+    
+    /* Column visibility modal - mobile friendly */
+    .column-item {
+        padding: 14px 16px !important;
+        min-height: 48px !important;
+    }
+    
+    /* Bulk edit modal - mobile optimized */
+    #bulk-edit-modal .modal-content {
+        padding: 1rem !important;
+    }
+    
+    /* Mobile filter modal - full screen */
+    #mobile-filters-modal .modal-content {
+        padding: 1rem !important;
+    }
+    
+    /* Statistics cards - better mobile layout */
+    .stat-card {
+        padding: 16px !important;
+    }
+    
+    /* Header logo and text - responsive */
+    nav .flex.items-center {
+        gap: 8px !important;
+    }
+    
+    nav h1 {
+        font-size: 1rem !important;
+    }
+    
+    nav p {
+        font-size: 0.7rem !important;
+    }
+}
+
+/* Extra small devices */
+@media (max-width: 480px) {
+    /* Even larger touch targets for very small screens */
+    .btn {
+        padding: 16px 20px !important;
+        font-size: 16px !important;
+        min-height: 52px !important;
+    }
+    
+    /* Reduce padding further */
+    .px-4, .px-6 {
+        padding-left: 0.75rem !important;
+        padding-right: 0.75rem !important;
+    }
+    
+    /* Smaller text in cards */
+    .card p,
+    .customer-card p,
+    .location-card p {
+        font-size: 14px !important;
+    }
+}
+
+/* Landscape mobile */
+@media (max-width: 768px) and (orientation: landscape) {
+    .modal-content {
+        max-height: 95vh !important;
+    }
+    
+    /* Reduce header height in landscape */
+    nav {
+        min-height: 3rem !important;
+    }
+}

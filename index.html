@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MERC-CMMS Enterprise Dashboard</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="mobile-responsive.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
         * {
@@ -288,16 +289,81 @@
     <script src="js/pm-auto-generator.js"></script>
     <script src="js/pm-automation.js"></script>
     <script>
-        // Mobile menu toggle
-        document.addEventListener('DOMContentLoaded', () => {
-            const mobileMenuButton = document.getElementById('mobile-menu-button');
-            const mobileMenu = document.getElementById('mobile-menu');
-            if (mobileMenuButton && mobileMenu) {
-                mobileMenuButton.addEventListener('click', () => {
-                    mobileMenu.classList.toggle('hidden');
-                    const isExpanded = !mobileMenu.classList.contains('hidden');
-                    mobileMenuButton.setAttribute('aria-expanded', isExpanded);
+        // Initialize dashboard and mobile menu
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Setup mobile menu
+            if (typeof setupMobileMenu === 'function') {
+                setupMobileMenu();
+            } else {
+                // Fallback if setupMobileMenu not available
+                const mobileMenuButton = document.getElementById('mobile-menu-button');
+                const mobileMenu = document.getElementById('mobile-menu');
+                if (mobileMenuButton && mobileMenu) {
+                    mobileMenuButton.addEventListener('click', () => {
+                        mobileMenu.classList.toggle('hidden');
+                        const isExpanded = !mobileMenu.classList.contains('hidden');
+                        mobileMenuButton.setAttribute('aria-expanded', isExpanded);
+                    });
+                    // Close menu when clicking links
+                    mobileMenu.querySelectorAll('a').forEach(link => {
+                        link.addEventListener('click', () => {
+                            if (!mobileMenu.classList.contains('hidden')) {
+                                mobileMenu.classList.add('hidden');
+                                mobileMenuButton.setAttribute('aria-expanded', 'false');
+                            }
+                        });
+                    });
+                }
+            }
+            
+            // Set current page for dashboard
+            if (typeof AppState !== 'undefined') {
+                AppState.currentPage = 'dashboard';
+            }
+            
+            // Wait for Supabase to be available
+            if (typeof window.supabase === 'undefined') {
+                // Wait for Supabase library to load
+                await new Promise((resolve) => {
+                    const checkSupabase = setInterval(() => {
+                        if (typeof window.supabase !== 'undefined') {
+                            clearInterval(checkSupabase);
+                            resolve();
+                        }
+                    }, 100);
+                    
+                    // Timeout after 5 seconds
+                    setTimeout(() => {
+                        clearInterval(checkSupabase);
+                        resolve();
+                    }, 5000);
                 });
+            }
+            
+            // Ensure Supabase client is initialized
+            if (typeof loadSupabaseClient === 'function') {
+                await loadSupabaseClient();
+            }
+            
+            // Use shared client if available
+            if (window.sharedSupabaseClient && typeof supabaseClient !== 'undefined') {
+                supabaseClient = window.sharedSupabaseClient;
+            }
+            
+            // Initialize dashboard with real data
+            if (typeof DashboardManager !== 'undefined') {
+                try {
+                    console.log('Initializing dashboard...');
+                    await DashboardManager.init();
+                    console.log('Dashboard initialized. Assets:', AppState.assets?.length || 0, 'Work Orders:', AppState.workOrders?.length || 0);
+                } catch (error) {
+                    console.error('Error initializing dashboard:', error);
+                    if (typeof showToast === 'function') {
+                        showToast('Error loading dashboard data: ' + error.message, 'error');
+                    }
+                }
+            } else {
+                console.error('DashboardManager not found');
             }
         });
     </script>

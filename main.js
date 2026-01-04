@@ -1,6 +1,14 @@
 // MERC-CMMS Enterprise JavaScript Application
 // Comprehensive functionality for Medical Device Management System
 
+// Utility function to escape HTML
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 // Initialize Supabase Client
 const supabaseUrl = typeof CONFIG !== 'undefined' && CONFIG.SUPABASE_URL
     ? CONFIG.SUPABASE_URL
@@ -230,25 +238,160 @@ const DashboardManager = {
     },
 
     async loadDashboardData() {
+        // Ensure Supabase client is loaded
+        await loadSupabaseClient();
+        
         // Load assets
-        await DataManager.loadAssets();
+        await this.loadAssets();
         
         // Load work orders
-        await DataManager.loadWorkOrders();
+        await this.loadWorkOrders();
         
         // Load customers if needed
         if (!AppState.customers || AppState.customers.length === 0) {
             await this.loadCustomers();
         }
     },
+    
+    async loadAssets() {
+        // Try to get Supabase client from various sources
+        let client = supabaseClient;
+        if (!client && window.sharedSupabaseClient) {
+            client = window.sharedSupabaseClient;
+            supabaseClient = client;
+        }
+        
+        if (!client) {
+            console.warn('Supabase client not available, using empty assets');
+            AppState.assets = [];
+            return;
+        }
+        
+        try {
+            console.log('Loading assets from Supabase...');
+            const { data, error } = await client
+                .from('assets')
+                .select('*')
+                .order('created_at', { ascending: false });
+            
+            if (error) {
+                console.error('Error loading assets:', error);
+                AppState.assets = [];
+            } else {
+                AppState.assets = data || [];
+                console.log(`Loaded ${AppState.assets.length} assets`);
+            }
+        } catch (err) {
+            console.error('Error loading assets:', err);
+            AppState.assets = [];
+        }
+    },
+    
+    async loadWorkOrders() {
+        // Try to get Supabase client from various sources
+        let client = supabaseClient;
+        if (!client && window.sharedSupabaseClient) {
+            client = window.sharedSupabaseClient;
+            supabaseClient = client;
+        }
+        
+        if (!client) {
+            console.warn('Supabase client not available, using empty work orders');
+            AppState.workOrders = [];
+            return;
+        }
+        
+        try {
+            console.log('Loading work orders from Supabase...');
+            // Load work orders with related data
+            const { data, error } = await client
+                .from('work_orders')
+                .select('*')
+                .order('created_date', { ascending: false })
+                .limit(1000); // Limit to recent 1000 work orders
+            
+            if (error) {
+                console.error('Error loading work orders:', error);
+                AppState.workOrders = [];
+            } else {
+                AppState.workOrders = data || [];
+                console.log(`Loaded ${AppState.workOrders.length} work orders`);
+                
+                // Calculate total costs for each work order
+                for (const wo of AppState.workOrders) {
+                    let totalCost = 0;
+                    
+                    // Get parts costs
+                    try {
+                        const { data: partsData } = await client
+                            .from('work_order_parts')
+                            .select('quantity, unit_cost')
+                            .eq('work_order_id', wo.id);
+                        
+                        if (partsData) {
+                            partsData.forEach(part => {
+                                totalCost += (parseFloat(part.quantity || 0) * parseFloat(part.unit_cost || 0));
+                            });
+                        }
+                    } catch (e) {
+                        console.warn('Error loading parts for work order:', wo.id, e);
+                    }
+                    
+                    // Get labor costs
+                    try {
+                        const { data: laborData } = await client
+                            .from('work_order_labor')
+                            .select('hours, hourly_rate')
+                            .eq('work_order_id', wo.id);
+                        
+                        if (laborData) {
+                            laborData.forEach(labor => {
+                                totalCost += (parseFloat(labor.hours || 0) * parseFloat(labor.hourly_rate || 0));
+                            });
+                        }
+                    } catch (e) {
+                        console.warn('Error loading labor for work order:', wo.id, e);
+                    }
+                    
+                    // Get additional costs
+                    try {
+                        const { data: additionalCostsData } = await client
+                            .from('work_order_additional_costs')
+                            .select('amount')
+                            .eq('work_order_id', wo.id);
+                        
+                        if (additionalCostsData) {
+                            additionalCostsData.forEach(cost => {
+                                totalCost += parseFloat(cost.amount || 0);
+                            });
+                        }
+                    } catch (e) {
+                        console.warn('Error loading additional costs for work order:', wo.id, e);
+                    }
+                    
+                    wo.cost = totalCost;
+                }
+            }
+        } catch (err) {
+            console.error('Error loading work orders:', err);
+            AppState.workOrders = [];
+        }
+    },
 
     async loadCustomers() {
-        if (!supabaseClient) {
+        // Try to get Supabase client from various sources
+        let client = supabaseClient;
+        if (!client && window.sharedSupabaseClient) {
+            client = window.sharedSupabaseClient;
+            supabaseClient = client;
+        }
+        
+        if (!client) {
             AppState.customers = [];
             return;
         }
 
-        const { data, error } = await supabaseClient
+        const { data, error } = await client
             .from('customers')
             .select('id, name, created_at')
             .order('created_at', { ascending: false })
@@ -265,6 +408,8 @@ const DashboardManager = {
     updateStatistics() {
         const assets = AppState.assets || [];
         const workOrders = AppState.workOrders || [];
+        
+        console.log('Updating statistics. Assets:', assets.length, 'Work Orders:', workOrders.length);
         
         // Total Assets
         const totalAssets = assets.length;
@@ -333,7 +478,18 @@ const DashboardManager = {
             const categoryCounts = {};
             
             assets.forEach(asset => {
-                const category = asset.category || asset.category_id || 'Uncategorized';
+                // Try multiple possible category fields
+                let category = 'Uncategorized';
+                if (asset.category) {
+                    category = asset.category;
+                } else if (asset.category_id) {
+                    category = asset.category_id;
+                } else if (asset.equipment_type_id) {
+                    // Try to get equipment type name if we have it
+                    category = asset.equipment_type_id;
+                } else if (asset.type) {
+                    category = asset.type;
+                }
                 categoryCounts[category] = (categoryCounts[category] || 0) + 1;
             });
 
@@ -379,14 +535,18 @@ const DashboardManager = {
                 const woType = (wo.type || '').toLowerCase();
                 
                 if (monthlyData[monthKey]) {
-                    if (woType.includes('preventive') || woType.includes('pm')) {
+                    // Match work order types more accurately
+                    if (woType.includes('preventive') || woType.includes('pm') || woType === 'preventive_maintenance') {
                         monthlyData[monthKey].preventive++;
-                    } else if (woType.includes('corrective') || woType.includes('repair')) {
+                    } else if (woType.includes('corrective') || woType.includes('repair') || woType === 'corrective_maintenance') {
                         monthlyData[monthKey].corrective++;
-                    } else if (woType.includes('inspection')) {
+                    } else if (woType.includes('inspection') || woType === 'inspection') {
                         monthlyData[monthKey].inspection++;
-                    } else if (woType.includes('calibration')) {
+                    } else if (woType.includes('calibration') || woType === 'calibration') {
                         monthlyData[monthKey].calibration++;
+                    } else {
+                        // Default uncategorized work orders to corrective
+                        monthlyData[monthKey].corrective++;
                     }
                 }
             });
@@ -457,7 +617,15 @@ const DashboardManager = {
             const locationStatus = {};
             
             assets.forEach(asset => {
-                const location = asset.location || 'Unknown';
+                // Try multiple possible location fields
+                let location = 'Unknown';
+                if (asset.location) {
+                    location = asset.location;
+                } else if (asset.location_id) {
+                    location = asset.location_id;
+                } else if (asset.location_name) {
+                    location = asset.location_name;
+                }
                 const status = asset.status || 'unknown';
                 
                 if (!locationStatus[location]) {
@@ -502,31 +670,43 @@ const DashboardManager = {
         const workOrders = AppState.workOrders || [];
         const assets = AppState.assets || [];
 
-        // Get recent work orders
-        workOrders.slice(0, 5).forEach(wo => {
+        // Get recent work orders (sorted by created_date)
+        const sortedWorkOrders = [...workOrders].sort((a, b) => {
+            const dateA = a.created_date ? new Date(a.created_date) : new Date(0);
+            const dateB = b.created_date ? new Date(b.created_date) : new Date(0);
+            return dateB - dateA;
+        });
+        
+        sortedWorkOrders.slice(0, 5).forEach(wo => {
             const asset = assets.find(a => a.id === wo.asset_id);
-            const assetName = asset ? asset.name : 'Unknown Asset';
+            const assetName = asset ? (asset.name || 'Unknown Asset') : 'Unknown Asset';
             const date = wo.created_date ? new Date(wo.created_date).toLocaleDateString() : 'Unknown date';
             
             activities.push({
                 type: 'work-order',
                 icon: 'fa-clipboard-list',
                 color: 'text-blue-600',
-                message: `Work order ${wo.id} created for ${assetName}`,
-                date: date,
+                message: `Work order ${wo.id || 'N/A'} created for ${assetName}`,
+                date: wo.created_date || new Date().toISOString(),
                 status: wo.status
             });
         });
 
-        // Get recent assets
-        assets.slice(0, 3).forEach(asset => {
+        // Get recent assets (sorted by created_at)
+        const sortedAssets = [...assets].sort((a, b) => {
+            const dateA = a.created_at ? new Date(a.created_at) : new Date(0);
+            const dateB = b.created_at ? new Date(b.created_at) : new Date(0);
+            return dateB - dateA;
+        });
+        
+        sortedAssets.slice(0, 3).forEach(asset => {
             const date = asset.created_at ? new Date(asset.created_at).toLocaleDateString() : 'Unknown date';
             activities.push({
                 type: 'asset',
                 icon: 'fa-heartbeat',
                 color: 'text-green-600',
-                message: `Asset ${asset.name} added`,
-                date: date,
+                message: `Asset ${asset.name || 'Unnamed'} added`,
+                date: asset.created_at || new Date().toISOString(),
                 status: asset.status
             });
         });
@@ -1598,7 +1778,7 @@ const WorkOrderManager = {
         }
 
         // Populate dropdowns
-        WorkOrderManager.populateWorkOrderAssetOptions(workOrder.asset_id || '');
+        WorkOrderManager.populateWorkOrderAssetOptions(workOrder.asset_id || null);
         WorkOrderManager.populateWorkOrderTechnicianOptions(workOrder.assigned_technician_id || '');
         WorkOrderManager.populateWorkOrderTypeOptions(workOrder.type || '');
 
@@ -1641,6 +1821,12 @@ const WorkOrderManager = {
         if (typeof WorkOrderParts !== 'undefined') {
             WorkOrderParts.renderWorkOrderParts(workOrder.id, 'view');
         }
+        
+        // Show PDF button for existing work orders
+        const pdfBtn = document.getElementById('workorder-pdf-btn');
+        if (pdfBtn) {
+            pdfBtn.classList.remove('hidden');
+        }
 
         // Load additional data
         await WorkOrderManager.loadLaborCosts(workOrderId);
@@ -1661,16 +1847,157 @@ const WorkOrderManager = {
     
     // Helper functions for populating dropdowns (unified)
     populateWorkOrderAssetOptions: (valueToSet = null) => {
+        // Store assets for search functionality
+        if (!WorkOrderManager.assetSearchData) {
+            WorkOrderManager.assetSearchData = AppState.assets.map(asset => ({
+                id: asset.id,
+                name: asset.name || 'Unnamed Asset',
+                serial_number: asset.serial_number || '',
+                status: asset.status || 'active',
+                category: asset.category || '',
+                searchText: `${asset.name || ''} ${asset.serial_number || ''} ${asset.id || ''} ${asset.category || ''}`.toLowerCase()
+            }));
+        }
+        
+        // Setup searchable asset input
+        const assetSearch = document.getElementById('workorder-asset-search');
         const assetSelect = document.getElementById('workorder-asset-select');
-        if (!assetSelect) return;
-        const currentValue = valueToSet !== null ? valueToSet : assetSelect.value;
-        assetSelect.innerHTML = '<option value="">Select Asset</option>';
-        AppState.assets.forEach(asset => {
-            const option = document.createElement('option');
-            option.value = asset.id;
-            option.textContent = asset.name || asset.id;
-            if (asset.id === currentValue) option.selected = true;
-            assetSelect.appendChild(option);
+        const assetDropdown = document.getElementById('workorder-asset-dropdown');
+        const assetDropdownList = document.getElementById('workorder-asset-dropdown-list');
+        
+        if (!assetSearch || !assetSelect || !assetDropdown || !assetDropdownList) return;
+        
+        // Set initial value if provided, otherwise clear
+        if (valueToSet !== null && valueToSet !== '') {
+            const selectedAsset = WorkOrderManager.assetSearchData.find(a => a.id === valueToSet);
+            if (selectedAsset) {
+                assetSearch.value = `${selectedAsset.name}${selectedAsset.serial_number ? ' (' + selectedAsset.serial_number + ')' : ''}`;
+                assetSelect.value = selectedAsset.id;
+            } else {
+                assetSearch.value = '';
+                assetSelect.value = '';
+            }
+        } else {
+            // Clear fields for create mode
+            assetSearch.value = '';
+            assetSelect.value = '';
+        }
+        
+        // Search functionality
+        let searchTimeout;
+        assetSearch.addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            const searchTerm = e.target.value.toLowerCase().trim();
+            
+            if (searchTerm.length === 0) {
+                assetDropdown.classList.add('hidden');
+                assetSelect.value = '';
+                return;
+            }
+            
+            searchTimeout = setTimeout(() => {
+                const filtered = WorkOrderManager.assetSearchData.filter(asset => 
+                    asset.searchText.includes(searchTerm)
+                ).slice(0, 20); // Limit to 20 results for performance
+                
+                if (filtered.length === 0) {
+                    assetDropdownList.innerHTML = '<div class="px-4 py-2 text-sm text-slate-500">No assets found</div>';
+                    assetDropdown.classList.remove('hidden');
+                    return;
+                }
+                
+                assetDropdownList.innerHTML = filtered.map(asset => {
+                    const statusColor = asset.status === 'active' ? 'text-green-600' : 
+                                      asset.status === 'maintenance' ? 'text-amber-600' : 
+                                      asset.status === 'inactive' ? 'text-gray-600' : 'text-red-600';
+                    return `
+                        <div class="px-4 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-100 last:border-b-0 asset-option" 
+                             data-asset-id="${asset.id}"
+                             data-asset-name="${escapeHtml(asset.name)}"
+                             data-asset-serial="${escapeHtml(asset.serial_number)}">
+                            <div class="flex items-center justify-between">
+                                <div class="flex-1">
+                                    <div class="font-medium text-slate-900">${escapeHtml(asset.name)}</div>
+                                    <div class="text-xs text-slate-500">
+                                        ${asset.serial_number ? `Serial: ${escapeHtml(asset.serial_number)} • ` : ''}
+                                        <span class="${statusColor}">${asset.status || 'active'}</span>
+                                        ${asset.category ? ` • ${escapeHtml(asset.category)}` : ''}
+                                    </div>
+                                </div>
+                                <i class="fas fa-chevron-right text-slate-400 ml-2"></i>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                // Add click handlers to options
+                assetDropdownList.querySelectorAll('.asset-option').forEach(option => {
+                    option.addEventListener('click', () => {
+                        const assetId = option.dataset.assetId;
+                        const assetName = option.dataset.assetName;
+                        const assetSerial = option.dataset.assetSerial;
+                        
+                        assetSelect.value = assetId;
+                        assetSearch.value = `${assetName}${assetSerial ? ' (' + assetSerial + ')' : ''}`;
+                        assetDropdown.classList.add('hidden');
+                    });
+                });
+                
+                assetDropdown.classList.remove('hidden');
+            }, 200);
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!assetSearch.contains(e.target) && !assetDropdown.contains(e.target)) {
+                assetDropdown.classList.add('hidden');
+            }
+        });
+        
+        // Handle focus - show recent/popular assets
+        assetSearch.addEventListener('focus', () => {
+            if (assetSearch.value.trim().length === 0) {
+                // Show first 10 assets as suggestions
+                const suggestions = WorkOrderManager.assetSearchData.slice(0, 10);
+                assetDropdownList.innerHTML = suggestions.map(asset => {
+                    const statusColor = asset.status === 'active' ? 'text-green-600' : 
+                                      asset.status === 'maintenance' ? 'text-amber-600' : 
+                                      asset.status === 'inactive' ? 'text-gray-600' : 'text-red-600';
+                    return `
+                        <div class="px-4 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-100 last:border-b-0 asset-option" 
+                             data-asset-id="${asset.id}"
+                             data-asset-name="${escapeHtml(asset.name)}"
+                             data-asset-serial="${escapeHtml(asset.serial_number)}">
+                            <div class="flex items-center justify-between">
+                                <div class="flex-1">
+                                    <div class="font-medium text-slate-900">${escapeHtml(asset.name)}</div>
+                                    <div class="text-xs text-slate-500">
+                                        ${asset.serial_number ? `Serial: ${escapeHtml(asset.serial_number)} • ` : ''}
+                                        <span class="${statusColor}">${asset.status || 'active'}</span>
+                                        ${asset.category ? ` • ${escapeHtml(asset.category)}` : ''}
+                                    </div>
+                                </div>
+                                <i class="fas fa-chevron-right text-slate-400 ml-2"></i>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                // Add click handlers
+                assetDropdownList.querySelectorAll('.asset-option').forEach(option => {
+                    option.addEventListener('click', () => {
+                        const assetId = option.dataset.assetId;
+                        const assetName = option.dataset.assetName;
+                        const assetSerial = option.dataset.assetSerial;
+                        
+                        assetSelect.value = assetId;
+                        assetSearch.value = `${assetName}${assetSerial ? ' (' + assetSerial + ')' : ''}`;
+                        assetDropdown.classList.add('hidden');
+                    });
+                });
+                
+                assetDropdown.classList.remove('hidden');
+            }
         });
     },
     
@@ -1695,9 +2022,14 @@ const WorkOrderManager = {
         typeSelect.innerHTML = '<option value="">Select type</option>';
         AppState.workOrderTypes.forEach(type => {
             const option = document.createElement('option');
-            option.value = type.code || type.name;
-            option.textContent = type.name;
-            if ((type.code || type.name) === currentValue) option.selected = true;
+            // WorkOrderTypes are stored as {value, label} from loadWorkOrderTypes
+            // value is the code, label is the display name
+            const typeCode = type.value || type.code || type.name;
+            const typeLabel = type.label || type.name || typeCode;
+            option.value = typeCode;
+            option.textContent = typeLabel;
+            // Match by code (work orders store code in type field)
+            if (typeCode === currentValue) option.selected = true;
             typeSelect.appendChild(option);
         });
     },
@@ -2461,6 +2793,32 @@ const WorkOrderManager = {
         return filtered;
     },
 
+    // Reset all filters
+    resetAllFilters: () => {
+        const searchInput = document.getElementById('workorder-search');
+        const statusFilter = document.getElementById('status-filter');
+        const priorityFilter = document.getElementById('priority-filter');
+        const technicianFilter = document.getElementById('technician-filter');
+        const customerFilter = document.getElementById('customer-filter');
+        const workTypeFilter = document.getElementById('worktype-filter');
+        
+        if (searchInput) searchInput.value = '';
+        if (statusFilter) statusFilter.value = '';
+        if (priorityFilter) priorityFilter.value = '';
+        if (technicianFilter) technicianFilter.value = '';
+        if (customerFilter) customerFilter.value = '';
+        if (workTypeFilter) workTypeFilter.value = '';
+        
+        // Re-render work orders
+        if (WorkOrderManager.currentView === 'list') {
+            WorkOrderManager.renderWorkOrdersList();
+        } else {
+            WorkOrderManager.renderWorkOrders();
+        }
+        
+        showToast('All filters have been reset', 'success');
+    },
+
     // Setup search and filter event listeners
     setupSearchAndFilters: () => {
         const searchInput = document.getElementById('workorder-search');
@@ -3042,6 +3400,16 @@ const WorkOrderManager = {
     },
 
     exportPDFReport: async () => {
+        // Redirect to new PDF generation function
+        if (typeof generateWorkOrderPDF === 'function') {
+            generateWorkOrderPDF();
+        } else {
+            showToast('PDF generation not available', 'error');
+        }
+    },
+    
+    // Legacy function - redirects to new PDF generator
+    generatePDF: async () => {
         WorkOrderManager.toggleActionMenu();
         const workOrderId = WorkOrderManager.currentWorkOrderId;
         if (!workOrderId) {
@@ -3381,10 +3749,71 @@ const WorkOrderManager = {
     },
 
     loadAdditionalCosts: async (workOrderId) => {
-        // TODO: Load additional costs from database
         const list = document.getElementById('wo-additional-costs-list');
-        if (list) {
+        const totalEl = document.getElementById('wo-additional-total');
+        const totalAmountEl = document.getElementById('wo-additional-total-amount');
+        
+        if (!list) return;
+
+        if (!supabaseClient) {
             list.innerHTML = '<p class="text-xs text-slate-500 italic">No additional costs have been added yet</p>';
+            return;
+        }
+
+        try {
+            const { data: costsData, error: costsError } = await supabaseClient
+                .from('work_order_additional_costs')
+                .select('*')
+                .eq('work_order_id', workOrderId)
+                .order('date', { ascending: false });
+
+            if (costsError) throw costsError;
+
+            if (!costsData || costsData.length === 0) {
+                list.innerHTML = '<p class="text-xs text-slate-500 italic">No additional costs have been added yet</p>';
+                if (totalEl) totalEl.classList.add('hidden');
+                if (totalAmountEl) totalAmountEl.textContent = '$0.00';
+                return;
+            }
+
+            let total = 0;
+            list.innerHTML = costsData.map(item => {
+                const amount = parseFloat(item.amount || 0);
+                total += amount;
+                
+                const date = new Date(item.date).toLocaleDateString();
+                const amountDisplay = amount > 0 ? `$${amount.toFixed(2)}` : 'No cost';
+                return `
+                    <div class="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-200">
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-slate-800">${escapeHtml(item.description || 'No description')}</p>
+                            <p class="text-xs text-slate-500">${item.category ? escapeHtml(item.category) + ' • ' : ''}${date}</p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-sm font-semibold text-slate-800">${amountDisplay}</span>
+                            <button onclick="WorkOrderManager.deleteAdditionalCost('${item.id}')" class="text-red-600 hover:text-red-800">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            if (totalEl && totalAmountEl) {
+                if (total > 0) {
+                    totalEl.classList.remove('hidden');
+                    totalAmountEl.textContent = '$' + total.toFixed(2);
+                } else {
+                    totalEl.classList.add('hidden');
+                    totalAmountEl.textContent = '$0.00';
+                }
+            }
+            
+            // Update total cost after loading additional costs
+            WorkOrderManager.updateTotalCost();
+        } catch (error) {
+            console.error('Error loading additional costs:', error);
+            list.innerHTML = '<p class="text-xs text-red-500 italic">Error loading additional costs</p>';
         }
     },
 
@@ -3974,7 +4403,20 @@ if (typeof WorkOrderManager !== 'undefined') {
             
             // Reset form
             const form = document.getElementById('workorder-form');
-    if (form) form.reset();
+            if (form) form.reset();
+            
+            // Populate dropdowns for create mode
+            WorkOrderManager.populateWorkOrderAssetOptions();
+            WorkOrderManager.populateWorkOrderTechnicianOptions();
+            WorkOrderManager.populateWorkOrderTypeOptions();
+            
+            // Reset status to 'open'
+            const statusSelect = document.getElementById('workorder-status');
+            if (statusSelect) statusSelect.value = 'open';
+            
+            // Reset priority to 'medium'
+            const prioritySelect = document.getElementById('workorder-priority-select');
+            if (prioritySelect) prioritySelect.value = 'medium';
             
             // Initialize parts list
             if (typeof WorkOrderParts !== 'undefined') {
@@ -3993,6 +4435,10 @@ if (typeof WorkOrderManager !== 'undefined') {
                 links: [],
                 files: []
             };
+            
+            // Reset total cost display
+            const totalCostEl = document.getElementById('wo-total-cost');
+            if (totalCostEl) totalCostEl.textContent = '$0.00';
         } else if (mode === 'view' && workOrderId) {
             // Will be populated by viewWorkOrder function
             WorkOrderManager.currentWorkOrderId = workOrderId;
@@ -4010,10 +4456,22 @@ if (typeof WorkOrderManager !== 'undefined') {
         WorkOrderManager.currentWorkOrderId = null;
         WorkOrderManager.timerElapsed = 0;
     
-        closeModal('workorder-modal');
-        // Reset form if needed
-        const form = document.getElementById('workorder-form');
-        if (form) form.reset();
+        // Close modal
+        const modal = document.getElementById('workorder-modal');
+        if (modal) {
+            modal.classList.remove('active');
+        }
+        
+        // Reset forms if they exist (don't throw error if they don't)
+        try {
+            const form = document.getElementById('workorder-form');
+            if (form) form.reset();
+            
+            const viewForm = document.getElementById('view-workorder-form');
+            if (viewForm) viewForm.reset();
+        } catch (error) {
+            console.warn('Error resetting forms:', error);
+        }
     };
 } // Close the if (typeof WorkOrderManager !== 'undefined') block
 
@@ -4083,22 +4541,55 @@ function setupMobileMenu() {
     const button = document.getElementById('mobile-menu-button');
     const menu = document.getElementById('mobile-menu');
 
-    if (!button || !menu) return;
+    if (!button || !menu) {
+        console.warn('Mobile menu elements not found');
+        return;
+    }
+
+    // Remove any existing event listeners by cloning and replacing
+    const newButton = button.cloneNode(true);
+    button.parentNode.replaceChild(newButton, button);
+    const newMenu = menu.cloneNode(true);
+    menu.parentNode.replaceChild(newMenu, menu);
 
     const toggleMenu = () => {
-        const isHidden = menu.classList.toggle('hidden');
-        button.setAttribute('aria-expanded', String(!isHidden));
+        const isHidden = newMenu.classList.toggle('hidden');
+        newButton.setAttribute('aria-expanded', String(!isHidden));
     };
 
-    button.addEventListener('click', toggleMenu);
-    menu.querySelectorAll('a').forEach(link => {
+    newButton.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleMenu();
+    });
+
+    // Close menu when clicking links
+    newMenu.querySelectorAll('a').forEach(link => {
         link.addEventListener('click', () => {
-            if (!menu.classList.contains('hidden')) {
+            if (!newMenu.classList.contains('hidden')) {
                 toggleMenu();
             }
         });
     });
+
+    // Close menu when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!newMenu.classList.contains('hidden') && 
+            !newMenu.contains(e.target) && 
+            !newButton.contains(e.target)) {
+            toggleMenu();
+        }
+    });
+
+    // Close menu on escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !newMenu.classList.contains('hidden')) {
+            toggleMenu();
+        }
+    });
 }
+
+// Make function globally available
+window.setupMobileMenu = setupMobileMenu;
 
 function normalizePageName(pageName) {
     if (!pageName || pageName === 'index') {
