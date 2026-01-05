@@ -1285,10 +1285,44 @@
     <script src="js/mmd-reference-manager.js"></script>
     <script src="js/excel-grid-manager.js"></script>
     <script src="js/unified-mmd-grid.js"></script>
+    <script src="js/unified-mmd-modal.js"></script>
     <script src="js/depreciation-reference-manager.js"></script>
     <script src="js/depreciation-profiles-manager.js"></script>
     <script src="js/master-db-manager.js?v=2"></script>
     <script src="js/settings-manager.js"></script>
+    <script>
+        // Initialize unified MMD modal for Settings page
+        let unifiedMMDModalInstance = null;
+        function openUnifiedMMDModal(context = {}) {
+            console.log('openUnifiedMMDModal called from Settings with context:', context);
+            try {
+                const supabaseClient = window.supabaseClient || window.sharedSupabaseClient;
+                if (!supabaseClient) {
+                    console.error('No Supabase client available');
+                    alert('Database connection not available');
+                    return;
+                }
+
+                if (!window.UnifiedMMDModal) {
+                    console.error('UnifiedMMDModal class not loaded yet');
+                    alert('MMD Modal system not loaded. Please refresh the page.');
+                    return;
+                }
+
+                if (!unifiedMMDModalInstance) {
+                    console.log('Creating new UnifiedMMDModal instance for Settings');
+                    unifiedMMDModalInstance = new window.UnifiedMMDModal(supabaseClient);
+                }
+
+                console.log('Opening unified MMD modal from Settings');
+                unifiedMMDModalInstance.open(context);
+            } catch (error) {
+                console.error('Error opening unified MMD modal:', error);
+                alert(`Error: ${error.message}`);
+            }
+        }
+        window.openUnifiedMMDModal = openUnifiedMMDModal;
+    </script>
     <script>
         // Initialize Depreciation Profiles Manager on System tab
         async function initDepreciationProfiles() {
