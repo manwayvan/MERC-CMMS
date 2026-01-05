@@ -503,6 +503,42 @@
                             </div>
                         </div>
 
+                        <!-- MMD Configurations List -->
+                        <div class="settings-section mb-6">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-semibold text-slate-800">MMD Configurations</h3>
+                                <button onclick="openUnifiedMMDModal()" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-plus"></i> Add New Configuration
+                                </button>
+                            </div>
+                            
+                            <div class="bg-white rounded-lg border border-slate-200 overflow-hidden">
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-left">
+                                        <thead class="bg-slate-50">
+                                            <tr>
+                                                <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Type</th>
+                                                <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Make</th>
+                                                <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Model</th>
+                                                <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">PM Frequency</th>
+                                                <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Checklist</th>
+                                                <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Status</th>
+                                                <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="mmd-configurations-list" class="bg-white divide-y divide-slate-200">
+                                            <tr>
+                                                <td colspan="7" class="px-4 py-8 text-center text-slate-500">
+                                                    <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                                                    <p>Loading MMD configurations...</p>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Info Card -->
                         <div class="settings-section bg-blue-50 border-blue-200">
                             <div class="flex items-start gap-3">
@@ -518,7 +554,7 @@
                                         <li><strong>Models</strong> belong to a Manufacturer (e.g., HeartStart FR3 under Philips)</li>
                                         <li><strong>PM Frequencies</strong> are independent and can be used with any model</li>
                                     </ul>
-                                    <button onclick="MasterDBManager.openMasterModal()" class="btn btn-primary btn-sm mt-3">
+                                    <button onclick="openUnifiedMMDModal()" class="btn btn-primary btn-sm mt-3">
                                         <i class="fas fa-external-link-alt"></i>Open Master Database Manager
                                     </button>
                                 </div>

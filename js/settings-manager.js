@@ -507,29 +507,298 @@ const SettingsManager = {
         // Load stats on tab switch
         const tabButton = document.querySelector('[data-tab="master-database"]');
         if (tabButton) {
-            tabButton.addEventListener('click', () => this.loadMasterDatabaseStats());
+            tabButton.addEventListener('click', () => {
+                this.loadMasterDatabaseStats();
+                this.loadMMDConfigurations();
+            });
         }
         this.loadMasterDatabaseStats();
+        this.loadMMDConfigurations();
     },
 
     async loadMasterDatabaseStats() {
         if (!this.supabaseClient) return;
 
         try {
-            // Load counts
+            // Helper function to try new table, fallback to legacy
+            const tryQuery = async (newTable, legacyTable, filterFn = null) => {
+                try {
+                    let query = this.supabaseClient.from(newTable).select('id', { count: 'exact', head: true });
+                    if (filterFn) {
+                        query = filterFn(query);
+                    }
+                    const { count, error } = await query;
+                    if (error) throw error;
+                    return count || 0;
+                } catch (error) {
+                    // Fallback to legacy table
+                    try {
+                        const { count, error: legacyError } = await this.supabaseClient
+                            .from(legacyTable)
+                            .select('id', { count: 'exact', head: true });
+                        if (legacyError) throw legacyError;
+                        return count || 0;
+                    } catch (legacyError) {
+                        console.warn(`Error loading ${newTable} and ${legacyTable}:`, legacyError);
+                        return 0;
+                    }
+                }
+            };
+
+            // Load counts from new equipment tables (with fallback to legacy tables)
             const [categories, makes, models, frequencies] = await Promise.all([
-                this.supabaseClient.from('device_categories').select('id', { count: 'exact', head: true }),
-                this.supabaseClient.from('device_makes').select('id', { count: 'exact', head: true }),
-                this.supabaseClient.from('device_models').select('id', { count: 'exact', head: true }),
-                this.supabaseClient.from('pm_frequencies').select('id', { count: 'exact', head: true })
+                tryQuery('equipment_types', 'device_categories', (q) => q.is('deleted_at', null)),
+                tryQuery('equipment_makes', 'device_makes', (q) => q.is('deleted_at', null)),
+                tryQuery('equipment_models', 'device_models', (q) => q.is('deleted_at', null)),
+                tryQuery('pm_frequencies', 'pm_frequencies', (q) => q.eq('is_active', true))
             ]);
 
-            document.getElementById('stats-categories').textContent = categories.count || 0;
-            document.getElementById('stats-makes').textContent = makes.count || 0;
-            document.getElementById('stats-models').textContent = models.count || 0;
-            document.getElementById('stats-frequencies').textContent = frequencies.count || 0;
+            const categoriesEl = document.getElementById('stats-categories');
+            const makesEl = document.getElementById('stats-makes');
+            const modelsEl = document.getElementById('stats-models');
+            const frequenciesEl = document.getElementById('stats-frequencies');
+
+            if (categoriesEl) categoriesEl.textContent = categories;
+            if (makesEl) makesEl.textContent = makes;
+            if (modelsEl) modelsEl.textContent = models;
+            if (frequenciesEl) frequenciesEl.textContent = frequencies;
         } catch (error) {
             console.error('Error loading master database stats:', error);
+        }
+    },
+
+    async loadMMDConfigurations() {
+        if (!this.supabaseClient) return;
+
+        const tbody = document.getElementById('mmd-configurations-list');
+        if (!tbody) return;
+
+        try {
+            // Load device configurations - use simple select first, then enrich
+            const { data: configs, error } = await this.supabaseClient
+                .from('device_configurations')
+                .select('id, name, type_id, category_id, make_id, model_id, pm_frequency_id, checklist_id, is_active')
+                .eq('is_active', true)
+                .order('name');
+
+            if (error) {
+                throw error;
+            }
+
+            if (!configs || configs.length === 0) {
+                this.renderMMDConfigurations([]);
+                return;
+            }
+
+            // Enrich with related data
+            const enrichedConfigs = await Promise.all(
+                configs.map(async (config) => {
+                    const enriched = { ...config };
+                    const typeId = config.type_id || config.category_id;
+                    
+                    if (typeId) {
+                        try {
+                            const { data: type } = await this.supabaseClient
+                                .from('equipment_types')
+                                .select('id, name')
+                                .eq('id', typeId)
+                                .single();
+                            enriched.equipment_types = type;
+                        } catch (e) {
+                            // Try legacy table
+                            try {
+                                const { data: type } = await this.supabaseClient
+                                    .from('device_categories')
+                                    .select('id, name')
+                                    .eq('id', typeId)
+                                    .single();
+                                enriched.equipment_types = type;
+                            } catch (e2) {
+                                console.warn('Could not load type:', e2);
+                            }
+                        }
+                    }
+                    
+                    if (config.make_id) {
+                        try {
+                            const { data: make } = await this.supabaseClient
+                                .from('equipment_makes')
+                                .select('id, name')
+                                .eq('id', config.make_id)
+                                .single();
+                            enriched.equipment_makes = make;
+                        } catch (e) {
+                            // Try legacy table
+                            try {
+                                const { data: make } = await this.supabaseClient
+                                    .from('device_makes')
+                                    .select('id, name')
+                                    .eq('id', config.make_id)
+                                    .single();
+                                enriched.equipment_makes = make;
+                            } catch (e2) {
+                                console.warn('Could not load make:', e2);
+                            }
+                        }
+                    }
+                    
+                    if (config.model_id) {
+                        try {
+                            const { data: model } = await this.supabaseClient
+                                .from('equipment_models')
+                                .select('id, name')
+                                .eq('id', config.model_id)
+                                .single();
+                            enriched.equipment_models = model;
+                        } catch (e) {
+                            // Try legacy table
+                            try {
+                                const { data: model } = await this.supabaseClient
+                                    .from('device_models')
+                                    .select('id, name')
+                                    .eq('id', config.model_id)
+                                    .single();
+                                enriched.equipment_models = model;
+                            } catch (e2) {
+                                console.warn('Could not load model:', e2);
+                            }
+                        }
+                    }
+                    
+                    if (config.pm_frequency_id) {
+                        try {
+                            const { data: freq } = await this.supabaseClient
+                                .from('pm_frequencies')
+                                .select('id, name, days')
+                                .eq('id', config.pm_frequency_id)
+                                .single();
+                            enriched.pm_frequencies = freq;
+                        } catch (e) {
+                            console.warn('Could not load PM frequency:', e);
+                        }
+                    }
+                    
+                    if (config.checklist_id) {
+                        try {
+                            const { data: checklist } = await this.supabaseClient
+                                .from('checklists')
+                                .select('id, name')
+                                .eq('id', config.checklist_id)
+                                .single();
+                            enriched.checklists = checklist;
+                        } catch (e) {
+                            console.warn('Could not load checklist:', e);
+                        }
+                    }
+                    
+                    return enriched;
+                })
+            );
+
+            this.renderMMDConfigurations(enrichedConfigs);
+        } catch (error) {
+            console.error('Error loading MMD configurations:', error);
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="px-4 py-8 text-center text-red-500">
+                        <i class="fas fa-exclamation-circle text-2xl mb-2"></i>
+                        <p>Error loading configurations: ${error.message}</p>
+                    </td>
+                </tr>
+            `;
+        }
+    },
+
+    renderMMDConfigurations(configs) {
+        const tbody = document.getElementById('mmd-configurations-list');
+        if (!tbody) return;
+
+        if (configs.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="px-4 py-8 text-center text-slate-500">
+                        <i class="fas fa-inbox text-2xl mb-2"></i>
+                        <p>No MMD configurations found. Click "Add New Configuration" to create one.</p>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        tbody.innerHTML = configs.map(config => {
+            const typeName = config.equipment_types?.name || '-';
+            const makeName = config.equipment_makes?.name || '-';
+            const modelName = config.equipment_models?.name || '-';
+            const freqName = config.pm_frequencies?.name || '-';
+            const freqDays = config.pm_frequencies?.days || '';
+            const checklistName = config.checklists?.name || '-';
+            const statusClass = config.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800';
+            const statusText = config.is_active ? 'Active' : 'Inactive';
+
+            return `
+                <tr class="hover:bg-slate-50">
+                    <td class="px-4 py-3 text-slate-900">${this.escapeHtml(typeName)}</td>
+                    <td class="px-4 py-3 text-slate-600">${this.escapeHtml(makeName)}</td>
+                    <td class="px-4 py-3 text-slate-600">${this.escapeHtml(modelName)}</td>
+                    <td class="px-4 py-3 text-slate-600">${this.escapeHtml(freqName)}${freqDays ? ` (${freqDays} days)` : ''}</td>
+                    <td class="px-4 py-3 text-slate-600">${this.escapeHtml(checklistName)}</td>
+                    <td class="px-4 py-3">
+                        <span class="px-2 py-1 text-xs font-semibold rounded-full ${statusClass}">
+                            ${statusText}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="flex gap-2">
+                            <button onclick="SettingsManager.editMMDConfiguration('${config.id}', '${config.type_id || config.category_id || ''}', '${config.make_id || ''}', '${config.model_id || ''}')" 
+                                    class="text-blue-600 hover:text-blue-800" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button onclick="SettingsManager.deleteMMDConfiguration('${config.id}')" 
+                                    class="text-red-600 hover:text-red-800" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    },
+
+    editMMDConfiguration(configId, typeId, makeId, modelId) {
+        // Open unified modal with pre-populated values
+        if (typeof openUnifiedMMDModal === 'function') {
+            openUnifiedMMDModal({
+                config_id: configId,
+                type_id: typeId,
+                make_id: makeId,
+                model_id: modelId
+            });
+        } else {
+            alert('MMD Modal not loaded. Please refresh the page.');
+        }
+    },
+
+    async deleteMMDConfiguration(configId) {
+        if (!confirm('Are you sure you want to delete this MMD configuration? This action cannot be undone.')) {
+            return;
+        }
+
+        if (!this.supabaseClient) return;
+
+        try {
+            const { error } = await this.supabaseClient
+                .from('device_configurations')
+                .update({ is_active: false })
+                .eq('id', configId);
+
+            if (error) throw error;
+
+            this.showToast('MMD configuration deleted successfully', 'success');
+            this.loadMMDConfigurations();
+            this.loadMasterDatabaseStats();
+        } catch (error) {
+            console.error('Error deleting MMD configuration:', error);
+            this.showToast(`Error: ${error.message}`, 'error');
         }
     },
 
@@ -547,6 +816,13 @@ const SettingsManager = {
         } else {
             alert(message);
         }
+    }
+};
+
+// Expose globally for refresh from other modules
+window.refreshMMDStats = function() {
+    if (SettingsManager && SettingsManager.loadMasterDatabaseStats) {
+        SettingsManager.loadMasterDatabaseStats();
     }
 };
 

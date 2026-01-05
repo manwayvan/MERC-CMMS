@@ -677,95 +677,78 @@
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Asset Name *</label>
                             <input type="text" name="name" required class="form-input" placeholder="e.g., MRI Scanner">
                         </div>
-                        <!-- Master Database (MMD) Selection - Redesigned to match asset fields style -->
-                        <div class="md:col-span-2 border-t border-slate-200 pt-6">
-                            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                                <i class="fas fa-database text-blue-600 mr-2"></i>
-                                Equipment Information
-                            </h3>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <!-- Equipment Type -->
+                        <!-- Equipment Type - Inline -->
                         <div>
-                                    <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                        Equipment Type <span class="text-red-500">*</span>
-                                    </label>
-                                    <div class="flex gap-2">
-                                        <select id="mmd-type-select" required 
-                                                class="form-input flex-1"
-                                                onchange="handleMMDTypeChange()">
-                                            <option value="">-- Select Equipment Type --</option>
-                                        </select>
-                                        <button type="button" onclick="openUnifiedMMDModal()" 
-                                                class="btn btn-primary px-3 py-2 flex-shrink-0" 
-                                                title="Add New Equipment Configuration">
-                                            <i class="fas fa-plus"></i>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Equipment Type <span class="text-red-500">*</span>
+                            </label>
+                            <div class="flex gap-2">
+                                <select id="mmd-type-select" required 
+                                        class="form-input flex-1"
+                                        onchange="handleMMDTypeChange()">
+                                    <option value="">-- Select Equipment Type --</option>
+                                </select>
+                                <button type="button" onclick="openUnifiedMMDModal()" 
+                                        class="btn btn-primary px-3 py-2 flex-shrink-0" 
+                                        title="Add New Equipment Configuration">
+                                    <i class="fas fa-plus"></i>
                                 </button>
                             </div>
                         </div>
-                                
-                                <!-- Make -->
+                        
+                        <!-- Make - Inline -->
                         <div>
-                                    <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                        Make <span class="text-red-500">*</span>
-                                    </label>
-                                    <div class="flex gap-2">
-                                        <select id="mmd-make-select" required disabled 
-                                                class="form-input flex-1"
-                                                onchange="handleMMDMakeChange()">
-                                            <option value="">-- Select Type First --</option>
-                                        </select>
-                                        <button type="button" id="add-mmd-make-btn" onclick="(function(){ const tId = document.getElementById('mmd-type-select')?.value; if(typeof openUnifiedMMDModal === 'function' && tId) { openUnifiedMMDModal({type_id: tId}); } else if(!tId) { alert('Please select a Type first'); } else { console.error('openUnifiedMMDModal not available'); alert('MMD Modal not loaded. Please refresh the page.'); } })()" 
-                                                class="btn btn-primary px-3 py-2 flex-shrink-0" 
-                                                title="Add New Equipment Configuration" disabled>
-                                            <i class="fas fa-plus"></i>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Make <span class="text-red-500">*</span>
+                            </label>
+                            <div class="flex gap-2">
+                                <select id="mmd-make-select" required disabled 
+                                        class="form-input flex-1"
+                                        onchange="handleMMDMakeChange()">
+                                    <option value="">-- Select Type First --</option>
+                                </select>
+                                <button type="button" id="add-mmd-make-btn" onclick="(function(){ const tId = document.getElementById('mmd-type-select')?.value; if(typeof openUnifiedMMDModal === 'function' && tId) { openUnifiedMMDModal({type_id: tId}); } else if(!tId) { alert('Please select a Type first'); } else { console.error('openUnifiedMMDModal not available'); alert('MMD Modal not loaded. Please refresh the page.'); } })()" 
+                                        class="btn btn-primary px-3 py-2 flex-shrink-0" 
+                                        title="Add New Equipment Configuration" disabled>
+                                    <i class="fas fa-plus"></i>
                                 </button>
                             </div>
                         </div>
-                                
-                                <!-- Model -->
+                        
+                        <!-- Model - Inline -->
                         <div>
-                                    <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                        Model <span class="text-red-500">*</span>
-                                    </label>
-                                    <div class="flex gap-2">
-                                        <select id="mmd-model-select" name="model_id" required disabled 
-                                                class="form-input flex-1"
-                                                onchange="handleMMDModelChange()">
-                                            <option value="">-- Select Make First --</option>
-                                        </select>
-                                        <button type="button" id="add-mmd-model-btn" onclick="(function(){ const tId = document.getElementById('mmd-type-select')?.value; const mId = document.getElementById('mmd-make-select')?.value; if(typeof openUnifiedMMDModal === 'function' && tId && mId) { openUnifiedMMDModal({type_id: tId, make_id: mId}); } else if(!tId || !mId) { alert('Please select a Type and Make first'); } else { console.error('openUnifiedMMDModal not available'); alert('MMD Modal not loaded. Please refresh the page.'); } })()" 
-                                                class="btn btn-primary px-3 py-2 flex-shrink-0" 
-                                                title="Add New Equipment Configuration" disabled>
-                                            <i class="fas fa-plus"></i>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Model <span class="text-red-500">*</span>
+                            </label>
+                            <div class="flex gap-2">
+                                <select id="mmd-model-select" name="model_id" required disabled 
+                                        class="form-input flex-1"
+                                        onchange="handleMMDModelChange()">
+                                    <option value="">-- Select Make First --</option>
+                                </select>
+                                <button type="button" id="add-mmd-model-btn" onclick="(function(){ const tId = document.getElementById('mmd-type-select')?.value; const mId = document.getElementById('mmd-make-select')?.value; if(typeof openUnifiedMMDModal === 'function' && tId && mId) { openUnifiedMMDModal({type_id: tId, make_id: mId}); } else if(!tId || !mId) { alert('Please select a Type and Make first'); } else { console.error('openUnifiedMMDModal not available'); alert('MMD Modal not loaded. Please refresh the page.'); } })()" 
+                                        class="btn btn-primary px-3 py-2 flex-shrink-0" 
+                                        title="Add New Equipment Configuration" disabled>
+                                    <i class="fas fa-plus"></i>
                                 </button>
                             </div>
-                                </div>
-                                
-                                <!-- PM Frequency (Auto-populated, Read-only) -->
-                                <div>
-                                    <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                        PM Frequency
-                                    </label>
-                                    <div id="mmd-pm-frequency-display" class="form-input bg-gray-50 text-gray-600">
-                                        <span class="text-sm italic">Select a model to see PM frequency</span>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Selected Configuration Summary -->
-                            <div id="mmd-summary" class="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
-                                <p class="text-sm text-blue-800 text-center">
-                                    <i class="fas fa-info-circle mr-1"></i>
-                                    Complete the selection above to see your configuration
-                                </p>
-                            </div>
-                            
-                            <!-- Hidden fields for form submission -->
-                            <input type="hidden" id="mmd-type-id" name="type_id">
-                            <input type="hidden" id="mmd-make-id" name="make_id">
-                            <input type="hidden" id="mmd-pm-frequency-id" name="pm_frequency_id">
-                            <input type="hidden" id="mmd-pm-frequency-days" name="pm_frequency_days">
                         </div>
+                        
+                        <!-- PM Frequency (Auto-populated, Read-only) - Inline -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                PM Frequency
+                            </label>
+                            <div id="mmd-pm-frequency-display" class="form-input bg-gray-50 text-gray-600">
+                                <span class="text-sm italic">Select a model to see PM frequency</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Hidden fields for form submission -->
+                        <input type="hidden" id="mmd-type-id" name="type_id">
+                        <input type="hidden" id="mmd-make-id" name="make_id">
+                        <input type="hidden" id="mmd-pm-frequency-id" name="pm_frequency_id">
+                        <input type="hidden" id="mmd-pm-frequency-days" name="pm_frequency_days">
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Serial Number *</label>
                             <input type="text" name="serial_number" required class="form-input">
@@ -798,7 +781,7 @@
                             </div>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
-                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Depreciation Profile *</label>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Depreciation Profile</label>
                                     <select name="depreciation_profile_id" id="depreciation-profile-select" class="form-input" onchange="updateDepreciationPreview()">
                                         <option value="">-- Select Profile --</option>
                                     </select>
@@ -825,8 +808,8 @@
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Location</label>
-                            <select name="location_id" id="location-select" class="form-input">
-                                <option value="">Select Location</option>
+                            <select name="location_id" id="location-select" class="form-input" disabled>
+                                <option value="">Select Customer First</option>
                             </select>
                         </div>
                         <div class="md:col-span-2">
@@ -1226,6 +1209,12 @@
                 window.mmdAssetFormManager = new window.MMDAssetFormManager();
                 await window.mmdAssetFormManager.init();
             }
+            
+            // Initialize Asset Depreciation Handler
+            if (window.AssetDepreciationHandler && !window.assetDepreciationHandler && supabaseClient) {
+                window.assetDepreciationHandler = new window.AssetDepreciationHandler(supabaseClient);
+                await window.assetDepreciationHandler.init();
+            }
         });
         
         function setupQuickAddMMDListeners() {
@@ -1603,12 +1592,17 @@
         // Apply sorting when assets are loaded
         async function loadAssets() {
             try {
+                console.log('Loading assets from database...');
                 const { data, error } = await supabaseClient
                     .from('assets')
                     .select('*')
                     .is('deleted_at', null) // Only load assets that haven't been soft deleted
                     .order('id', { ascending: false });
-                if (error) throw error;
+                if (error) {
+                    console.error('Error loading assets:', error);
+                    throw error;
+                }
+                console.log('Loaded', data?.length || 0, 'assets from database');
 
                 // Batch load customers and locations for all assets
                 const customerIds = [...new Set((data || []).map(a => a.customer_id).filter(Boolean))];
@@ -1733,10 +1727,20 @@
             if (!select) return;
             
             const currentValue = select.value; // Preserve current selection if it's still valid
+            
+            // If no customer selected, disable and show placeholder
+            if (!customerId) {
+                select.disabled = true;
+                select.innerHTML = '<option value="">Select Customer First</option>';
+                return;
+            }
+            
+            // Enable dropdown and filter locations by customer
+            select.disabled = false;
             select.innerHTML = '<option value="">Select Location</option>';
             
-            // Filter locations by customer if customerId is provided
-            const filteredLocs = customerId ? locations.filter(loc => loc.customer_id === customerId) : locations;
+            // Filter locations by customer
+            const filteredLocs = locations.filter(loc => loc.customer_id === customerId);
             
             filteredLocs.forEach(location => {
                 const option = document.createElement('option');
@@ -1748,6 +1752,8 @@
             // Restore previous selection if it's still valid
             if (currentValue && filteredLocs.some(loc => loc.id === currentValue)) {
                 select.value = currentValue;
+            } else {
+                select.value = ''; // Clear if previous selection is no longer valid
             }
         }
 
@@ -2717,7 +2723,7 @@
             document.getElementById('pm-management-modal').classList.remove('active');
         }
 
-        function showAddAssetModal() {
+        async function showAddAssetModal() {
             currentAsset = null;
             assetImageUrls = [];
             document.getElementById('modal-title').textContent = 'Add New Asset';
@@ -2727,8 +2733,14 @@
             document.getElementById('edit-asset-id').value = '';
             loadAssetImages([]); // Clear images
             
-            // Reset location dropdown to show all locations (no customer selected yet)
+            // Reset location dropdown - require customer first
             updateLocationDropdown(null);
+            
+            // Reset customer dropdown
+            const customerSelect = document.getElementById('customer-select');
+            if (customerSelect) {
+                customerSelect.value = '';
+            }
             
             // Reset MMD form
             if (window.mmdAssetFormManager) {
@@ -2737,7 +2749,17 @@
             
             // Load MMD hierarchy if not already loaded (using unified reference manager)
             if (window.mmdAssetFormManager && window.mmdAssetFormManager.mmdData.types.length === 0) {
-                window.mmdAssetFormManager.loadMMDHierarchy();
+                await window.mmdAssetFormManager.loadMMDHierarchy();
+            }
+            
+            // Load depreciation profiles - ensure handler is initialized
+            if (!window.assetDepreciationHandler && window.AssetDepreciationHandler && supabaseClient) {
+                window.assetDepreciationHandler = new window.AssetDepreciationHandler(supabaseClient);
+                await window.assetDepreciationHandler.init();
+            }
+            if (window.assetDepreciationHandler) {
+                await window.assetDepreciationHandler.loadProfiles();
+                window.assetDepreciationHandler.populateProfileDropdown();
             }
             
             document.getElementById('wo-tab-button').style.display = 'none';
@@ -3023,8 +3045,13 @@
                 // Update location dropdown if customer is set
                 if (assetSchema && assetSchema.hasCustomerId && asset.customer_id) {
                     if (typeof updateLocationDropdown === 'function') {
-                updateLocationDropdown(asset.customer_id);
-            }
+                        updateLocationDropdown(asset.customer_id);
+                    }
+                } else {
+                    // If no customer, disable location dropdown
+                    if (typeof updateLocationDropdown === 'function') {
+                        updateLocationDropdown(null);
+                    }
                 }
                 
                 // Show work orders tab
@@ -3453,12 +3480,49 @@
                     showToast('Asset updated successfully', 'success');
                 } else {
                     assetData.id = generateAssetId();
-                    const { error } = await supabaseClient.from('assets').insert([assetData]);
-                    if (error) throw error;
+                    console.log('Creating new asset with data:', assetData);
+                    const { data: insertedData, error } = await supabaseClient.from('assets').insert([assetData]).select();
+                    if (error) {
+                        console.error('Error inserting asset:', error);
+                        throw error;
+                    }
+                    console.log('Asset created successfully:', insertedData);
                     showToast('Asset created successfully', 'success');
                 }
                 closeAssetModal();
+                
+                // Reset filters and pagination to show new asset
+                currentPage = 1;
+                const searchInput = document.getElementById('search-input');
+                const statusFilter = document.getElementById('status-filter');
+                const categoryFilter = document.getElementById('category-filter');
+                
+                if (searchInput) searchInput.value = '';
+                if (statusFilter) statusFilter.value = '';
+                if (categoryFilter) categoryFilter.value = '';
+                
+                // Clear column filters
+                Object.keys(columnFilters).forEach(key => {
+                    columnFilters[key] = '';
+                    const filterInput = document.getElementById(`filter-${key}`);
+                    if (filterInput) filterInput.value = '';
+                });
+                
+                // Small delay to ensure database has committed the transaction
+                await new Promise(resolve => setTimeout(resolve, 100));
+                
+                // Reload assets
+                console.log('Reloading assets after save...');
                 await loadAssets();
+                console.log('Assets reloaded. Total assets:', allAssets.length, 'Filtered:', filteredAssets.length);
+                
+                // Scroll to top of asset list to see the new asset
+                const assetsTable = document.getElementById('assets-table');
+                if (assetsTable) {
+                    setTimeout(() => {
+                        assetsTable.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 200);
+                }
             } catch (error) {
                 console.error('Error saving asset:', error);
                 showToast(`Failed to save asset: ${error.message}`, 'error');
@@ -3856,18 +3920,7 @@
             
             if (categoryFilter) categoryFilter.addEventListener('change', applyFilters);
             if (statusFilter) statusFilter.addEventListener('change', applyFilters);
-            if (customerSelect) {
-                customerSelect.addEventListener('change', (e) => {
-                    const selectedCustomerId = e.target.value || null;
-                    updateLocationDropdown(selectedCustomerId);
-                    
-                    // Clear location selection when customer changes
-                    const locationSelect = document.getElementById('location-select');
-                    if (locationSelect) {
-                        locationSelect.value = '';
-                    }
-                });
-            }
+            // Customer change handler is already set up above (line 3876)
             
             // Only add listeners for old category/manufacturer selects if they exist (for backward compatibility)
             if (categorySelect) {
@@ -5993,6 +6046,16 @@
         }
         // Expose immediately
         window.openUnifiedMMDModal = openUnifiedMMDModal;
+        
+        // Global function for depreciation preview update
+        function updateDepreciationPreview() {
+            if (window.assetDepreciationHandler) {
+                window.assetDepreciationHandler.updatePreview();
+            } else {
+                console.warn('AssetDepreciationHandler not available');
+            }
+        }
+        window.updateDepreciationPreview = updateDepreciationPreview;
         
         // Fix modal closing issue - prevent clicks inside from closing the modal
         document.addEventListener('DOMContentLoaded', function() {

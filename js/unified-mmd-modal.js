@@ -131,8 +131,20 @@ class UnifiedMMDModal {
                                         <input type="text" id="unified-checklist-new" class="form-input" placeholder="Enter checklist name">
                                         <textarea id="unified-checklist-desc" class="form-input mt-2" rows="2" placeholder="Description (optional)"></textarea>
                                         
-                                        <!-- Checklist Items Section -->
+                                        <!-- MMD Configurations Display (shows all created Type > Make > Model combinations) -->
                                         <div class="mt-4 border border-gray-200 rounded-lg p-4 bg-gray-50">
+                                            <div class="flex justify-between items-center mb-3">
+                                                <label class="block text-sm font-semibold text-gray-700">All Created MMD Configurations</label>
+                                            </div>
+                                            
+                                            <!-- MMD Configurations List -->
+                                            <div id="unified-checklist-items-list" class="space-y-2 max-h-60 overflow-y-auto">
+                                                <p class="text-xs text-gray-500 text-center py-4">Loading MMD configurations...</p>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Checklist Items Editor (shown when creating new checklist) -->
+                                        <div id="unified-checklist-items-editor-section" class="mt-4 border border-gray-200 rounded-lg p-4 bg-blue-50" style="display: none;">
                                             <div class="flex justify-between items-center mb-3">
                                                 <label class="block text-sm font-semibold text-gray-700">Checklist Items</label>
                                                 <div class="flex gap-2">
@@ -162,7 +174,7 @@ class UnifiedMMDModal {
                                             </div>
                                             
                                             <!-- Checklist Items List -->
-                                            <div id="unified-checklist-items-list" class="space-y-2 max-h-60 overflow-y-auto">
+                                            <div id="unified-checklist-items-editor" class="space-y-2 max-h-60 overflow-y-auto">
                                                 <p class="text-xs text-gray-500 text-center py-4">No items yet. Click "Add Item" or import from CSV/XML.</p>
                                             </div>
                                         </div>
@@ -315,6 +327,14 @@ class UnifiedMMDModal {
             });
         }
 
+        // Checklist new input - toggle editor section
+        const checklistNew = document.getElementById('unified-checklist-new');
+        if (checklistNew) {
+            checklistNew.addEventListener('input', () => {
+                this.toggleChecklistEditor();
+            });
+        }
+
         // Prevent modal from closing when clicking inside - BUT allow buttons to work
         const modalContent = this.modal.querySelector('.modal-content');
         if (modalContent) {
@@ -336,6 +356,53 @@ class UnifiedMMDModal {
 
         // Setup checklist handlers
         this.setupChecklistHandlers();
+    }
+
+    setupChecklistHandlers() {
+        // Import CSV button
+        const importCsvBtn = document.getElementById('unified-checklist-import-csv');
+        if (importCsvBtn) {
+            importCsvBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.showImportArea('csv');
+            });
+        }
+
+        // Import XML button
+        const importXmlBtn = document.getElementById('unified-checklist-import-xml');
+        if (importXmlBtn) {
+            importXmlBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.showImportArea('xml');
+            });
+        }
+
+        // Add Item button
+        const addItemBtn = document.getElementById('unified-checklist-add-item');
+        if (addItemBtn) {
+            addItemBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.addChecklistItem();
+            });
+        }
+
+        // Parse & Add Items button
+        const parseImportBtn = document.getElementById('unified-checklist-parse-import');
+        if (parseImportBtn) {
+            parseImportBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.parseAndImportItems();
+            });
+        }
+
+        // Cancel Import button
+        const cancelImportBtn = document.getElementById('unified-checklist-cancel-import');
+        if (cancelImportBtn) {
+            cancelImportBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.hideImportArea();
+            });
+        }
     }
 
     enableMakeFields() {
@@ -389,30 +456,130 @@ class UnifiedMMDModal {
         this.reset();
         
         // Load initial data
-        await this.loadTypes();
-        await this.loadPMFrequencies();
-        await this.loadChecklists();
+        await Promise.all([
+            this.loadTypes(),
+            this.loadPMFrequencies(),
+            this.loadChecklists()
+        ]);
         
-        // If context has pre-selected values, populate them
-        if (context.type_id) {
-            document.getElementById('unified-type-select').value = context.type_id;
-            await this.loadMakes(context.type_id);
-            this.enableMakeFields();
-        }
-        if (context.make_id) {
-            document.getElementById('unified-make-select').value = context.make_id;
-            await this.loadModels(context.make_id);
-            this.enableModelFields();
-        }
-        if (context.model_id) {
-            document.getElementById('unified-model-select').value = context.model_id;
-            this.enablePMFrequency();
+        // Load MMD configurations list (don't await - let it load in background)
+        this.loadAllMMDConfigurations().catch(err => {
+            console.error('Error loading MMD configurations on open:', err);
+        });
+        
+        // If editing an existing configuration, load it
+        if (context.config_id) {
+            await this.loadConfiguration(context.config_id);
+        } else {
+            // If context has pre-selected values, populate them
+            if (context.type_id) {
+                document.getElementById('unified-type-select').value = context.type_id;
+                await this.loadMakes(context.type_id);
+                this.enableMakeFields();
+            }
+            if (context.make_id) {
+                document.getElementById('unified-make-select').value = context.make_id;
+                await this.loadModels(context.make_id);
+                this.enableModelFields();
+            }
+            if (context.model_id) {
+                document.getElementById('unified-model-select').value = context.model_id;
+                this.enablePMFrequency();
+            }
         }
 
         // Store instance globally for inline handlers
         window.unifiedMMDModalInstance = this;
 
         this.modal.classList.add('active');
+    }
+
+    async loadConfiguration(configId) {
+        try {
+            const { data: config, error } = await this.supabaseClient
+                .from('device_configurations')
+                .select(`
+                    id,
+                    type_id,
+                    category_id,
+                    make_id,
+                    model_id,
+                    pm_frequency_id,
+                    checklist_id,
+                    equipment_types:type_id(id, name),
+                    equipment_makes:make_id(id, name),
+                    equipment_models:model_id(id, name),
+                    pm_frequencies:pm_frequency_id(id, name),
+                    checklists:checklist_id(id, name)
+                `)
+                .eq('id', configId)
+                .single();
+
+            if (error) {
+                // Try legacy column names
+                const { data: legacyConfig, error: legacyError } = await this.supabaseClient
+                    .from('device_configurations')
+                    .select('id, category_id, make_id, model_id, pm_frequency_id, checklist_id')
+                    .eq('id', configId)
+                    .single();
+
+                if (legacyError) throw legacyError;
+
+                // Use legacy config
+                if (legacyConfig.category_id) {
+                    document.getElementById('unified-type-select').value = legacyConfig.category_id;
+                    await this.loadMakes(legacyConfig.category_id);
+                    this.enableMakeFields();
+                }
+                if (legacyConfig.make_id) {
+                    document.getElementById('unified-make-select').value = legacyConfig.make_id;
+                    await this.loadModels(legacyConfig.make_id);
+                    this.enableModelFields();
+                }
+                if (legacyConfig.model_id) {
+                    document.getElementById('unified-model-select').value = legacyConfig.model_id;
+                    this.enablePMFrequency();
+                }
+                if (legacyConfig.pm_frequency_id) {
+                    document.getElementById('unified-pm-frequency-select').value = legacyConfig.pm_frequency_id;
+                }
+                if (legacyConfig.checklist_id) {
+                    document.getElementById('unified-checklist-select').value = legacyConfig.checklist_id;
+                }
+                return;
+            }
+
+            // Use new config structure
+            const typeId = config.type_id || config.category_id;
+            if (typeId) {
+                document.getElementById('unified-type-select').value = typeId;
+                await this.loadMakes(typeId);
+                this.enableMakeFields();
+            }
+            if (config.make_id) {
+                document.getElementById('unified-make-select').value = config.make_id;
+                await this.loadModels(config.make_id);
+                this.enableModelFields();
+            }
+            if (config.model_id) {
+                document.getElementById('unified-model-select').value = config.model_id;
+                this.enablePMFrequency();
+            }
+            if (config.pm_frequency_id) {
+                document.getElementById('unified-pm-frequency-select').value = config.pm_frequency_id;
+            }
+            if (config.checklist_id) {
+                document.getElementById('unified-checklist-select').value = config.checklist_id;
+            }
+
+            // Store config ID for update
+            this.currentConfigId = configId;
+        } catch (error) {
+            console.error('Error loading configuration:', error);
+            if (window.showToast) {
+                window.showToast(`Error loading configuration: ${error.message}`, 'error');
+            }
+        }
     }
 
     close() {
@@ -428,6 +595,25 @@ class UnifiedMMDModal {
         this.checklistItems = [];
         this.renderChecklistItems();
         this.hideImportArea();
+        this.currentConfigId = null; // Clear edit mode
+        
+        // Hide checklist editor section
+        const editorSection = document.getElementById('unified-checklist-items-editor-section');
+        if (editorSection) {
+            editorSection.style.display = 'none';
+        }
+    }
+
+    toggleChecklistEditor() {
+        const checklistNew = document.getElementById('unified-checklist-new');
+        const editorSection = document.getElementById('unified-checklist-items-editor-section');
+        if (checklistNew && editorSection) {
+            if (checklistNew.value.trim()) {
+                editorSection.style.display = 'block';
+            } else {
+                editorSection.style.display = 'none';
+            }
+        }
     }
 
     async loadTypes() {
@@ -580,8 +766,20 @@ class UnifiedMMDModal {
         }
     }
 
+    toggleChecklistEditor() {
+        const checklistNew = document.getElementById('unified-checklist-new');
+        const editorSection = document.getElementById('unified-checklist-items-editor-section');
+        if (checklistNew && editorSection) {
+            if (checklistNew.value.trim()) {
+                editorSection.style.display = 'block';
+            } else {
+                editorSection.style.display = 'none';
+            }
+        }
+    }
+
     renderChecklistItems() {
-        const container = document.getElementById('unified-checklist-items-list');
+        const container = document.getElementById('unified-checklist-items-editor');
         if (!container) return;
 
         if (this.checklistItems.length === 0) {
@@ -937,42 +1135,65 @@ class UnifiedMMDModal {
                 }
             }
 
-            // Create device configuration if checklist is selected
-            if (checklistId && modelId) {
+            // Create or update device configuration
+            if (modelId) {
                 try {
-                    const { data: existing } = await this.supabaseClient
-                        .from('device_configurations')
-                        .select('id')
-                        .eq('category_id', typeId)
-                        .eq('make_id', makeId)
-                        .eq('model_id', modelId)
-                        .maybeSingle();
+                    const typeName = document.getElementById('unified-type-select')?.selectedOptions[0]?.textContent || typeNew;
+                    const makeName = document.getElementById('unified-make-select')?.selectedOptions[0]?.textContent || makeNew;
+                    const modelName = document.getElementById('unified-model-select')?.selectedOptions[0]?.textContent || modelNew;
 
-                    if (!existing) {
-                        const typeName = document.getElementById('unified-type-select')?.selectedOptions[0]?.textContent || typeNew;
-                        const makeName = document.getElementById('unified-make-select')?.selectedOptions[0]?.textContent || makeNew;
-                        const modelName = document.getElementById('unified-model-select')?.selectedOptions[0]?.textContent || modelNew;
-
+                    if (this.currentConfigId) {
+                        // Update existing configuration
+                        const updateData = {
+                            type_id: typeId,
+                            category_id: typeId, // Legacy support
+                            make_id: makeId,
+                            model_id: modelId,
+                            pm_frequency_id: pmFrequencyId,
+                            name: `${typeName} - ${makeName} - ${modelName}`
+                        };
+                        if (checklistId) {
+                            updateData.checklist_id = checklistId;
+                        }
                         await this.supabaseClient
                             .from('device_configurations')
-                            .insert([{
-                                name: `${typeName} - ${makeName} - ${modelName}`,
-                                category_id: typeId,
-                                make_id: makeId,
-                                model_id: modelId,
-                                pm_frequency_id: pmFrequencyId,
-                                checklist_id: checklistId,
-                                is_active: true
-                            }]);
-                    } else if (checklistId) {
-                        // Update existing configuration with checklist
-                        await this.supabaseClient
+                            .update(updateData)
+                            .eq('id', this.currentConfigId);
+                    } else {
+                        // Create new configuration
+                        const { data: existing } = await this.supabaseClient
                             .from('device_configurations')
-                            .update({ checklist_id: checklistId })
-                            .eq('id', existing.id);
+                            .select('id')
+                            .eq('type_id', typeId)
+                            .or(`category_id.eq.${typeId}`)
+                            .eq('make_id', makeId)
+                            .eq('model_id', modelId)
+                            .eq('is_active', true)
+                            .maybeSingle();
+
+                        if (!existing) {
+                            await this.supabaseClient
+                                .from('device_configurations')
+                                .insert([{
+                                    name: `${typeName} - ${makeName} - ${modelName}`,
+                                    type_id: typeId,
+                                    category_id: typeId, // Legacy support
+                                    make_id: makeId,
+                                    model_id: modelId,
+                                    pm_frequency_id: pmFrequencyId,
+                                    checklist_id: checklistId || null,
+                                    is_active: true
+                                }]);
+                        } else if (checklistId) {
+                            // Update existing configuration with checklist
+                            await this.supabaseClient
+                                .from('device_configurations')
+                                .update({ checklist_id: checklistId })
+                                .eq('id', existing.id);
+                        }
                     }
                 } catch (configError) {
-                    console.warn('Could not create device configuration:', configError);
+                    console.warn('Could not save device configuration:', configError);
                 }
             }
 
@@ -1026,6 +1247,24 @@ class UnifiedMMDModal {
                 }
             }
 
+            // Refresh Settings page summary stats if on Settings page
+            if (typeof SettingsManager !== 'undefined' && SettingsManager.loadMasterDatabaseStats) {
+                await SettingsManager.loadMasterDatabaseStats();
+            }
+            
+            // Also try to refresh if the function exists globally
+            if (typeof window.refreshMMDStats === 'function') {
+                window.refreshMMDStats();
+            }
+            
+            // Reload MMD configurations list in the modal if it's open
+            await this.loadAllMMDConfigurations();
+            
+            // Refresh Settings page MMD list if on Settings page
+            if (typeof SettingsManager !== 'undefined' && SettingsManager.loadMMDConfigurations) {
+                await SettingsManager.loadMMDConfigurations();
+            }
+
             // Show success message
             if (window.showToast) {
                 window.showToast('Equipment configuration created successfully!', 'success');
@@ -1042,6 +1281,208 @@ class UnifiedMMDModal {
                 alert(`Error: ${error.message}`);
             }
         }
+    }
+
+    async loadAllMMDConfigurations() {
+        const container = document.getElementById('unified-checklist-items-list');
+        if (!container) {
+            console.warn('MMD configurations container not found, retrying...');
+            // Retry after a short delay
+            setTimeout(() => this.loadAllMMDConfigurations(), 100);
+            return;
+        }
+
+        try {
+            // Show loading state
+            container.innerHTML = '<p class="text-xs text-gray-500 text-center py-4"><i class="fas fa-spinner fa-spin mr-2"></i>Loading MMD configurations...</p>';
+            
+            // Load device configurations - use simple select first, then enrich
+            const { data: configs, error } = await this.supabaseClient
+                .from('device_configurations')
+                .select('id, name, type_id, category_id, make_id, model_id, pm_frequency_id, checklist_id, is_active')
+                .eq('is_active', true)
+                .order('name');
+
+            if (error) {
+                console.error('Error loading MMD configurations:', error);
+                container.innerHTML = `<p class="text-xs text-red-500 text-center py-4">Error loading configurations: ${error.message}</p>`;
+                return;
+            }
+
+            if (!configs || configs.length === 0) {
+                this.renderMMDConfigurations([]);
+                return;
+            }
+
+            // Enrich with related data
+            const enrichedConfigs = await Promise.all(
+                configs.map(async (config) => {
+                    const enriched = { ...config };
+                    const typeId = config.type_id || config.category_id;
+                    
+                    if (typeId) {
+                        try {
+                            const { data: type } = await this.supabaseClient
+                                .from('equipment_types')
+                                .select('id, name')
+                                .eq('id', typeId)
+                                .single();
+                            enriched.equipment_types = type;
+                        } catch (e) {
+                            // Try legacy table
+                            try {
+                                const { data: type } = await this.supabaseClient
+                                    .from('device_categories')
+                                    .select('id, name')
+                                    .eq('id', typeId)
+                                    .single();
+                                enriched.equipment_types = type;
+                            } catch (e2) {
+                                // Silently fail
+                            }
+                        }
+                    }
+                    
+                    if (config.make_id) {
+                        try {
+                            const { data: make } = await this.supabaseClient
+                                .from('equipment_makes')
+                                .select('id, name')
+                                .eq('id', config.make_id)
+                                .single();
+                            enriched.equipment_makes = make;
+                        } catch (e) {
+                            // Try legacy table
+                            try {
+                                const { data: make } = await this.supabaseClient
+                                    .from('device_makes')
+                                    .select('id, name')
+                                    .eq('id', config.make_id)
+                                    .single();
+                                enriched.equipment_makes = make;
+                            } catch (e2) {
+                                // Silently fail
+                            }
+                        }
+                    }
+                    
+                    if (config.model_id) {
+                        try {
+                            const { data: model } = await this.supabaseClient
+                                .from('equipment_models')
+                                .select('id, name')
+                                .eq('id', config.model_id)
+                                .single();
+                            enriched.equipment_models = model;
+                        } catch (e) {
+                            // Try legacy table
+                            try {
+                                const { data: model } = await this.supabaseClient
+                                    .from('device_models')
+                                    .select('id, name')
+                                    .eq('id', config.model_id)
+                                    .single();
+                                enriched.equipment_models = model;
+                            } catch (e2) {
+                                // Silently fail
+                            }
+                        }
+                    }
+                    
+                    if (config.pm_frequency_id) {
+                        try {
+                            const { data: freq } = await this.supabaseClient
+                                .from('pm_frequencies')
+                                .select('id, name, days')
+                                .eq('id', config.pm_frequency_id)
+                                .single();
+                            enriched.pm_frequencies = freq;
+                        } catch (e) {
+                            // Silently fail
+                        }
+                    }
+                    
+                    return enriched;
+                })
+            );
+
+            console.log('Loaded MMD configurations:', enrichedConfigs.length);
+            this.renderMMDConfigurations(enrichedConfigs);
+        } catch (error) {
+            console.error('Error in loadAllMMDConfigurations:', error);
+            const container = document.getElementById('unified-checklist-items-list');
+            if (container) {
+                container.innerHTML = `<p class="text-xs text-red-500 text-center py-4">Error loading configurations: ${error.message}</p>`;
+            }
+        }
+    }
+
+    renderMMDConfigurations(configs) {
+        const container = document.getElementById('unified-checklist-items-list');
+        if (!container) {
+            console.warn('MMD configurations container not found');
+            return;
+        }
+
+        if (configs.length === 0) {
+            container.innerHTML = '<p class="text-xs text-gray-500 text-center py-4">No MMD configurations created yet. Create one using the form above.</p>';
+            return;
+        }
+
+        // Group by Type > Make > Model
+        const grouped = {};
+        configs.forEach(config => {
+            const typeName = config.equipment_types?.name || 'Unknown Type';
+            const makeName = config.equipment_makes?.name || 'Unknown Make';
+            const modelName = config.equipment_models?.name || 'Unknown Model';
+            const freqName = config.pm_frequencies?.name || 'No PM Frequency';
+            const freqDays = config.pm_frequencies?.days || 'N/A';
+
+            const key = `${typeName}|${makeName}|${modelName}`;
+            if (!grouped[key]) {
+                grouped[key] = {
+                    type: typeName,
+                    make: makeName,
+                    model: modelName,
+                    frequency: freqName,
+                    frequencyDays: freqDays,
+                    hasChecklist: !!config.checklist_id,
+                    isActive: config.is_active,
+                    count: 0
+                };
+            }
+            grouped[key].count++;
+        });
+
+        const items = Object.values(grouped);
+        container.innerHTML = `
+            <div class="space-y-2">
+                ${items.map((item, index) => `
+                    <div class="bg-white border border-gray-200 rounded p-3 hover:bg-gray-50 transition-colors">
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="text-xs font-semibold text-gray-600">${index + 1}.</span>
+                                    <span class="text-sm font-semibold text-gray-900">${this.escapeHtml(item.type)}</span>
+                                    <span class="text-xs text-gray-400">→</span>
+                                    <span class="text-sm font-semibold text-gray-900">${this.escapeHtml(item.make)}</span>
+                                    <span class="text-xs text-gray-400">→</span>
+                                    <span class="text-sm font-semibold text-gray-900">${this.escapeHtml(item.model)}</span>
+                                </div>
+                                <div class="flex items-center gap-3 text-xs text-gray-600 mt-2">
+                                    <span class="flex items-center gap-1">
+                                        <i class="fas fa-calendar-alt"></i>
+                                        PM: ${this.escapeHtml(item.frequency)} (${item.frequencyDays} days)
+                                    </span>
+                                    ${item.hasChecklist ? '<span class="text-green-600"><i class="fas fa-check-circle"></i> Has Checklist</span>' : '<span class="text-gray-400">No Checklist</span>'}
+                                    ${item.isActive ? '<span class="text-green-600"><i class="fas fa-circle"></i> Active</span>' : '<span class="text-red-600"><i class="fas fa-circle"></i> Inactive</span>'}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
     }
 }
 
