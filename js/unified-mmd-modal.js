@@ -814,7 +814,8 @@ class UnifiedMMDModal {
             const modelSelect = document.getElementById('unified-model-select').value;
             const modelNew = document.getElementById('unified-model-new').value.trim();
             const pmFrequencyId = document.getElementById('unified-pm-frequency-select').value;
-            const checklistId = document.getElementById('unified-checklist-select').value || null;
+            const checklistSelect = document.getElementById('unified-checklist-select').value;
+            const checklistNew = document.getElementById('unified-checklist-new').value.trim();
 
             // Validate
             if (!typeSelect && !typeNew) {
