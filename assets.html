@@ -713,7 +713,7 @@
                                                 onchange="handleMMDMakeChange()">
                                             <option value="">-- Select Type First --</option>
                                         </select>
-                                        <button type="button" id="add-mmd-make-btn" onclick="const typeId = document.getElementById('mmd-type-select')?.value; if(typeof openUnifiedMMDModal === 'function' && typeId) { openUnifiedMMDModal({type_id: typeId}); } else if(!typeId) { alert('Please select a Type first'); } else { console.error('openUnifiedMMDModal not available'); alert('MMD Modal not loaded. Please refresh the page.'); }" 
+                                        <button type="button" id="add-mmd-make-btn" onclick="(function(){ const tId = document.getElementById('mmd-type-select')?.value; if(typeof openUnifiedMMDModal === 'function' && tId) { openUnifiedMMDModal({type_id: tId}); } else if(!tId) { alert('Please select a Type first'); } else { console.error('openUnifiedMMDModal not available'); alert('MMD Modal not loaded. Please refresh the page.'); } })()" 
                                                 class="btn btn-primary px-3 py-2 flex-shrink-0" 
                                                 title="Add New Equipment Configuration" disabled>
                                             <i class="fas fa-plus"></i>
@@ -732,7 +732,7 @@
                                                 onchange="handleMMDModelChange()">
                                             <option value="">-- Select Make First --</option>
                                         </select>
-                                        <button type="button" id="add-mmd-model-btn" onclick="const typeId = document.getElementById('mmd-type-select')?.value; const makeId = document.getElementById('mmd-make-select')?.value; if(typeof openUnifiedMMDModal === 'function' && typeId && makeId) { openUnifiedMMDModal({type_id: typeId, make_id: makeId}); } else if(!typeId || !makeId) { alert('Please select a Type and Make first'); } else { console.error('openUnifiedMMDModal not available'); alert('MMD Modal not loaded. Please refresh the page.'); }" 
+                                        <button type="button" id="add-mmd-model-btn" onclick="(function(){ const tId = document.getElementById('mmd-type-select')?.value; const mId = document.getElementById('mmd-make-select')?.value; if(typeof openUnifiedMMDModal === 'function' && tId && mId) { openUnifiedMMDModal({type_id: tId, make_id: mId}); } else if(!tId || !mId) { alert('Please select a Type and Make first'); } else { console.error('openUnifiedMMDModal not available'); alert('MMD Modal not loaded. Please refresh the page.'); } })()" 
                                                 class="btn btn-primary px-3 py-2 flex-shrink-0" 
                                                 title="Add New Equipment Configuration" disabled>
                                             <i class="fas fa-plus"></i>
