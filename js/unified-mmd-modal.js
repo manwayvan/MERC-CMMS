@@ -113,15 +113,61 @@ class UnifiedMMDModal {
                                 <p class="text-xs text-gray-500 mt-1">PM Frequency is required for all models</p>
                             </div>
 
-                            <!-- PM Checklist (Optional) -->
+                            <!-- PM Checklist -->
                             <div>
                                 <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                    PM Checklist (Optional)
+                                    PM Checklist <span class="text-red-500">*</span>
                                 </label>
-                                <select id="unified-checklist-select" class="form-input">
-                                    <option value="">-- No Checklist --</option>
-                                </select>
-                                <p class="text-xs text-gray-500 mt-1">Optional: Link a checklist for this model</p>
+                                <div class="space-y-3">
+                                    <div>
+                                        <label class="block text-xs text-gray-600 mb-1">Select Existing Checklist</label>
+                                        <select id="unified-checklist-select" class="form-input">
+                                            <option value="">-- Select Existing Checklist --</option>
+                                        </select>
+                                    </div>
+                                    <div class="text-center text-gray-500 text-xs">OR</div>
+                                    <div>
+                                        <label class="block text-xs text-gray-600 mb-1">Create New Checklist</label>
+                                        <input type="text" id="unified-checklist-new" class="form-input" placeholder="Enter checklist name">
+                                        <textarea id="unified-checklist-desc" class="form-input mt-2" rows="2" placeholder="Description (optional)"></textarea>
+                                        
+                                        <!-- Checklist Items Section -->
+                                        <div class="mt-4 border border-gray-200 rounded-lg p-4 bg-gray-50">
+                                            <div class="flex justify-between items-center mb-3">
+                                                <label class="block text-sm font-semibold text-gray-700">Checklist Items</label>
+                                                <div class="flex gap-2">
+                                                    <button type="button" id="unified-checklist-import-csv" class="btn btn-secondary btn-sm text-xs">
+                                                        <i class="fas fa-file-csv mr-1"></i>Import CSV
+                                                    </button>
+                                                    <button type="button" id="unified-checklist-import-xml" class="btn btn-secondary btn-sm text-xs">
+                                                        <i class="fas fa-file-code mr-1"></i>Import XML
+                                                    </button>
+                                                    <button type="button" id="unified-checklist-add-item" class="btn btn-primary btn-sm text-xs">
+                                                        <i class="fas fa-plus mr-1"></i>Add Item
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- CSV/XML Import Area -->
+                                            <div id="unified-checklist-import-area" class="mb-3" style="display: none;">
+                                                <textarea id="unified-checklist-import-data" class="form-input text-xs" rows="4" placeholder="Paste CSV (comma-separated) or XML data here..."></textarea>
+                                                <div class="flex gap-2 mt-2">
+                                                    <button type="button" id="unified-checklist-parse-import" class="btn btn-primary btn-sm text-xs">
+                                                        <i class="fas fa-check mr-1"></i>Parse & Add Items
+                                                    </button>
+                                                    <button type="button" id="unified-checklist-cancel-import" class="btn btn-secondary btn-sm text-xs">
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Checklist Items List -->
+                                            <div id="unified-checklist-items-list" class="space-y-2 max-h-60 overflow-y-auto">
+                                                <p class="text-xs text-gray-500 text-center py-4">No items yet. Click "Add Item" or import from CSV/XML.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             <!-- Action Buttons -->
@@ -373,6 +419,9 @@ class UnifiedMMDModal {
         this.disableMakeFields();
         this.disableModelFields();
         this.disablePMFrequency();
+        this.checklistItems = [];
+        this.renderChecklistItems();
+        this.hideImportArea();
     }
 
     async loadTypes() {
@@ -587,6 +636,47 @@ class UnifiedMMDModal {
                     .eq('id', modelId);
             }
 
+            // Create checklist if needed
+            let checklistId = checklistSelect;
+            if (!checklistId && checklistNew) {
+                // Create new checklist
+                const { data: checklistData, error: checklistError } = await this.supabaseClient
+                    .from('checklists')
+                    .insert([{
+                        name: checklistNew,
+                        description: document.getElementById('unified-checklist-desc').value.trim() || null,
+                        category: 'PM',
+                        is_active: true
+                    }])
+                    .select()
+                    .single();
+                
+                if (checklistError) throw checklistError;
+                checklistId = checklistData.id;
+
+                // Create checklist items
+                if (this.checklistItems.length > 0) {
+                    const itemsToSave = this.checklistItems
+                        .filter(item => item.task_name.trim())
+                        .map((item, index) => ({
+                            checklist_id: checklistId,
+                            task_name: item.task_name.trim(),
+                            task_description: item.task_description?.trim() || null,
+                            task_type: item.task_type || 'checkbox',
+                            sort_order: index,
+                            is_required: item.is_required || false
+                        }));
+
+                    if (itemsToSave.length > 0) {
+                        const { error: itemsError } = await this.supabaseClient
+                            .from('checklist_items')
+                            .insert(itemsToSave);
+                        
+                        if (itemsError) throw itemsError;
+                    }
+                }
+            }
+
             // Create device configuration if checklist is selected
             if (checklistId && modelId) {
                 try {
@@ -614,6 +704,12 @@ class UnifiedMMDModal {
                                 checklist_id: checklistId,
                                 is_active: true
                             }]);
+                    } else if (checklistId) {
+                        // Update existing configuration with checklist
+                        await this.supabaseClient
+                            .from('device_configurations')
+                            .update({ checklist_id: checklistId })
+                            .eq('id', existing.id);
                     }
                 } catch (configError) {
                     console.warn('Could not create device configuration:', configError);
