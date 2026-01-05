@@ -71,15 +71,27 @@ const MasterDBManager = {
     },
 
     async openMasterModal() {
-        const modal = document.getElementById('master-db-modal');
-        if (!modal) return;
-
-        // Default to unified tab
-        this.currentTab = 'unified';
-        this.switchMasterTab('unified');
-        await this.loadConfigurations();
-        await this.loadPMFrequencies();
-        modal.classList.add('active');
+        // Use the unified MMD modal instead of the old tabbed interface
+        if (typeof window.openUnifiedMMDModal === 'function') {
+            window.openUnifiedMMDModal();
+        } else {
+            // Fallback: try to initialize it
+            const supabaseClient = this.supabaseClient || window.supabaseClient || window.sharedSupabaseClient;
+            if (!supabaseClient) {
+                alert('Database connection not available');
+                return;
+            }
+            
+            if (!window.UnifiedMMDModal) {
+                alert('MMD Modal system not loaded. Please refresh the page.');
+                return;
+            }
+            
+            if (!window.unifiedMMDModalInstance) {
+                window.unifiedMMDModalInstance = new window.UnifiedMMDModal(supabaseClient);
+            }
+            window.unifiedMMDModalInstance.open();
+        }
     },
 
     switchMasterTab(tab) {
