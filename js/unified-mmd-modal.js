@@ -310,18 +310,22 @@ class UnifiedMMDModal {
 
         // Prevent modal from closing when clicking inside
         const modalContent = this.modal.querySelector('.modal-content');
-        modalContent.addEventListener('click', (e) => {
-            e.stopPropagation();
-            e.stopImmediatePropagation();
-        });
+        if (modalContent) {
+            ['click', 'mousedown', 'mouseup'].forEach(eventType => {
+                modalContent.addEventListener(eventType, (e) => {
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                }, true);
+            });
+        }
 
-        // Prevent backdrop clicks from closing
+        // Prevent backdrop clicks from closing - only close on direct backdrop click
         this.modal.addEventListener('click', (e) => {
+            // Only close if clicking directly on the modal backdrop (not children)
             if (e.target === this.modal) {
-                // Only close if clicking directly on backdrop
                 this.close();
             }
-        });
+        }, false);
     }
 
     async open(context = {}) {

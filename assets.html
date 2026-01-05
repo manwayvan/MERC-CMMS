@@ -713,9 +713,9 @@
                                                 onchange="handleMMDMakeChange()">
                                             <option value="">-- Select Type First --</option>
                                         </select>
-                                        <button type="button" onclick="openUnifiedMMDModal({type_id: document.getElementById('mmd-type-select')?.value})" 
+                                        <button type="button" id="add-mmd-make-btn" onclick="const typeId = document.getElementById('mmd-type-select')?.value; if(typeof openUnifiedMMDModal === 'function' && typeId) { openUnifiedMMDModal({type_id: typeId}); } else if(!typeId) { alert('Please select a Type first'); } else { console.error('openUnifiedMMDModal not available'); alert('MMD Modal not loaded. Please refresh the page.'); }" 
                                                 class="btn btn-primary px-3 py-2 flex-shrink-0" 
-                                                title="Add New Equipment Configuration" id="add-mmd-make-btn" disabled>
+                                                title="Add New Equipment Configuration" disabled>
                                             <i class="fas fa-plus"></i>
                                 </button>
                             </div>
@@ -732,9 +732,9 @@
                                                 onchange="handleMMDModelChange()">
                                             <option value="">-- Select Make First --</option>
                                         </select>
-                                        <button type="button" onclick="openUnifiedMMDModal({type_id: document.getElementById('mmd-type-select')?.value, make_id: document.getElementById('mmd-make-select')?.value})" 
+                                        <button type="button" id="add-mmd-model-btn" onclick="const typeId = document.getElementById('mmd-type-select')?.value; const makeId = document.getElementById('mmd-make-select')?.value; if(typeof openUnifiedMMDModal === 'function' && typeId && makeId) { openUnifiedMMDModal({type_id: typeId, make_id: makeId}); } else if(!typeId || !makeId) { alert('Please select a Type and Make first'); } else { console.error('openUnifiedMMDModal not available'); alert('MMD Modal not loaded. Please refresh the page.'); }" 
                                                 class="btn btn-primary px-3 py-2 flex-shrink-0" 
-                                                title="Add New Equipment Configuration" id="add-mmd-model-btn" disabled>
+                                                title="Add New Equipment Configuration" disabled>
                                             <i class="fas fa-plus"></i>
                                 </button>
                             </div>
@@ -5944,12 +5944,15 @@
         window.handleMMDMakeChange = handleMMDMakeChange;
         window.handleMMDModelChange = handleMMDModelChange;
         
-        // Unified MMD Modal opener
+        // Unified MMD Modal opener - MUST be available immediately
         let unifiedMMDModalInstance = null;
         function openUnifiedMMDModal(context = {}) {
-            if (!unifiedMMDModalInstance) {
+            console.log('openUnifiedMMDModal called with context:', context);
+            try {
+                // Get Supabase client
                 const supabaseClient = window.supabaseClient || window.sharedSupabaseClient;
                 if (!supabaseClient) {
+                    console.error('No Supabase client available');
                     if (window.showToast) {
                         window.showToast('Database connection not available', 'error');
                     } else {
@@ -5957,10 +5960,37 @@
                     }
                     return;
                 }
-                unifiedMMDModalInstance = new window.UnifiedMMDModal(supabaseClient);
+
+                // Check if UnifiedMMDModal class is available
+                if (!window.UnifiedMMDModal) {
+                    console.error('UnifiedMMDModal class not loaded yet');
+                    if (window.showToast) {
+                        window.showToast('MMD Modal system not loaded. Please refresh the page.', 'error');
+                    } else {
+                        alert('MMD Modal system not loaded. Please refresh the page.');
+                    }
+                    return;
+                }
+
+                // Create instance if needed
+                if (!unifiedMMDModalInstance) {
+                    console.log('Creating new UnifiedMMDModal instance');
+                    unifiedMMDModalInstance = new window.UnifiedMMDModal(supabaseClient);
+                }
+
+                // Open the modal
+                console.log('Opening unified MMD modal');
+                unifiedMMDModalInstance.open(context);
+            } catch (error) {
+                console.error('Error opening unified MMD modal:', error);
+                if (window.showToast) {
+                    window.showToast(`Error: ${error.message}`, 'error');
+                } else {
+                    alert(`Error: ${error.message}`);
+                }
             }
-            unifiedMMDModalInstance.open(context);
         }
+        // Expose immediately
         window.openUnifiedMMDModal = openUnifiedMMDModal;
         
         // Fix modal closing issue - prevent clicks inside from closing the modal
