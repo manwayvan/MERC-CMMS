@@ -409,6 +409,9 @@ class UnifiedMMDModal {
             this.enablePMFrequency();
         }
 
+        // Store instance globally for inline handlers
+        window.unifiedMMDModalInstance = this;
+
         this.modal.classList.add('active');
     }
 
@@ -972,9 +975,22 @@ class UnifiedMMDModal {
                 }
             }
 
-            // Invalidate caches
-            if (window.MMDReferenceManager) {
-                window.MMDReferenceManager.invalidateCache();
+            // Invalidate caches - get instance from mmdAssetFormManager or create new one
+            try {
+                if (window.mmdAssetFormManager && window.mmdAssetFormManager.referenceManager) {
+                    window.mmdAssetFormManager.referenceManager.invalidateCache();
+                } else if (window.MMDReferenceManager) {
+                    // Try static method first
+                    if (typeof window.MMDReferenceManager.invalidateAllCaches === 'function') {
+                        window.MMDReferenceManager.invalidateAllCaches();
+                    } else {
+                        // Create a temporary instance to invalidate
+                        const tempInstance = new window.MMDReferenceManager(this.supabaseClient);
+                        tempInstance.invalidateCache();
+                    }
+                }
+            } catch (cacheError) {
+                console.warn('Could not invalidate MMD cache:', cacheError);
             }
 
             // Refresh dropdowns if asset modal is open
