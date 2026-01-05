@@ -449,28 +449,46 @@ class UnifiedMMDModal {
     }
 
     async nextStep() {
-        // Validate current step
-        if (!await this.validateCurrentStep()) {
-            return;
-        }
-
-        // Process current step
-        await this.processCurrentStep();
-
-        // Move to next step
-        const steps = ['type', 'make', 'model', 'pm', 'checklist'];
-        const currentIndex = steps.indexOf(this.currentStep);
-        if (currentIndex < steps.length - 1) {
-            this.updateStep(steps[currentIndex + 1]);
-            
-            // Load dependent data
-            if (this.currentStep === 'make') {
-                await this.loadMakes();
-            } else if (this.currentStep === 'model') {
-                await this.loadModels();
-            } else if (this.currentStep === 'pm') {
-                await this.loadPMFrequencies();
+        console.log('nextStep called, current step:', this.currentStep);
+        try {
+            // Validate current step
+            const isValid = await this.validateCurrentStep();
+            console.log('Validation result:', isValid);
+            if (!isValid) {
+                return;
             }
+
+            // Process current step
+            console.log('Processing current step...');
+            await this.processCurrentStep();
+
+            // Move to next step
+            const steps = ['type', 'make', 'model', 'pm', 'checklist'];
+            const currentIndex = steps.indexOf(this.currentStep);
+            console.log('Current index:', currentIndex, 'of', steps.length);
+            
+            if (currentIndex < steps.length - 1) {
+                const nextStepName = steps[currentIndex + 1];
+                console.log('Moving to next step:', nextStepName);
+                this.updateStep(nextStepName);
+                
+                // Load dependent data
+                if (this.currentStep === 'make') {
+                    console.log('Loading makes...');
+                    await this.loadMakes();
+                } else if (this.currentStep === 'model') {
+                    console.log('Loading models...');
+                    await this.loadModels();
+                } else if (this.currentStep === 'pm') {
+                    console.log('Loading PM frequencies...');
+                    await this.loadPMFrequencies();
+                }
+            } else {
+                console.log('Already at last step');
+            }
+        } catch (error) {
+            console.error('Error in nextStep:', error);
+            alert(`Error: ${error.message}`);
         }
     }
 
