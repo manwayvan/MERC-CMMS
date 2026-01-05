@@ -277,18 +277,53 @@ class UnifiedMMDModal {
 
     setupEventListeners() {
         // Close button
-        document.getElementById('unified-mmd-close').addEventListener('click', () => this.close());
-        document.getElementById('unified-mmd-cancel').addEventListener('click', () => this.close());
+        const closeBtn = document.getElementById('unified-mmd-close');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.close();
+            });
+        }
         
-        // Navigation
-        document.getElementById('unified-mmd-next').addEventListener('click', () => this.nextStep());
-        document.getElementById('unified-mmd-prev').addEventListener('click', () => this.prevStep());
+        const cancelBtn = document.getElementById('unified-mmd-cancel');
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.close();
+            });
+        }
+        
+        // Navigation - CRITICAL: Must stop propagation and use capture phase
+        const nextBtn = document.getElementById('unified-mmd-next');
+        if (nextBtn) {
+            nextBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                console.log('Next button clicked');
+                await this.nextStep();
+            }, true); // Use capture phase to ensure it fires before stopPropagation
+        }
+        
+        const prevBtn = document.getElementById('unified-mmd-prev');
+        if (prevBtn) {
+            prevBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                this.prevStep();
+            }, true);
+        }
         
         // Form submission
-        document.getElementById('unified-mmd-form').addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.save();
-        });
+        const form = document.getElementById('unified-mmd-form');
+        if (form) {
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.save();
+            });
+        }
 
         // Type selection
         document.getElementById('unified-type-select').addEventListener('change', (e) => {
@@ -308,14 +343,25 @@ class UnifiedMMDModal {
             this.loadPMFrequencies();
         });
 
-        // Prevent modal from closing when clicking inside
+        // Prevent modal from closing when clicking inside - BUT allow buttons to work
         const modalContent = this.modal.querySelector('.modal-content');
         if (modalContent) {
             ['click', 'mousedown', 'mouseup'].forEach(eventType => {
                 modalContent.addEventListener(eventType, (e) => {
-                    e.stopPropagation();
-                    e.stopImmediatePropagation();
-                }, true);
+                    // Don't stop propagation for buttons - they need to work
+                    const target = e.target;
+                    const isButton = target.tagName === 'BUTTON' || 
+                                   target.closest('button') !== null ||
+                                   target.id === 'unified-mmd-next' ||
+                                   target.id === 'unified-mmd-prev' ||
+                                   target.id === 'unified-mmd-save' ||
+                                   target.id === 'unified-mmd-cancel' ||
+                                   target.id === 'unified-mmd-close';
+                    
+                    if (!isButton) {
+                        e.stopPropagation();
+                    }
+                }, false); // Use bubble phase, not capture
             });
         }
 
