@@ -99,6 +99,7 @@ async function generateWorkOrderPDF() {
         };
 
         // Load and add logo
+        let logoAdded = false;
         try {
             const logoImg = new Image();
             logoImg.crossOrigin = 'anonymous';
@@ -110,6 +111,7 @@ async function generateWorkOrderPDF() {
                         const logoWidth = 30;
                         const logoHeight = 30;
                         doc.addImage(logoImg, 'PNG', margin, yPos, logoWidth, logoHeight);
+                        logoAdded = true;
                         resolve();
                     } catch (err) {
                         console.warn('Could not add logo image:', err);
@@ -127,16 +129,23 @@ async function generateWorkOrderPDF() {
             console.warn('Logo loading error:', err);
         }
 
-        // Header with business name
-        doc.setFontSize(20);
+        // Header with business name - ensure full text fits
+        const companyName = 'M.E.R.C. Medical Equipment Repair Company, LLC';
+        const logoOffset = logoAdded ? 35 : 0;
+        
+        doc.setFontSize(18);
         doc.setFont(undefined, 'bold');
-        doc.text('M.E.R.C. Medical Equipment Repair Company, LLC', margin + 35, yPos + 10);
+        // Split company name if too long, or use smaller font
+        const companyNameLines = doc.splitTextToSize(companyName, pageWidth - margin - logoOffset - 10);
+        companyNameLines.forEach((line, index) => {
+            doc.text(line, margin + logoOffset, yPos + 10 + (index * 7));
+        });
         
         doc.setFontSize(12);
         doc.setFont(undefined, 'normal');
-        doc.text('Work Order Report', margin + 35, yPos + 18);
+        doc.text('Work Order Report', margin + logoOffset, yPos + 10 + (companyNameLines.length * 7) + 5);
         
-        yPos += 35;
+        yPos += 15 + (companyNameLines.length * 7) + 10;
 
         // Work Order Details Section
         doc.setFontSize(14);
@@ -149,21 +158,28 @@ async function generateWorkOrderPDF() {
         
         const details = [
             ['Work Order ID:', workOrder.id || 'N/A'],
-            ['Work Order Number:', workOrder.work_order_number || 'N/A'],
+            ['Work Order Number:', workOrder.work_order_number || workOrder.id || 'N/A'],
             ['Status:', (workOrder.status || 'open').toUpperCase()],
             ['Priority:', (workOrder.priority || 'medium').toUpperCase()],
             ['Type:', workOrderType?.label || workOrder.type || 'N/A'],
-            ['Created Date:', workOrder.created_at ? new Date(workOrder.created_at).toLocaleDateString() : 'N/A'],
+            ['Created Date:', workOrder.created_date ? new Date(workOrder.created_date).toLocaleDateString() : (workOrder.created_at ? new Date(workOrder.created_at).toLocaleDateString() : 'N/A')],
             ['Due Date:', workOrder.due_date ? new Date(workOrder.due_date).toLocaleDateString() : 'N/A'],
-            ['Completed Date:', workOrder.completed_at ? new Date(workOrder.completed_at).toLocaleDateString() : 'N/A']
+            ['Completed Date:', workOrder.completed_date ? new Date(workOrder.completed_date).toLocaleDateString() : (workOrder.completed_at ? new Date(workOrder.completed_at).toLocaleDateString() : 'N/A')]
         ];
 
         details.forEach(([label, value]) => {
+            checkPageBreak(7);
             doc.setFont(undefined, 'bold');
             doc.text(label, margin, yPos);
             doc.setFont(undefined, 'normal');
-            doc.text(value, margin + 60, yPos);
-            yPos += 7;
+            // Ensure value doesn't overflow
+            const valueText = String(value || 'N/A');
+            const maxValueWidth = pageWidth - margin - 70;
+            const valueLines = doc.splitTextToSize(valueText, maxValueWidth);
+            valueLines.forEach((line, index) => {
+                doc.text(line, margin + 60, yPos + (index * 5));
+            });
+            yPos += 7 + ((valueLines.length - 1) * 5);
         });
 
         yPos += 5;
@@ -258,6 +274,9 @@ async function generateWorkOrderPDF() {
             doc.text('Unit Cost', margin + 115, yPos);
             doc.text('Total', margin + 145, yPos);
             yPos += 5;
+            
+            // Draw header underline
+            doc.line(margin, yPos - 2, pageWidth - margin, yPos - 2);
 
             // Draw line
             doc.line(margin, yPos, pageWidth - margin, yPos);
@@ -308,8 +327,9 @@ async function generateWorkOrderPDF() {
             doc.text('Rate', margin + 85, yPos);
             doc.text('Total', margin + 145, yPos);
             yPos += 5;
-
-            doc.line(margin, yPos, pageWidth - margin, yPos);
+            
+            // Draw header underline
+            doc.line(margin, yPos - 2, pageWidth - margin, yPos - 2);
             yPos += 3;
 
             let laborTotal = 0;
@@ -317,7 +337,8 @@ async function generateWorkOrderPDF() {
             labor.forEach(lab => {
                 checkPageBreak(10);
                 const techName = lab.technicians?.full_name || 'Unknown';
-                const hours = parseFloat(lab.hours_worked || 0);
+                // Fix: use 'hours' field, not 'hours_worked'
+                const hours = parseFloat(lab.hours || lab.hours_worked || 0);
                 const rate = parseFloat(lab.hourly_rate || 0);
                 const lineTotal = hours * rate;
                 laborTotal += lineTotal;
@@ -352,8 +373,9 @@ async function generateWorkOrderPDF() {
             doc.text('Description', margin, yPos);
             doc.text('Amount', margin + 145, yPos);
             yPos += 5;
-
-            doc.line(margin, yPos, pageWidth - margin, yPos);
+            
+            // Draw header underline
+            doc.line(margin, yPos - 2, pageWidth - margin, yPos - 2);
             yPos += 3;
 
             let additionalTotal = 0;
@@ -381,16 +403,25 @@ async function generateWorkOrderPDF() {
         // Total Cost
         checkPageBreak(15);
         const partsTotal = parts?.reduce((sum, p) => sum + (parseFloat(p.quantity_used || 0) * parseFloat(p.unit_cost || 0)), 0) || 0;
-        const laborTotal = labor?.reduce((sum, l) => sum + (parseFloat(l.hours_worked || 0) * parseFloat(l.hourly_rate || 0)), 0) || 0;
+        // Fix: use 'hours' field, not 'hours_worked'
+        const laborTotal = labor?.reduce((sum, l) => sum + (parseFloat(l.hours || l.hours_worked || 0) * parseFloat(l.hourly_rate || 0)), 0) || 0;
         const additionalTotal = additionalCosts?.reduce((sum, c) => sum + parseFloat(c.amount || 0), 0) || 0;
         const grandTotal = partsTotal + laborTotal + additionalTotal;
 
-        doc.setFontSize(14);
-        doc.setFont(undefined, 'bold');
+        // Draw separator line before total
         doc.line(margin, yPos, pageWidth - margin, yPos);
         yPos += 8;
+        
+        // Total Cost - larger and bold
+        doc.setFontSize(16);
+        doc.setFont(undefined, 'bold');
         doc.text('TOTAL COST:', margin + 100, yPos);
+        doc.setFontSize(16);
         doc.text(`$${grandTotal.toFixed(2)}`, margin + 145, yPos);
+        
+        // Draw underline for emphasis
+        yPos += 2;
+        doc.line(margin + 100, yPos, pageWidth - margin, yPos);
 
         // Footer
         const totalPages = doc.internal.pages.length - 1;

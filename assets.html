@@ -4,12 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Asset Management - MERC-CMMS</title>
+<link rel="icon" type="image/x-icon" href="public/favicon.ico">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="mobile-responsive.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
 <script src="auth.js"></script>
 <script src="js/mmd-asset-form.js"></script>
+<script src="js/depreciation-reference-manager.js"></script>
+<script src="js/asset-depreciation-handler.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
@@ -17,7 +20,6 @@
 .medical-gradient { background: linear-gradient(135deg, #1e293b 0%, #2563eb 50%, #0891b2 100%); }
 .card-hover { transition: all 0.3s ease; }
 .card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
-.notification-badge { position: absolute; top: -8px; right: -8px; background: #dc2626; color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; }
 .status-indicator { width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-right: 8px; }
 .status-active { background-color: #059669; }
 .status-inactive { background-color: #6b7280; }
@@ -111,28 +113,20 @@
                         <p class="text-blue-200 text-xs truncate">Enterprise Medical Device Management</p>
                     </div>
                 </a>
-                <div class="hidden md:flex items-center space-x-8">
-                    <a href="index.html" class="text-blue-200 hover:text-white transition-colors">Dashboard</a>
-                    <a href="customers.html" class="text-blue-200 hover:text-white transition-colors">Customers</a>
-                    <a href="assets.html" class="text-white font-semibold border-b-2 border-blue-300 pb-1">Assets</a>
-                    <a href="work-orders.html" class="text-blue-200 hover:text-white transition-colors">Work Orders</a>
-                    <a href="inventory.html" class="text-blue-200 hover:text-white transition-colors">Inventory</a>
-                    <a href="compliance.html" class="text-blue-200 hover:text-white transition-colors">Compliance</a>
+                <div class="hidden md:flex items-center space-x-6">
+                    <a href="index.html" class="text-blue-200 hover:text-white transition-colors whitespace-nowrap">Dashboard</a>
+                    <a href="customers.html" class="text-blue-200 hover:text-white transition-colors whitespace-nowrap">Customers</a>
+                    <a href="assets.html" class="text-white font-semibold border-b-2 border-blue-300 pb-1 whitespace-nowrap">Assets</a>
+                    <a href="work-orders.html" class="text-blue-200 hover:text-white transition-colors whitespace-nowrap">Work Orders</a>
+                    <a href="inventory.html" class="text-blue-200 hover:text-white transition-colors whitespace-nowrap">Inventory</a>
+                    <a href="compliance.html" class="text-blue-200 hover:text-white transition-colors whitespace-nowrap">Compliance</a>
+                    <a href="settings.html" class="text-blue-200 hover:text-white transition-colors whitespace-nowrap">Settings</a>
                 </div>
                 <div class="flex items-center gap-3 flex-shrink-0">
                     <button id="mobile-menu-button" class="md:hidden text-white hover:text-blue-200 transition-colors">
                         <i class="fas fa-bars text-xl"></i>
                     </button>
                     <div class="flex items-center gap-3">
-                        <div class="relative">
-                            <button class="text-white hover:text-blue-200 transition-colors">
-                                <i class="fas fa-bell text-xl"></i>
-                            </button>
-                            <div class="notification-badge">3</div>
-                        </div>
-                        <a href="settings.html" class="text-white hover:text-blue-200 transition-colors" aria-label="Open settings">
-                            <i class="fas fa-gear text-xl"></i>
-                        </a>
                         <button id="logout-button" class="text-white hover:text-blue-200 transition-colors" aria-label="Sign out">
                             <i class="fas fa-right-from-bracket text-xl"></i>
                         </button>
@@ -163,16 +157,10 @@
 
     <!-- Main Content -->
     <main class="pt-16">
-        <!-- Header Section -->
-        <section class="asset-header-bg relative">
-            <div class="absolute inset-0 bg-slate-900 bg-opacity-70"></div>
-            <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-                <div class="text-center">
-                    <h1 class="text-4xl md:text-5xl font-bold text-white mb-4">Asset Management</h1>
-                    <p class="text-xl text-blue-200 mb-8 max-w-3xl mx-auto">
-                        Complete medical device lifecycle management with automated PM scheduling and compliance tracking
-                    </p>
-                </div>
+        <!-- Page Header -->
+        <section class="bg-gradient-to-r from-blue-600 to-blue-800">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                <h1 class="text-2xl font-bold text-white">Asset Management</h1>
             </div>
         </section>
 
@@ -232,23 +220,15 @@
                     <option value="inactive">Inactive</option>
                     <option value="retired">Retired</option>
                 </select>
-                <div class="flex gap-2 border border-slate-300 rounded-lg overflow-hidden">
-                    <button id="grid-view-btn" onclick="switchView('grid')" class="view-toggle-btn px-4 py-2 text-sm font-medium transition-colors">
-                        <i class="fas fa-th-large mr-2"></i>Grid View
-                    </button>
-                    <button id="list-view-btn" onclick="switchView('list')" class="view-toggle-btn active px-4 py-2 text-sm font-medium transition-colors">
-                        <i class="fas fa-list mr-2"></i>List View
-                    </button>
-                </div>
                 <button onclick="showColumnVisibilityModal()" class="btn btn-secondary" title="Customize visible columns">
                     <i class="fas fa-columns"></i>
                     <span class="hidden sm:inline ml-2">Columns</span>
-                </button>
+                    </button>
                 <button onclick="resetAllFilters()" class="btn btn-secondary" title="Reset all filters">
                     <i class="fas fa-filter"></i>
                     <i class="fas fa-times ml-1 text-xs"></i>
                     <span class="hidden sm:inline ml-2">Reset Filters</span>
-                </button>
+                    </button>
                 <div class="flex gap-2 flex-wrap items-center">
                     <button id="bulk-edit-btn" onclick="showBulkEditModal()" class="btn btn-secondary hidden" title="Bulk edit selected assets">
                         <i class="fas fa-edit"></i>
@@ -259,18 +239,18 @@
                         <i class="fas fa-calendar-check"></i>
                         <span class="hidden sm:inline ml-2">PM Management</span>
                     </button>
-                    <button onclick="showBulkImportModal()" class="btn btn-secondary">
-                        <i class="fas fa-file-import"></i>
+                <button onclick="showBulkImportModal()" class="btn btn-secondary">
+                    <i class="fas fa-file-import"></i>
                         <span class="hidden sm:inline ml-2">Bulk Import</span>
-                    </button>
-                    <button onclick="exportToCSV()" class="btn btn-success">
-                        <i class="fas fa-download"></i>
+                </button>
+                <button onclick="exportToCSV()" class="btn btn-success">
+                    <i class="fas fa-download"></i>
                         <span class="hidden sm:inline ml-2">Export</span>
-                    </button>
-                    <button onclick="showAddAssetModal()" class="btn btn-primary">
-                        <i class="fas fa-plus"></i>
+                </button>
+                <button onclick="showAddAssetModal()" class="btn btn-primary">
+                    <i class="fas fa-plus"></i>
                         <span class="hidden sm:inline ml-2">Add Asset</span>
-                    </button>
+                </button>
                 </div>
                     </div>
                 </div>
@@ -280,7 +260,7 @@
         <!-- Loading State -->
         <section class="py-8 bg-white">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div id="loading" class="text-center py-16">
+                <div id="loading" class="text-center py-16" style="display: none;">
                     <div class="loading-spinner mx-auto mb-4"></div>
                     <p class="text-gray-600 font-medium">Loading assets from Supabase...</p>
                 </div>
@@ -348,9 +328,9 @@
             <div class="p-6">
                 <!-- Step 1: File Upload -->
                 <div id="import-step-1">
-                    <div class="mb-6">
-                        <h3 class="font-semibold text-gray-900 mb-2">CSV Format Requirements:</h3>
-                        <p class="text-sm text-gray-600 mb-3">Your CSV file should include the following columns:</p>
+                <div class="mb-6">
+                    <h3 class="font-semibold text-gray-900 mb-2">CSV Format Requirements:</h3>
+                    <p class="text-sm text-gray-600 mb-3">Your CSV file should include the following columns:</p>
                         <div class="bg-slate-50 p-4 rounded-lg text-sm font-mono mb-3">
                             name,serial_number,status,equipment_type,equipment_make,equipment_model,last_maintenance,next_maintenance,purchase_date,purchase_cost,warranty_expiry,customer_id,location_id,description
                         </div>
@@ -362,20 +342,20 @@
                                 <li><strong>next_maintenance:</strong> Will be auto-calculated from PM frequency if left empty</li>
                                 <li><strong>status:</strong> active, maintenance, inactive, or retired</li>
                             </ul>
-                        </div>
-                        <button onclick="downloadTemplate()" class="mt-3 text-blue-600 hover:text-blue-700 text-sm font-semibold">
-                            <i class="fas fa-download mr-2"></i>Download CSV Template
-                        </button>
                     </div>
-                    <div class="drag-drop-zone" id="drop-zone">
-                        <i class="fas fa-cloud-upload-alt text-5xl text-gray-400 mb-4"></i>
-                        <p class="text-lg font-semibold text-gray-700 mb-2">Drag and drop your CSV file here</p>
-                        <p class="text-sm text-gray-500 mb-4">or</p>
-                        <button onclick="document.getElementById('csv-file-input').click()" class="btn btn-primary">
-                            <i class="fas fa-file-csv mr-2"></i>Select CSV File
-                        </button>
-                        <input type="file" id="csv-file-input" accept=".csv" style="display: none;" onchange="handleFileSelect(event)">
-                    </div>
+                    <button onclick="downloadTemplate()" class="mt-3 text-blue-600 hover:text-blue-700 text-sm font-semibold">
+                        <i class="fas fa-download mr-2"></i>Download CSV Template
+                    </button>
+                </div>
+                <div class="drag-drop-zone" id="drop-zone">
+                    <i class="fas fa-cloud-upload-alt text-5xl text-gray-400 mb-4"></i>
+                    <p class="text-lg font-semibold text-gray-700 mb-2">Drag and drop your CSV file here</p>
+                    <p class="text-sm text-gray-500 mb-4">or</p>
+                    <button onclick="document.getElementById('csv-file-input').click()" class="btn btn-primary">
+                        <i class="fas fa-file-csv mr-2"></i>Select CSV File
+                    </button>
+                    <input type="file" id="csv-file-input" accept=".csv" style="display: none;" onchange="handleFileSelect(event)">
+                </div>
                 </div>
 
                 <!-- Step 2: Column Mapping -->
@@ -666,7 +646,7 @@
 
     <!-- Asset View/Edit Modal with Tabs -->
     <div id="asset-modal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content" onclick="event.stopPropagation(); return false;">
             <div class="p-6 border-b border-gray-200">
                 <div class="flex justify-between items-center">
                     <div>
@@ -696,121 +676,94 @@
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Asset Name *</label>
                             <input type="text" name="name" required class="form-input" placeholder="e.g., MRI Scanner">
                         </div>
-                        <!-- Master Database (MMD) Selection - Improved Design -->
-                        <div class="md:col-span-2">
-                            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-6">
-                                <div class="flex items-center justify-between mb-4">
-                                    <div>
-                                        <h3 class="text-lg font-bold text-gray-900 flex items-center">
-                                            <i class="fas fa-database text-blue-600 mr-2"></i>
-                                            Master Database Selection
-                                        </h3>
-                                        <p class="text-sm text-gray-600 mt-1">Select or add equipment from the master database</p>
-                                    </div>
-                                    <button type="button" onclick="showQuickAddMMDModal()" 
-                                            class="btn btn-primary text-sm px-4 py-2" 
-                                            title="Quick Add: Add Type, Make, Model, and PM Frequency at once">
-                                        <i class="fas fa-bolt mr-2"></i>Quick Add
-                                    </button>
-                                </div>
-                                
-                                <!-- Visual Hierarchy Path -->
-                                <div class="mb-6">
-                                    <div class="flex items-center space-x-2 text-sm font-medium text-gray-700 mb-4">
-                                        <span class="px-3 py-1 bg-white rounded-lg border border-gray-300">Step 1</span>
-                                        <i class="fas fa-arrow-right text-gray-400"></i>
-                                        <span class="px-3 py-1 bg-white rounded-lg border border-gray-300">Step 2</span>
-                                        <i class="fas fa-arrow-right text-gray-400"></i>
-                                        <span class="px-3 py-1 bg-white rounded-lg border border-gray-300">Step 3</span>
-                                        <i class="fas fa-arrow-right text-gray-400"></i>
-                                        <span class="px-3 py-1 bg-white rounded-lg border border-gray-300">Step 4</span>
-                                    </div>
-                                    
-                                    <!-- Step-by-step Selection -->
-                                    <div class="space-y-4">
-                                        <!-- Step 1: Equipment Type -->
-                                        <div class="bg-white rounded-lg border-2 border-blue-200 p-4">
-                                            <label class="block text-sm font-bold text-gray-900 mb-2 flex items-center">
-                                                <span class="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs mr-2">1</span>
-                                                Equipment Type <span class="text-red-500 ml-1">*</span>
-                                            </label>
-                                            <div class="flex gap-2">
-                                                <select id="mmd-type-select" required 
-                                                        class="form-input flex-1 border-2 border-blue-300 focus:border-blue-500"
-                                                        onchange="handleMMDTypeChange()">
-                                                    <option value="">-- Select or Add Type --</option>
-                                                </select>
-                                                <button type="button" onclick="addNewMMD('equipment_types', 'Equipment Type')" 
-                                                        class="btn btn-secondary px-4" title="Add new equipment type">
-                                                    <i class="fas fa-plus mr-1"></i>Add
-                                                </button>
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Step 2: Make -->
-                                        <div class="bg-white rounded-lg border-2 border-gray-200 p-4" id="mmd-make-container">
-                                            <label class="block text-sm font-bold text-gray-700 mb-2 flex items-center">
-                                                <span class="bg-gray-400 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs mr-2">2</span>
-                                                Make <span class="text-red-500 ml-1">*</span>
-                                            </label>
-                                            <div class="flex gap-2">
-                                                <select id="mmd-make-select" required disabled 
-                                                        class="form-input flex-1 border-2 border-gray-300"
-                                                        onchange="handleMMDMakeChange()">
-                                                    <option value="">-- Select Type First --</option>
-                                                </select>
-                                                <button type="button" onclick="addNewMMD('equipment_makes', 'Make')" 
-                                                        class="btn btn-secondary px-4" title="Add new make" id="add-mmd-make-btn" disabled>
-                                                    <i class="fas fa-plus mr-1"></i>Add
-                                                </button>
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Step 3: Model -->
-                                        <div class="bg-white rounded-lg border-2 border-gray-200 p-4" id="mmd-model-container">
-                                            <label class="block text-sm font-bold text-gray-700 mb-2 flex items-center">
-                                                <span class="bg-gray-400 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs mr-2">3</span>
-                                                Model <span class="text-red-500 ml-1">*</span>
-                                            </label>
-                                            <div class="flex gap-2">
-                                                <select id="mmd-model-select" name="model_id" required disabled 
-                                                        class="form-input flex-1 border-2 border-gray-300"
-                                                        onchange="handleMMDModelChange()">
-                                                    <option value="">-- Select Make First --</option>
-                                                </select>
-                                                <button type="button" onclick="addNewMMD('equipment_models', 'Model')" 
-                                                        class="btn btn-secondary px-4" title="Add new model" id="add-mmd-model-btn" disabled>
-                                                    <i class="fas fa-plus mr-1"></i>Add
-                                                </button>
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Step 4: PM Frequency (Auto-populated) -->
-                                        <div class="bg-white rounded-lg border-2 border-gray-200 p-4" id="mmd-pm-container">
-                                            <label class="block text-sm font-bold text-gray-700 mb-2 flex items-center">
-                                                <span class="bg-gray-400 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs mr-2">4</span>
-                                                PM Frequency
-                                            </label>
-                                            <div id="mmd-pm-frequency-display">
-                                                <p class="text-sm text-gray-500 italic">Select a model to see PM frequency</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Selected Configuration Summary -->
-                                <div id="mmd-summary" class="mt-4">
-                                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                                        <p class="text-sm text-gray-500 text-center">Complete the selection above to see your configuration</p>
-                                    </div>
-                                </div>
-                                
-                                <!-- Hidden fields for form submission -->
-                                <input type="hidden" id="mmd-type-id" name="type_id">
-                                <input type="hidden" id="mmd-make-id" name="make_id">
-                                <input type="hidden" id="mmd-pm-frequency-id" name="pm_frequency_id">
-                                <input type="hidden" id="mmd-pm-frequency-days" name="pm_frequency_days">
+                        <!-- Master Database (MMD) Selection - Redesigned to match asset fields style -->
+                        <div class="md:col-span-2 border-t border-slate-200 pt-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                <i class="fas fa-database text-blue-600 mr-2"></i>
+                                Equipment Information
+                            </h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <!-- Equipment Type -->
+                        <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                        Equipment Type <span class="text-red-500">*</span>
+                                    </label>
+                                    <div class="flex gap-2">
+                                        <select id="mmd-type-select" required 
+                                                class="form-input flex-1"
+                                                onchange="handleMMDTypeChange()">
+                                            <option value="">-- Select Equipment Type --</option>
+                                        </select>
+                                        <button type="button" onclick="openUnifiedMMDModal()" 
+                                                class="btn btn-primary px-3 py-2 flex-shrink-0" 
+                                                title="Add New Equipment Configuration">
+                                            <i class="fas fa-plus"></i>
+                                </button>
                             </div>
+                        </div>
+                                
+                                <!-- Make -->
+                        <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                        Make <span class="text-red-500">*</span>
+                                    </label>
+                                    <div class="flex gap-2">
+                                        <select id="mmd-make-select" required disabled 
+                                                class="form-input flex-1"
+                                                onchange="handleMMDMakeChange()">
+                                            <option value="">-- Select Type First --</option>
+                                        </select>
+                                        <button type="button" onclick="openUnifiedMMDModal({type_id: document.getElementById('mmd-type-select')?.value})" 
+                                                class="btn btn-primary px-3 py-2 flex-shrink-0" 
+                                                title="Add New Equipment Configuration" id="add-mmd-make-btn" disabled>
+                                            <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                                
+                                <!-- Model -->
+                        <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                        Model <span class="text-red-500">*</span>
+                                    </label>
+                                    <div class="flex gap-2">
+                                        <select id="mmd-model-select" name="model_id" required disabled 
+                                                class="form-input flex-1"
+                                                onchange="handleMMDModelChange()">
+                                            <option value="">-- Select Make First --</option>
+                                        </select>
+                                        <button type="button" onclick="openUnifiedMMDModal({type_id: document.getElementById('mmd-type-select')?.value, make_id: document.getElementById('mmd-make-select')?.value})" 
+                                                class="btn btn-primary px-3 py-2 flex-shrink-0" 
+                                                title="Add New Equipment Configuration" id="add-mmd-model-btn" disabled>
+                                            <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                                </div>
+                                
+                                <!-- PM Frequency (Auto-populated, Read-only) -->
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                        PM Frequency
+                                    </label>
+                                    <div id="mmd-pm-frequency-display" class="form-input bg-gray-50 text-gray-600">
+                                        <span class="text-sm italic">Select a model to see PM frequency</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Selected Configuration Summary -->
+                            <div id="mmd-summary" class="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                <p class="text-sm text-blue-800 text-center">
+                                    <i class="fas fa-info-circle mr-1"></i>
+                                    Complete the selection above to see your configuration
+                                </p>
+                            </div>
+                            
+                            <!-- Hidden fields for form submission -->
+                            <input type="hidden" id="mmd-type-id" name="type_id">
+                            <input type="hidden" id="mmd-make-id" name="make_id">
+                            <input type="hidden" id="mmd-pm-frequency-id" name="pm_frequency_id">
+                            <input type="hidden" id="mmd-pm-frequency-days" name="pm_frequency_days">
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Serial Number *</label>
@@ -838,32 +791,27 @@
                             <input type="date" name="warranty_expiry" class="form-input">
                         </div>
                         <div class="md:col-span-2 border-t border-slate-200 pt-6">
-                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Depreciation Settings</h3>
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-semibold text-gray-900">Depreciation</h3>
+                                <span class="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded">Profile-Based (Auto-Calculated)</span>
+                            </div>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
-                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Depreciation Method</label>
-                                    <select name="depreciation_method" id="depreciation-method" class="form-input" onchange="updateDepreciationPreview()">
-                                        <option value="none">No Depreciation</option>
-                                        <option value="straight_line" selected>Straight-Line</option>
-                                        <option value="declining_balance">Declining Balance</option>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Depreciation Profile *</label>
+                                    <select name="depreciation_profile_id" id="depreciation-profile-select" class="form-input" onchange="updateDepreciationPreview()">
+                                        <option value="">-- Select Profile --</option>
                                     </select>
+                                    <p class="text-xs text-slate-500 mt-1">Select a profile from Settings > Depreciation Profiles</p>
                                 </div>
-                                <div>
-                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Useful Life (Years)</label>
-                                    <input type="number" name="useful_life_years" id="useful-life-years" class="form-input" min="1" value="5" onchange="updateDepreciationPreview()">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Salvage Value ($)</label>
-                                    <input type="number" name="salvage_value" id="salvage-value" step="0.01" class="form-input" value="0" onchange="updateDepreciationPreview()">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Depreciation Start Date</label>
-                                    <input type="date" name="depreciation_start_date" id="depreciation-start-date" class="form-input" onchange="updateDepreciationPreview()">
+                                <div id="depreciation-override-section" style="display: none;">
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Override Reason (Admin Only)</label>
+                                    <input type="text" name="depreciation_override_reason" id="depreciation-override-reason" class="form-input" placeholder="Reason for manual override">
+                                    <p class="text-xs text-amber-600 mt-1">⚠️ Override requires admin permission and audit trail</p>
                                 </div>
                                 <div class="md:col-span-2 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                                    <h4 class="font-semibold text-blue-900 mb-2">Depreciation Preview</h4>
+                                    <h4 class="font-semibold text-blue-900 mb-2">Calculated Depreciation (Read-Only)</h4>
                                     <div id="depreciation-preview" class="text-sm text-blue-800 space-y-1">
-                                        <p>Enter purchase cost and settings to see depreciation calculation.</p>
+                                        <p class="text-slate-500">Select a depreciation profile and enter purchase cost to see calculation.</p>
                                     </div>
                                 </div>
                             </div>
@@ -916,8 +864,8 @@
                                         </div>
                                     </label>
                                 </div>
-                            </div>
-                        </div>
+                                    </div>
+                                </div>
                         
                         <!-- Asset Images Section -->
                         <div class="md:col-span-2 border-t border-slate-200 pt-6">
@@ -929,7 +877,7 @@
                                 <label class="block text-sm font-semibold text-gray-700 mb-2">Upload Images</label>
                                 <input type="file" id="asset-image-input" accept="image/*" multiple class="form-input" onchange="handleAssetImageUpload(event)">
                                 <p class="text-xs text-gray-500 mt-1">You can upload multiple images. Supported formats: JPG, PNG, GIF, WebP</p>
-                            </div>
+                                </div>
                             <div id="asset-images-preview" class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
                                 <!-- Image previews will be shown here -->
                             </div>
@@ -979,7 +927,7 @@
             </div>
             <div class="p-6">
                 <form id="quick-add-mmd-form" class="space-y-4">
-                    <div>
+                        <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">
                             Equipment Type <span class="text-red-500">*</span>
                         </label>
@@ -990,8 +938,8 @@
                             <input type="text" id="quick-type-new" class="form-input flex-1" 
                                    placeholder="Or enter new type name">
                         </div>
-                    </div>
-                    <div>
+                        </div>
+                        <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">
                             Make <span class="text-red-500">*</span>
                         </label>
@@ -1002,11 +950,11 @@
                             <input type="text" id="quick-make-new" class="form-input flex-1" 
                                    placeholder="Or enter new make name" disabled>
                         </div>
-                    </div>
+                        </div>
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">
                             Model <span class="text-red-500">*</span>
-                        </label>
+                            </label>
                         <div class="flex gap-2">
                             <select id="quick-model-select" class="form-input flex-1" required disabled>
                                 <option value="">-- Select Make First --</option>
@@ -1014,7 +962,7 @@
                             <input type="text" id="quick-model-new" class="form-input flex-1" 
                                    placeholder="Or enter new model name" disabled>
                         </div>
-                    </div>
+                            </div>
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">
                             PM Frequency <span class="text-red-500">*</span>
@@ -1023,7 +971,7 @@
                             <option value="">-- Select Model First --</option>
                         </select>
                         <p class="text-xs text-gray-500 mt-1">PM frequency is required for the model</p>
-                    </div>
+                        </div>
                     <div class="flex justify-end gap-3 pt-4 border-t border-gray-200">
                         <button type="button" onclick="closeQuickAddMMDModal()" class="btn btn-secondary">Cancel</button>
                         <button type="submit" class="btn btn-primary">
@@ -1036,21 +984,33 @@
     </div>
 
     <div id="lookup-modal" class="modal">
-        <div class="modal-content" style="max-width: 480px;">
-            <div class="p-6 border-b border-gray-200">
+        <div class="modal-content" style="max-width: 480px;" onclick="event.stopPropagation(); return false;">
+            <div class="p-6 border-b border-gray-200" onclick="event.stopPropagation(); return false;">
                 <div class="flex justify-between items-center">
                     <h2 class="text-xl font-bold text-gray-900" id="lookup-modal-title">Add New</h2>
-                    <button onclick="closeLookupModal()" class="text-gray-400 hover:text-gray-600 text-2xl">
+                    <button onclick="closeLookupModal(); event.stopPropagation(); return false;" class="text-gray-400 hover:text-gray-600 text-2xl">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
             </div>
-            <div class="p-6">
+            <div class="p-6" onclick="event.stopPropagation(); return false;">
                 <label class="block text-sm font-semibold text-gray-700 mb-2" id="lookup-modal-label">Name</label>
-                <input type="text" id="lookup-modal-input" class="form-input" placeholder="Enter value">
-                <div class="flex justify-end gap-3 mt-6">
-                    <button type="button" class="btn btn-secondary" onclick="closeLookupModal()">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="saveLookupModal()">Add</button>
+                <input type="text" id="lookup-modal-input" class="form-input" placeholder="Enter value" onclick="event.stopPropagation(); return false;" onfocus="event.stopPropagation(); return false;">
+                
+                <!-- PM Frequency field (only shown when adding equipment_models) -->
+                <div id="lookup-modal-pm-frequency-container" style="display: none;" class="mt-4" onclick="event.stopPropagation(); return false;">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        PM Frequency <span class="text-red-500">*</span>
+                    </label>
+                    <select id="lookup-modal-pm-frequency" class="form-input" onclick="event.stopPropagation(); return false;" onfocus="event.stopPropagation(); return false;" onmousedown="event.stopPropagation(); return false;">
+                        <option value="">-- Select PM Frequency --</option>
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">PM Frequency is required for all models</p>
+                </div>
+                
+                <div class="flex justify-end gap-3 mt-6" onclick="event.stopPropagation(); return false;">
+                    <button type="button" class="btn btn-secondary" onclick="closeLookupModal(); event.stopPropagation(); return false;">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveLookupModal(); event.stopPropagation(); return false;">Add</button>
                 </div>
             </div>
         </div>
@@ -1148,6 +1108,8 @@
                     if (visibleColumns.length === 0) {
                         visibleColumns = availableColumns.filter(c => c.default).map(c => c.id);
                     }
+                    // Load and apply column order
+                    loadColumnOrder();
                 } catch (e) {
                     visibleColumns = availableColumns.filter(c => c.default).map(c => c.id);
                 }
@@ -1156,9 +1118,33 @@
             }
         }
         
-        // Save column visibility to localStorage
+        // Save column visibility and order to localStorage
         function saveColumnVisibility() {
             localStorage.setItem('assetListVisibleColumns', JSON.stringify(visibleColumns));
+            // Also save column order
+            const columnOrder = visibleColumns.map((colId, index) => ({ id: colId, order: index }));
+            localStorage.setItem('assetListColumnOrder', JSON.stringify(columnOrder));
+        }
+        
+        // Load column order from localStorage
+        function loadColumnOrder() {
+            const saved = localStorage.getItem('assetListColumnOrder');
+            if (saved) {
+                try {
+                    const savedOrder = JSON.parse(saved);
+                    // Reorder visibleColumns based on saved order
+                    const orderedColumns = savedOrder
+                        .sort((a, b) => a.order - b.order)
+                        .map(item => item.id)
+                        .filter(id => visibleColumns.includes(id));
+                    
+                    // Add any new columns that weren't in saved order
+                    const newColumns = visibleColumns.filter(id => !orderedColumns.includes(id));
+                    visibleColumns = [...orderedColumns, ...newColumns];
+                } catch (e) {
+                    console.warn('Error loading column order:', e);
+                }
+            }
         }
         
         // Initialize column visibility on page load
@@ -1170,11 +1156,11 @@
                 setupMobileMenu();
             } else {
                 // Fallback if setupMobileMenu not available
-                const mobileMenuButton = document.getElementById('mobile-menu-button');
-                const mobileMenu = document.getElementById('mobile-menu');
-                if (mobileMenuButton && mobileMenu) {
-                    mobileMenuButton.addEventListener('click', () => {
-                        mobileMenu.classList.toggle('hidden');
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            if (mobileMenuButton && mobileMenu) {
+                mobileMenuButton.addEventListener('click', () => {
+                    mobileMenu.classList.toggle('hidden');
                         const isExpanded = !mobileMenu.classList.contains('hidden');
                         mobileMenuButton.setAttribute('aria-expanded', isExpanded);
                     });
@@ -1200,20 +1186,45 @@
                 showToast('Supabase library not loaded', 'error');
                 return;
             }
-            await detectAssetSchema();
-            await loadReferenceData();
-            await loadDeviceConfigurations();
-            await loadPMFrequencies();
-            await loadDatabaseColumns(); // Load database columns for import mapping
-            await Promise.all([loadAssets(), loadCustomers(), loadLocations()]);
+            
+            // Show loading indicator only when actually loading assets
+            showLoading(true);
+            
+            // Load data in parallel where possible
+            await Promise.all([
+                detectAssetSchema(),
+                loadReferenceData(),
+                loadPMFrequencies(),
+                loadCustomers(),
+                loadLocations()
+            ]);
+            
+            // Load these after reference data is ready (they depend on it)
+            await Promise.all([
+                loadDeviceConfigurations(),
+                loadDatabaseColumns() // Load database columns for import mapping
+            ]);
+            
+            // Finally load assets (which uses reference data)
+            await loadAssets();
             setupEventListeners();
             setupDragDrop();
+            // Load column order after visibility is loaded
+            if (visibleColumns.length > 0) {
+                loadColumnOrder();
+            }
             renderTableHeader(); // Render table header with visible columns
             initializeView(); // Initialize to list view
             updateBulkEditButton(); // Initialize bulk edit button (hidden initially)
             
             // Setup Quick Add MMD form event listeners
             setupQuickAddMMDListeners();
+            
+            // Initialize MMD Asset Form Manager with unified reference manager
+            if (window.MMDAssetFormManager && !window.mmdAssetFormManager) {
+                window.mmdAssetFormManager = new window.MMDAssetFormManager();
+                await window.mmdAssetFormManager.init();
+            }
         });
         
         function setupQuickAddMMDListeners() {
@@ -1293,8 +1304,8 @@
                                 }
                                 if (modelNew) {
                                     modelNew.disabled = false;
-                                }
-                            } catch (error) {
+                }
+            } catch (error) {
                                 console.error('Error loading models:', error);
                             }
                         }
@@ -1591,7 +1602,6 @@
         // Apply sorting when assets are loaded
         async function loadAssets() {
             try {
-                showLoading(true);
                 const { data, error } = await supabaseClient
                     .from('assets')
                     .select('*')
@@ -1599,28 +1609,31 @@
                     .order('id', { ascending: false });
                 if (error) throw error;
 
-                const enrichedAssets = await Promise.all((data || []).map(async (asset) => {
-                    let customerName = null, locationName = null;
-                    if (assetSchema.hasCustomerId && asset.customer_id) {
-                        const { data: customer } = await supabaseClient
-                            .from('customers')
-                            .select('name')
-                            .eq('id', asset.customer_id)
-                            .single();
-                        customerName = customer?.name;
-                    }
-                    if (asset.location_id) {
-                        const { data: location } = await supabaseClient
-                            .from('locations')
-                            .select('name')
-                            .eq('id', asset.location_id)
-                            .single();
-                        locationName = location?.name;
-                    }
+                // Batch load customers and locations for all assets
+                const customerIds = [...new Set((data || []).map(a => a.customer_id).filter(Boolean))];
+                const locationIds = [...new Set((data || []).map(a => a.location_id).filter(Boolean))];
+                
+                const [customersData, locationsData] = await Promise.all([
+                    customerIds.length > 0 && assetSchema.hasCustomerId
+                        ? supabaseClient.from('customers').select('id, name').in('id', customerIds)
+                        : Promise.resolve({ data: [] }),
+                    locationIds.length > 0
+                        ? supabaseClient.from('locations').select('id, name').in('id', locationIds)
+                        : Promise.resolve({ data: [] })
+                ]);
+                
+                const customersMap = new Map((customersData.data || []).map(c => [c.id, c.name]));
+                const locationsMap = new Map((locationsData.data || []).map(l => [l.id, l.name]));
+                
+                // Enrich assets with customer and location names
+                const enrichedAssets = (data || []).map(asset => {
                     const categoryName = referenceMaps.categoriesById.get(asset.category_id)?.name || asset.category;
                     const manufacturerKey = asset.manufacturer_id || asset.make_id;
                     const manufacturerName = referenceMaps.manufacturersById.get(manufacturerKey)?.name || asset.manufacturer;
                     const modelName = referenceMaps.modelsById.get(asset.model_id)?.name || asset.model;
+                    const customerName = asset.customer_id ? customersMap.get(asset.customer_id) : null;
+                    const locationName = asset.location_id ? locationsMap.get(asset.location_id) : null;
+                    
                     return {
                         ...asset,
                         category: categoryName,
@@ -1629,16 +1642,8 @@
                         customers: customerName ? { name: customerName } : null,
                         locations: locationName ? { name: locationName } : null
                     };
-                }));
+                });
 
-                allAssets = enrichedAssets;
-                filteredAssets = [...allAssets];
-                
-                // Apply sorting if active
-                if (currentSortColumn) {
-                    applySorting();
-                }
-                
                 // Store all assets in map for quick lookup
                 assetsById.clear();
                 enrichedAssets.forEach(asset => {
@@ -1647,10 +1652,22 @@
                     }
                 });
                 
+                // Update with enriched data
+                allAssets = enrichedAssets;
+                filteredAssets = [...allAssets];
+                
+                // Apply sorting if active
+                if (currentSortColumn) {
+                    applySorting();
+                }
+                
                 updateStatistics();
-                // Ensure table header is rendered before rendering assets
                 renderTableHeader();
                 renderAssets();
+                
+                // Hide loading immediately after rendering
+                showLoading(false);
+                
                 const lastRefresh = document.getElementById('assets-last-refresh');
                 if (lastRefresh) {
                     lastRefresh.textContent = new Date().toLocaleString();
@@ -1661,7 +1678,6 @@
                 allAssets = [];
                 filteredAssets = [];
                 renderAssets();
-            } finally {
                 showLoading(false);
             }
         }
@@ -1713,22 +1729,33 @@
 
         function updateLocationDropdown(customerId = null) {
             const select = document.getElementById('location-select');
+            if (!select) return;
+            
+            const currentValue = select.value; // Preserve current selection if it's still valid
             select.innerHTML = '<option value="">Select Location</option>';
+            
+            // Filter locations by customer if customerId is provided
             const filteredLocs = customerId ? locations.filter(loc => loc.customer_id === customerId) : locations;
+            
             filteredLocs.forEach(location => {
                 const option = document.createElement('option');
                 option.value = location.id;
                 option.textContent = location.name;
                 select.appendChild(option);
             });
+            
+            // Restore previous selection if it's still valid
+            if (currentValue && filteredLocs.some(loc => loc.id === currentValue)) {
+                select.value = currentValue;
+            }
         }
 
         function refreshReferenceLookups() {
             if (typeof updateCategoryFilterOptions === 'function') {
-                updateCategoryFilterOptions();
+            updateCategoryFilterOptions();
             }
             if (typeof updateCategorySelectOptions === 'function') {
-                updateCategorySelectOptions();
+            updateCategorySelectOptions();
             }
         }
 
@@ -1738,12 +1765,12 @@
             const current = select.value;
             select.innerHTML = '<option value="">All Categories</option>';
             if (referenceData && referenceData.categories) {
-                referenceData.categories.forEach(category => {
-                    const option = document.createElement('option');
-                    option.value = category.id;
-                    option.textContent = category.name;
-                    select.appendChild(option);
-                });
+            referenceData.categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category.id;
+                option.textContent = category.name;
+                select.appendChild(option);
+            });
             }
             if (referenceMaps && referenceMaps.categoriesById && referenceMaps.categoriesById.has(current)) {
                 select.value = current;
@@ -1756,18 +1783,18 @@
             const current = select.value;
             select.innerHTML = '<option value="">Select Category</option>';
             if (referenceData && referenceData.categories) {
-                referenceData.categories.forEach(category => {
-                    const option = document.createElement('option');
-                    option.value = category.id;
-                    option.textContent = category.name;
-                    select.appendChild(option);
-                });
+            referenceData.categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category.id;
+                option.textContent = category.name;
+                select.appendChild(option);
+            });
             }
             if (referenceMaps && referenceMaps.categoriesById && referenceMaps.categoriesById.has(current)) {
                 select.value = current;
             }
             if (typeof updateManufacturerOptions === 'function') {
-                updateManufacturerOptions(select.value);
+            updateManufacturerOptions(select.value);
             }
         }
 
@@ -1861,27 +1888,41 @@
 
         function closeLookupModal() {
             document.getElementById('lookup-modal').classList.remove('active');
+            const pmFrequencyContainer = document.getElementById('lookup-modal-pm-frequency-container');
+            const pmFrequencySelect = document.getElementById('lookup-modal-pm-frequency');
+            if (pmFrequencyContainer) pmFrequencyContainer.style.display = 'none';
+            if (pmFrequencySelect) pmFrequencySelect.value = '';
             lookupContext = { type: null, label: null, parentId: null, isMMD: false };
         }
         
-        function addNewMMD(type, label) {
+        async function addNewMMD(type, label, parentId = null) {
             if (!canManageReferenceData) {
                 showToast('You do not have permission to add reference data.', 'warning');
                 return;
             }
-            let parentId = null;
-            if (type === 'equipment_makes') {
-                const typeSelect = document.getElementById('mmd-type-select');
-                parentId = typeSelect ? typeSelect.value : null;
-                if (!parentId) {
+            // If parentId not provided, try to get it from dropdowns
+            if (!parentId) {
+                if (type === 'equipment_makes') {
+                    const typeSelect = document.getElementById('mmd-type-select');
+                    parentId = typeSelect ? typeSelect.value : null;
+                    if (!parentId) {
+                        showToast('Select an Equipment Type before adding a Make.', 'warning');
+                        return;
+                    }
+                } else if (type === 'equipment_models') {
+                    const makeSelect = document.getElementById('mmd-make-select');
+                    parentId = makeSelect ? makeSelect.value : null;
+                    if (!parentId) {
+                        showToast('Select a Make before adding a Model.', 'warning');
+                        return;
+                    }
+                }
+            } else {
+                // Validate parentId if provided
+                if (type === 'equipment_makes' && !parentId) {
                     showToast('Select an Equipment Type before adding a Make.', 'warning');
                     return;
-                }
-            }
-            if (type === 'equipment_models') {
-                const makeSelect = document.getElementById('mmd-make-select');
-                parentId = makeSelect ? makeSelect.value : null;
-                if (!parentId) {
+                } else if (type === 'equipment_models' && !parentId) {
                     showToast('Select a Make before adding a Model.', 'warning');
                     return;
                 }
@@ -1891,9 +1932,59 @@
             const title = document.getElementById('lookup-modal-title');
             const inputLabel = document.getElementById('lookup-modal-label');
             const input = document.getElementById('lookup-modal-input');
+            const pmFrequencyContainer = document.getElementById('lookup-modal-pm-frequency-container');
+            const pmFrequencySelect = document.getElementById('lookup-modal-pm-frequency');
+            
             title.textContent = `Add New ${lookupContext.label}`;
             inputLabel.textContent = `${lookupContext.label} Name`;
             input.value = '';
+            
+            // Show PM Frequency field only for equipment_models
+            if (type === 'equipment_models') {
+                if (pmFrequencyContainer) {
+                    pmFrequencyContainer.style.display = 'block';
+                }
+                // Load PM frequencies
+                if (supabaseClient && pmFrequencySelect) {
+                    try {
+                        const { data: frequencies, error } = await supabaseClient
+                            .from('pm_frequencies')
+                            .select('id, name, days')
+                            .eq('is_active', true)
+                            .order('sort_order', { ascending: true });
+                        
+                        if (!error && frequencies && frequencies.length > 0) {
+                            pmFrequencySelect.innerHTML = '<option value="">-- Select PM Frequency --</option>';
+                            frequencies.forEach(freq => {
+                                const option = document.createElement('option');
+                                option.value = freq.id;
+                                option.textContent = `${freq.name} (${freq.days} days)`;
+                                pmFrequencySelect.appendChild(option);
+                            });
+                        } else {
+                            console.error('No PM frequencies found or error loading:', error);
+                            if (pmFrequencySelect) {
+                                pmFrequencySelect.innerHTML = '<option value="">-- No PM Frequencies Available --</option>';
+                            }
+                        }
+                    } catch (err) {
+                        console.error('Error loading PM frequencies:', err);
+                        if (pmFrequencySelect) {
+                            pmFrequencySelect.innerHTML = '<option value="">-- Error Loading PM Frequencies --</option>';
+                        }
+                    }
+                } else {
+                    console.error('Supabase client or PM frequency select not available');
+                }
+            } else {
+                if (pmFrequencyContainer) {
+                    pmFrequencyContainer.style.display = 'none';
+                }
+                if (pmFrequencySelect) {
+                    pmFrequencySelect.value = '';
+                }
+            }
+            
             modal.classList.add('active');
             setTimeout(() => input.focus(), 0);
         }
@@ -1959,6 +2050,22 @@
                         showToast('Please select a Make first.', 'warning');
                         return;
                     }
+                    // PM Frequency is REQUIRED for models (database constraint)
+                    const pmFrequencySelect = document.getElementById('lookup-modal-pm-frequency');
+                    if (!pmFrequencySelect) {
+                        showToast('PM Frequency selector not found. Please refresh the page.', 'error');
+                        console.error('PM Frequency select element not found');
+                        return;
+                    }
+                    const pmFrequencyId = pmFrequencySelect.value ? pmFrequencySelect.value.trim() : null;
+                    if (!pmFrequencyId || pmFrequencyId === '') {
+                        showToast('PM Frequency is required for all models. Please select one from the dropdown.', 'error');
+                        // Focus on the PM frequency dropdown
+                        setTimeout(() => pmFrequencySelect.focus(), 100);
+                        return;
+                    }
+                    payload.pm_frequency_id = pmFrequencyId;
+                    console.log('Creating model with PM Frequency ID:', pmFrequencyId, 'for Make ID:', lookupContext.parentId);
                 }
                 if (!table) {
                     showToast('Unknown reference type.', 'error');
@@ -2109,17 +2216,69 @@
                         // MMD entries use direct insert (no RPC functions available)
                         // Database will auto-generate IDs using defaults (ET-YYYYMMDD-XXXXXX, etc.)
                         console.log('MMD entry - using direct insert for', lookupContext.type);
+                        
+                        // Use validation module if available
+                        if (window.MMDValidation && (lookupContext.type === 'equipment_makes' || lookupContext.type === 'equipment_models')) {
+                            const validator = new window.MMDValidation(supabaseClient);
+                            
+                            if (lookupContext.type === 'equipment_makes') {
+                                const validation = await validator.validateMakeCreation(value, lookupContext.parentId);
+                                if (!validation.valid) {
+                                    showToast(validation.error, 'error');
+                                    return;
+                                }
+                            } else if (lookupContext.type === 'equipment_models') {
+                                // PM frequency is now required in the modal, so validation is handled above
+                                if (!lookupContext.parentId) {
+                                    showToast('Make is required for Model', 'error');
+                                    return;
+                                }
+                            }
+                        }
+                        
                         try {
                             // Insert with select to get the created record (database generates ID)
                             const { data: insertData, error: insertError } = await supabaseClient
-                                .from(table)
-                                .insert([payload])
+                    .from(table)
+                    .insert([payload])
                                 .select('id, name')
-                                .single();
-                            
+                    .single();
+                
                             if (insertError) {
                                 error = insertError;
                                 console.error('Direct insert error for', lookupContext.type, ':', insertError);
+                                
+                                // Provide user-friendly error messages
+                                if (insertError.code === '23505') { // Unique violation
+                                    if (lookupContext.type === 'equipment_makes') {
+                                        showToast(`Make "${value}" already exists for this Equipment Type. Please select it from the dropdown or choose a different name.`, 'error');
+                                    } else if (lookupContext.type === 'equipment_models') {
+                                        showToast(`Model "${value}" already exists for this Make. Please select it from the dropdown or choose a different name.`, 'error');
+                                    } else {
+                                        showToast(`A ${lookupContext.label.toLowerCase()} with this name already exists.`, 'error');
+                                    }
+                                    return;
+                                } else if (insertError.code === '23503') { // Foreign key violation
+                                    if (lookupContext.type === 'equipment_makes') {
+                                        showToast('Selected Equipment Type does not exist. Please refresh and try again.', 'error');
+                                    } else if (lookupContext.type === 'equipment_models') {
+                                        showToast('Selected Make or PM Frequency does not exist. Please refresh and try again.', 'error');
+                                    } else {
+                                        showToast('Invalid parent selection. Please refresh and try again.', 'error');
+                                    }
+                                    return;
+                                } else if (insertError.code === '23514') { // Check constraint violation
+                                    if (lookupContext.type === 'equipment_models') {
+                                        showToast('PM Frequency is required for all models. Please select one.', 'error');
+                                    } else {
+                                        showToast(`Failed to add ${lookupContext.label}: ${insertError.message || 'Validation failed'}`, 'error');
+                                    }
+                                    return;
+                                } else {
+                                    // Generic error
+                                    showToast(`Failed to add ${lookupContext.label}: ${insertError.message || 'Unknown error'}`, 'error');
+                                    return;
+                                }
                             } else if (insertData) {
                                 data = insertData;
                                 error = null;
@@ -2132,6 +2291,8 @@
                         } catch (mmdError) {
                             console.error('MMD direct insert failed:', mmdError);
                             error = mmdError;
+                            showToast(`Failed to add ${lookupContext.label}: ${mmdError.message || 'Unknown error'}`, 'error');
+                            return;
                         }
                     }
                 } catch (funcError) {
@@ -2240,14 +2401,18 @@
                     
                     // Handle MMD refresh - update both Asset Modal and Settings page
                     if (lookupContext.type === 'equipment_types') {
-                        // Refresh type dropdown and select new type
-                        if (window.MMDAssetFormManager) {
-                            await window.MMDAssetFormManager.loadMMDHierarchy();
+                        // Refresh type dropdown and select new type (using unified reference manager)
+                        if (window.mmdAssetFormManager) {
+                            // Invalidate cache and reload
+                            if (window.mmdAssetFormManager.referenceManager) {
+                                window.mmdAssetFormManager.referenceManager.invalidateCache();
+                            }
+                            await window.mmdAssetFormManager.loadMMDHierarchy();
                             const typeSelect = document.getElementById('mmd-type-select');
                             if (typeSelect) {
                                 typeSelect.value = data.id;
-                                window.MMDAssetFormManager.selectedType = data.id;
-                                window.MMDAssetFormManager.populateMakeDropdown(data.id);
+                                window.mmdAssetFormManager.selectedType = data.id;
+                                window.mmdAssetFormManager.populateMakeDropdown(data.id);
                                 // Update visual feedback
                                 if (typeof handleMMDTypeChange === 'function') {
                                     handleMMDTypeChange();
@@ -2259,19 +2424,23 @@
                             await window.MasterDBManager.loadHierarchy();
                         }
                     } else if (lookupContext.type === 'equipment_makes') {
-                        // Refresh make dropdown and select new make
-                        if (window.MMDAssetFormManager) {
-                            await window.MMDAssetFormManager.loadMMDHierarchy();
+                        // Refresh make dropdown and select new make (using unified reference manager)
+                        if (window.mmdAssetFormManager) {
+                            // Invalidate cache and reload
+                            if (window.mmdAssetFormManager.referenceManager) {
+                                window.mmdAssetFormManager.referenceManager.invalidateCache();
+                            }
+                            await window.mmdAssetFormManager.loadMMDHierarchy();
                             const typeSelect = document.getElementById('mmd-type-select');
                             const typeId = typeSelect ? typeSelect.value : null;
                             if (typeId) {
-                                window.MMDAssetFormManager.populateMakeDropdown(typeId);
+                                window.mmdAssetFormManager.populateMakeDropdown(typeId);
                                 setTimeout(() => {
                                     const makeSelect = document.getElementById('mmd-make-select');
                                     if (makeSelect) {
                                         makeSelect.value = data.id;
-                                        window.MMDAssetFormManager.selectedMake = data.id;
-                                        window.MMDAssetFormManager.populateModelDropdown(data.id);
+                                        window.mmdAssetFormManager.selectedMake = data.id;
+                                        window.mmdAssetFormManager.populateModelDropdown(data.id);
                                         // Update visual feedback
                                         if (typeof handleMMDMakeChange === 'function') {
                                             handleMMDMakeChange();
@@ -2286,18 +2455,22 @@
                         }
                     } else if (lookupContext.type === 'equipment_models') {
                         // Refresh model dropdown and select new model
-                        if (window.MMDAssetFormManager) {
-                            await window.MMDAssetFormManager.loadMMDHierarchy();
+                        if (window.mmdAssetFormManager) {
+                            // Invalidate cache and reload
+                            if (window.mmdAssetFormManager.referenceManager) {
+                                window.mmdAssetFormManager.referenceManager.invalidateCache();
+                            }
+                            await window.mmdAssetFormManager.loadMMDHierarchy();
                             const makeSelect = document.getElementById('mmd-make-select');
                             const makeId = makeSelect ? makeSelect.value : null;
                             if (makeId) {
-                                await window.MMDAssetFormManager.populateModelDropdown(makeId);
+                                await window.mmdAssetFormManager.populateModelDropdown(makeId);
                                 setTimeout(() => {
                                     const modelSelect = document.getElementById('mmd-model-select');
                                     if (modelSelect) {
                                         modelSelect.value = data.id;
-                                        window.MMDAssetFormManager.selectedModel = data.id;
-                                        window.MMDAssetFormManager.updatePMFrequency(data.id);
+                                        window.mmdAssetFormManager.selectedModel = data.id;
+                                        window.mmdAssetFormManager.updatePMFrequency(data.id);
                                         // Update visual feedback
                                         if (typeof handleMMDModelChange === 'function') {
                                             handleMMDModelChange();
@@ -2338,25 +2511,25 @@
         let currentView = 'list';
 
         function switchView(view) {
-            currentView = view;
+            // Force list view only - ignore grid view requests
+            currentView = 'list';
             const gridBtn = document.getElementById('grid-view-btn');
             const listBtn = document.getElementById('list-view-btn');
             if (gridBtn) {
-                gridBtn.classList.toggle('active', view === 'grid');
+                gridBtn.style.display = 'none'; // Always hide grid button
+                gridBtn.classList.remove('active');
             }
             if (listBtn) {
-                listBtn.classList.toggle('active', view === 'list');
+                listBtn.classList.add('active');
             }
             renderAssets();
         }
 
         function renderAssets() {
-            if (currentView === 'grid') {
-                renderAssetsGrid();
-            } else {
+            // Force list view only - always render list
+            currentView = 'list';
                 renderAssetsList();
             }
-        }
 
         // Initialize view on page load
         function initializeView() {
@@ -2432,7 +2605,7 @@
                                data-asset-id="${asset.id}" 
                                onclick="handleAssetCheckboxClick(event, this)"
                                onchange="handleAssetCheckboxClick(event, this)">
-                    </td>
+                        </td>
                 `;
                 
                 // Generate cells based on visible columns
@@ -2444,12 +2617,12 @@
                 const actionsCell = `
                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium" onclick="event.stopPropagation();">
                         <button onclick="event.stopPropagation(); viewAssetById('${asset.id}')" class="text-blue-600 hover:text-blue-900 mr-3">
-                            <i class="fas fa-eye"></i> View
-                        </button>
+                                <i class="fas fa-eye"></i> View
+                            </button>
                         <button onclick="event.stopPropagation(); deleteAsset('${asset.id}')" class="text-red-600 hover:text-red-900">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </td>
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
                 `;
                 
                 return `
@@ -2480,7 +2653,7 @@
                 // Store asset in map for lookup
                 assetsById.set(asset.id, asset);
                 
-                return `
+            return `
                 <div class="bg-white rounded-xl p-6 shadow-md card-hover border-l-4 ${days !== null && days < 0 ? 'border-red-500' : days !== null && days <= 7 ? 'border-orange-500' : 'border-green-500'} cursor-pointer" data-asset-id="${asset.id}" title="Click to view/edit asset">
                     <div class="flex justify-between items-start mb-4">
                         <div class="flex-1">
@@ -2553,14 +2726,17 @@
             document.getElementById('edit-asset-id').value = '';
             loadAssetImages([]); // Clear images
             
+            // Reset location dropdown to show all locations (no customer selected yet)
+            updateLocationDropdown(null);
+            
             // Reset MMD form
-            if (window.MMDAssetFormManager) {
-                window.MMDAssetFormManager.reset();
+            if (window.mmdAssetFormManager) {
+                window.mmdAssetFormManager.reset();
             }
             
-            // Load MMD hierarchy if not already loaded
-            if (window.MMDAssetFormManager && window.MMDAssetFormManager.mmdData.types.length === 0) {
-                window.MMDAssetFormManager.loadMMDHierarchy();
+            // Load MMD hierarchy if not already loaded (using unified reference manager)
+            if (window.mmdAssetFormManager && window.mmdAssetFormManager.mmdData.types.length === 0) {
+                window.mmdAssetFormManager.loadMMDHierarchy();
             }
             
             document.getElementById('wo-tab-button').style.display = 'none';
@@ -2610,6 +2786,7 @@
                         )
                     `)
                     .eq('id', assetId)
+                    .is('deleted_at', null) // Only load assets that haven't been soft deleted
                     .single();
                 
                 if (error) throw error;
@@ -2625,7 +2802,7 @@
                 showToast(`Failed to load asset: ${error.message}`, 'error');
             }
         }
-        
+
         async function viewAsset(asset) {
             try {
                 if (!asset || !asset.id) {
@@ -2634,7 +2811,7 @@
                     return;
                 }
 
-                currentAsset = asset;
+            currentAsset = asset;
                 
                 // Set modal title and subtitle with null checks
                 const modalTitle = document.getElementById('modal-title');
@@ -2642,7 +2819,7 @@
                 if (modalTitle) modalTitle.textContent = asset.name || 'Asset Details';
                 if (modalSubtitle) modalSubtitle.textContent = asset.name || 'Asset details';
                 
-                const form = document.getElementById('asset-form');
+            const form = document.getElementById('asset-form');
                 if (!form) {
                     console.error('Asset form not found');
                     showToast('Form not found', 'error');
@@ -2680,18 +2857,38 @@
                 const warrantyExpiryInput = form.querySelector('input[name="warranty_expiry"]');
                 if (warrantyExpiryInput) warrantyExpiryInput.value = formatDateForInput(asset.warranty_expiry);
                 
-                // Depreciation fields
-                const depMethodSelect = form.querySelector('select[name="depreciation_method"]');
-                if (depMethodSelect) depMethodSelect.value = asset.depreciation_method || 'none';
+                // Depreciation profile
+                const depProfileSelect = form.querySelector('select[name="depreciation_profile_id"]');
+                if (depProfileSelect) {
+                    depProfileSelect.value = asset.depreciation_profile_id || '';
+                    // Reload profiles if needed
+                    if (window.assetDepreciationHandler) {
+                        await window.assetDepreciationHandler.loadProfiles();
+                        window.assetDepreciationHandler.populateProfileDropdown();
+                        depProfileSelect.value = asset.depreciation_profile_id || '';
+                    }
+                    // Update preview after setting profile
+                    setTimeout(() => {
+                        if (window.assetDepreciationHandler) {
+                            window.assetDepreciationHandler.updatePreview();
+                        }
+                    }, 200);
+                }
                 
-                const usefulLifeInput = form.querySelector('input[name="useful_life_years"]');
-                if (usefulLifeInput) usefulLifeInput.value = asset.useful_life_years || 5;
+                // Depreciation override (admin only)
+                const depOverrideCheckbox = form.querySelector('input[name="depreciation_override"]');
+                if (depOverrideCheckbox) {
+                    depOverrideCheckbox.checked = asset.depreciation_override || false;
+                    const overrideSection = document.getElementById('depreciation-override-section');
+                    if (overrideSection) {
+                        overrideSection.style.display = asset.depreciation_override ? 'block' : 'none';
+                    }
+                }
                 
-                const salvageValueInput = form.querySelector('input[name="salvage_value"]');
-                if (salvageValueInput) salvageValueInput.value = asset.salvage_value || 0;
-                
-                const depStartDateInput = form.querySelector('input[name="depreciation_start_date"]');
-                if (depStartDateInput) depStartDateInput.value = formatDateForInput(asset.depreciation_start_date || asset.purchase_date);
+                const depOverrideReasonInput = form.querySelector('input[name="depreciation_override_reason"]');
+                if (depOverrideReasonInput) {
+                    depOverrideReasonInput.value = asset.depreciation_override_reason || '';
+                }
                 
                 // Customer and Location
                 if (assetSchema && assetSchema.hasCustomerId) {
@@ -2711,7 +2908,7 @@
                 if (editAssetIdInput) editAssetIdInput.value = asset.id;
                 
                 // Load MMD data if model_id exists
-                if (asset.model_id && window.MMDAssetFormManager) {
+                if (asset.model_id && window.mmdAssetFormManager) {
                     try {
                         // Load the model with make and type relationships
                         const { data: modelData, error: modelError } = await supabaseClient
@@ -2738,33 +2935,33 @@
                             const type = make && make.equipment_types ? make.equipment_types : null;
                             
                             if (type && type.id) {
-                                // Ensure MMD data is loaded
-                                if (window.MMDAssetFormManager.mmdData.types.length === 0) {
-                                    await window.MMDAssetFormManager.loadMMDHierarchy();
+                                // Ensure MMD data is loaded (using unified reference manager)
+                                if (window.mmdAssetFormManager && window.mmdAssetFormManager.mmdData.types.length === 0) {
+                                    await window.mmdAssetFormManager.loadMMDHierarchy();
                                 }
                                 
                                 // Set Type
                                 const typeSelect = document.getElementById('mmd-type-select');
-                                if (typeSelect) {
+                                if (typeSelect && window.mmdAssetFormManager) {
                                     typeSelect.value = type.id;
-                                    window.MMDAssetFormManager.selectedType = type.id;
-                                    window.MMDAssetFormManager.populateMakeDropdown(type.id);
+                                    window.mmdAssetFormManager.selectedType = type.id;
+                                    window.mmdAssetFormManager.populateMakeDropdown(type.id);
                                     
                                     // Wait a bit for makes to populate, then set Make
                                     setTimeout(async () => {
                                         const makeSelect = document.getElementById('mmd-make-select');
                                         if (makeSelect && make && make.id) {
                                             makeSelect.value = make.id;
-                                            window.MMDAssetFormManager.selectedMake = make.id;
-                                            await window.MMDAssetFormManager.populateModelDropdown(make.id);
+                                            window.mmdAssetFormManager.selectedMake = make.id;
+                                            await window.mmdAssetFormManager.populateModelDropdown(make.id);
                                             
                                             // Wait a bit for models to populate, then set Model
                                             setTimeout(() => {
                                                 const modelSelect = document.getElementById('mmd-model-select');
                                                 if (modelSelect && asset.model_id) {
                                                     modelSelect.value = asset.model_id;
-                                                    window.MMDAssetFormManager.selectedModel = asset.model_id;
-                                                    window.MMDAssetFormManager.updatePMFrequency(asset.model_id);
+                                                    window.mmdAssetFormManager.selectedModel = asset.model_id;
+                                                    window.mmdAssetFormManager.updatePMFrequency(asset.model_id);
                                                 }
                                             }, 300);
                                         }
@@ -2772,27 +2969,27 @@
                                 }
                             } else {
                                 console.warn('Could not load type information for model');
-                                if (window.MMDAssetFormManager) {
-                                    window.MMDAssetFormManager.reset();
+                                if (window.mmdAssetFormManager) {
+                                    window.mmdAssetFormManager.reset();
                                 }
                             }
                         } else {
                             if (modelError) {
                                 console.warn('Error loading MMD data:', modelError);
                             }
-                            if (window.MMDAssetFormManager) {
-                                window.MMDAssetFormManager.reset();
+                            if (window.mmdAssetFormManager) {
+                                window.mmdAssetFormManager.reset();
                             }
                         }
                     } catch (error) {
                         console.error('Error loading MMD data:', error);
-                        if (window.MMDAssetFormManager) {
-                            window.MMDAssetFormManager.reset();
+                        if (window.mmdAssetFormManager) {
+                            window.mmdAssetFormManager.reset();
                         }
                     }
-                } else if (window.MMDAssetFormManager) {
+                } else if (window.mmdAssetFormManager) {
                     // Reset MMD if no model_id
-                    window.MMDAssetFormManager.reset();
+                    window.mmdAssetFormManager.reset();
                 }
                 
                 // Load images
@@ -2825,8 +3022,8 @@
                 // Update location dropdown if customer is set
                 if (assetSchema && assetSchema.hasCustomerId && asset.customer_id) {
                     if (typeof updateLocationDropdown === 'function') {
-                        updateLocationDropdown(asset.customer_id);
-                    }
+                updateLocationDropdown(asset.customer_id);
+            }
                 }
                 
                 // Show work orders tab
@@ -2834,7 +3031,7 @@
                 if (woTabButton) woTabButton.style.display = 'block';
                 
                 // Load work orders
-                await loadAssetWorkOrders(asset.id);
+            await loadAssetWorkOrders(asset.id);
                 
                 // Open modal
                 const assetModal = document.getElementById('asset-modal');
@@ -2945,7 +3142,7 @@
             if (autoGenerateWO) autoGenerateWO.checked = asset.auto_generate_wo !== false;
             
             if (typeof updatePMPreview === 'function') {
-                updatePMPreview();
+            updatePMPreview();
             }
         }
 
@@ -2971,11 +3168,11 @@
             const lastMaint = document.getElementById('last-maintenance');
             const nextMaint = document.getElementById('next-maintenance');
             
-            if (lastMaint && lastMaint.value && window.MMDAssetFormManager && window.MMDAssetFormManager.selectedPMFrequency) {
-                const pmDays = window.MMDAssetFormManager.selectedPMFrequency.days;
+            if (lastMaint && lastMaint.value && window.mmdAssetFormManager && window.mmdAssetFormManager.selectedPMFrequency) {
+                const pmDays = window.mmdAssetFormManager.selectedPMFrequency.days;
                 if (pmDays) {
                     const lastDate = new Date(lastMaint.value);
-                    const nextDate = new Date(lastDate);
+                const nextDate = new Date(lastDate);
                     nextDate.setDate(nextDate.getDate() + pmDays);
                     if (nextMaint) {
                         nextMaint.value = nextDate.toISOString().split('T')[0];
@@ -3013,7 +3210,7 @@
             // Get PM frequency from selected model
             let pmDays = null;
             
-            if (modelSelect && modelSelect.value && window.MMDAssetFormManager) {
+            if (modelSelect && modelSelect.value && window.mmdAssetFormManager) {
                 const selectedOption = modelSelect.options[modelSelect.selectedIndex];
                 const pmFrequencyDays = selectedOption.dataset.pmFrequencyDays;
                 if (pmFrequencyDays) {
@@ -3112,10 +3309,9 @@
                 status: formData.get('status'),
                 purchase_date: formData.get('purchase_date') || null,
                 purchase_cost: formData.get('purchase_cost') ? parseFloat(formData.get('purchase_cost')) : null,
-                depreciation_method: formData.get('depreciation_method') || 'none',
-                useful_life_years: formData.get('useful_life_years') ? parseInt(formData.get('useful_life_years')) : null,
-                salvage_value: formData.get('salvage_value') ? parseFloat(formData.get('salvage_value')) : 0,
-                depreciation_start_date: formData.get('depreciation_start_date') || formData.get('purchase_date') || null,
+                depreciation_profile_id: formData.get('depreciation_profile_id') || null,
+                depreciation_override: formData.get('depreciation_override') === 'on' || formData.get('depreciation_override') === true,
+                depreciation_override_reason: formData.get('depreciation_override_reason') || null,
                 warranty_expiry: formData.get('warranty_expiry') || null,
                 description: formData.get('description') || null,
                 last_maintenance: formData.get('last_maintenance') ? new Date(formData.get('last_maintenance')).toISOString() : null,
@@ -3131,8 +3327,8 @@
             // MMD-based asset creation - model_id is required
             // Get model_id from MMD form manager (primary) or form field (fallback)
             let modelId = null;
-            if (window.MMDAssetFormManager && window.MMDAssetFormManager.selectedModel) {
-                modelId = window.MMDAssetFormManager.selectedModel;
+            if (window.mmdAssetFormManager && window.mmdAssetFormManager.selectedModel) {
+                modelId = window.mmdAssetFormManager.selectedModel;
             } else {
                 modelId = formData.get('model_id');
             }
@@ -3164,16 +3360,22 @@
             // Validate MMD selection for new assets
             if (!assetId) {
                 // New asset - must have MMD selection
-                if (window.MMDAssetFormManager) {
-                    const validation = window.MMDAssetFormManager.validateMMDSelection();
+                if (window.mmdAssetFormManager) {
+                    const validation = window.mmdAssetFormManager.validateMMDSelection();
                     if (!validation.valid) {
                         showToast(validation.message, 'error');
                         return;
                     }
                     
                     // Get MMD data and add to assetData
-                    const mmdData = window.MMDAssetFormManager.getSelectedMMDData();
+                    const mmdData = window.mmdAssetFormManager.getSelectedMMDData();
                     assetData.model_id = mmdData.model_id;
+                    
+                    // Copy PM frequency ID from model at creation time (REQUIRED per requirements)
+                    // This is copied, not inferred - it does NOT auto-update if model changes later
+                    if (mmdData.pm_frequency_id) {
+                        assetData.pm_frequency_id = mmdData.pm_frequency_id;
+                    }
                     
                     // Set PM schedule from model's PM frequency if available
                     if (mmdData.pm_frequency_days) {
@@ -3241,8 +3443,8 @@
             try {
                 if (assetId) {
                     // Update existing asset - allow model_id update
-                    if (window.MMDAssetFormManager && window.MMDAssetFormManager.selectedModel) {
-                        const mmdData = window.MMDAssetFormManager.getSelectedMMDData();
+                    if (window.mmdAssetFormManager && window.mmdAssetFormManager.selectedModel) {
+                        const mmdData = window.mmdAssetFormManager.getSelectedMMDData();
                         assetData.model_id = mmdData.model_id;
                     }
                     const { error } = await supabaseClient.from('assets').update(assetData).eq('id', assetId);
@@ -3449,14 +3651,14 @@
                     const autoGenerate = document.getElementById('pm-auto-generate-wo')?.checked || false;
                     const nextMaintenance = document.getElementById('next-maintenance')?.value;
                     
-                    const { error: updateError } = await supabaseClient
-                        .from('assets')
-                        .update({
-                            auto_generate_wo: autoGenerate
-                        })
-                        .eq('id', currentAsset.id);
+                const { error: updateError } = await supabaseClient
+                    .from('assets')
+                    .update({
+                        auto_generate_wo: autoGenerate
+                    })
+                    .eq('id', currentAsset.id);
 
-                    if (updateError) throw updateError;
+                if (updateError) throw updateError;
 
                 if (autoGenerate && nextMaintenance) {
                     const now = new Date();
@@ -3498,7 +3700,7 @@
             } catch (error) {
                 showToast(`Failed to save PM schedule: ${error.message}`, 'error');
             }
-            });
+        });
         }
 
         function generateAssetId() {
@@ -3632,6 +3834,20 @@
             const statusFilter = document.getElementById('status-filter');
             const customerSelect = document.getElementById('customer-select');
             const categorySelect = document.getElementById('category-select');
+            
+            // Add event listener to customer dropdown to filter locations
+            if (customerSelect) {
+                customerSelect.addEventListener('change', (e) => {
+                    const selectedCustomerId = e.target.value;
+                    updateLocationDropdown(selectedCustomerId || null);
+                    
+                    // Clear location selection if customer changed
+                    const locationSelect = document.getElementById('location-select');
+                    if (locationSelect) {
+                        locationSelect.value = '';
+                    }
+                });
+            }
             const manufacturerSelect = document.getElementById('manufacturer-select');
             const pmScheduleType = document.getElementById('pm-schedule-type');
             const pmIntervalDays = document.getElementById('pm-interval-days');
@@ -3639,20 +3855,31 @@
             
             if (categoryFilter) categoryFilter.addEventListener('change', applyFilters);
             if (statusFilter) statusFilter.addEventListener('change', applyFilters);
-            if (customerSelect) customerSelect.addEventListener('change', (e) => updateLocationDropdown(e.target.value));
+            if (customerSelect) {
+                customerSelect.addEventListener('change', (e) => {
+                    const selectedCustomerId = e.target.value || null;
+                    updateLocationDropdown(selectedCustomerId);
+                    
+                    // Clear location selection when customer changes
+                    const locationSelect = document.getElementById('location-select');
+                    if (locationSelect) {
+                        locationSelect.value = '';
+                    }
+                });
+            }
             
             // Only add listeners for old category/manufacturer selects if they exist (for backward compatibility)
             if (categorySelect) {
                 categorySelect.addEventListener('change', (e) => {
                     if (typeof updateManufacturerOptions === 'function') {
-                        updateManufacturerOptions(e.target.value);
+                updateManufacturerOptions(e.target.value);
                     }
-                });
+            });
             }
             if (manufacturerSelect) {
                 manufacturerSelect.addEventListener('change', (e) => {
                     if (typeof updateModelOptions === 'function') {
-                        updateModelOptions(e.target.value);
+                updateModelOptions(e.target.value);
                     }
                 });
             }
@@ -3865,11 +4092,12 @@
                 const { data, error } = await supabaseClient.rpc('get_table_columns', { 
                     table_name: 'assets',
                     schema_name: 'public'
-                });
+                }).catch(() => ({ data: null, error: { message: 'RPC function not available' } }));
 
                 if (error) {
                     // RPC function may not exist - this is expected, use fallback
                     // Silently fall back to known columns without logging error
+                    // Suppress console error for missing RPC function
                     databaseColumns = [
                         { name: 'name', type: 'text', nullable: true },
                         { name: 'category', type: 'text', nullable: true },
@@ -4476,8 +4704,8 @@
                 if (error) {
                     console.warn('Error loading device configurations:', error);
                     deviceConfigurations = [];
-                    return;
-                }
+                return;
+            }
                 
                 deviceConfigurations = data || [];
 
@@ -4505,7 +4733,7 @@
             if (!config) return;
 
             // Apply to MMD form if available
-            if (window.MMDAssetFormManager) {
+            if (window.mmdAssetFormManager) {
                 // Set MMD selections
                 const typeSelect = document.getElementById('equipment-type-select');
                 const makeSelect = document.getElementById('equipment-make-select');
@@ -4513,22 +4741,22 @@
                 
                 if (config.category_id && typeSelect) {
                     typeSelect.value = config.category_id;
-                    if (window.MMDAssetFormManager.updateMakeDropdown) {
-                        window.MMDAssetFormManager.updateMakeDropdown(config.category_id);
+                    if (window.mmdAssetFormManager.updateMakeDropdown) {
+                        window.mmdAssetFormManager.updateMakeDropdown(config.category_id);
                     }
                     
                     if (config.make_id && makeSelect) {
                         setTimeout(() => {
                             makeSelect.value = config.make_id;
-                            if (window.MMDAssetFormManager.updateModelDropdown) {
-                                window.MMDAssetFormManager.updateModelDropdown(config.make_id);
+                            if (window.mmdAssetFormManager.updateModelDropdown) {
+                                window.mmdAssetFormManager.updateModelDropdown(config.make_id);
                             }
                             
                             if (config.model_id && modelSelect) {
                                 setTimeout(() => {
                                     modelSelect.value = config.model_id;
-                                    if (window.MMDAssetFormManager.updatePMFrequencyDisplay) {
-                                        window.MMDAssetFormManager.updatePMFrequencyDisplay(config.model_id);
+                                    if (window.mmdAssetFormManager.updatePMFrequencyDisplay) {
+                                        window.mmdAssetFormManager.updatePMFrequencyDisplay(config.model_id);
                                     }
                                 }, 200);
                             }
@@ -4808,11 +5036,14 @@
                 // Actions is not in availableColumns, it's always shown
             }
             
+            // Save visibility and order to localStorage immediately
             saveColumnVisibility();
+            
+            // Apply changes immediately
             renderTableHeader();
             renderAssetsList();
             closeColumnVisibilityModal();
-            showToast('Column visibility and order updated', 'success');
+            showToast('Column visibility and order saved', 'success');
         }
         
         function renderTableHeader() {
@@ -5647,7 +5878,197 @@
         window.clearAllMobileFilters = clearAllMobileFilters;
         window.applyMobileFilters = applyMobileFilters;
     </script>
+    <script src="js/mmd-validation.js"></script>
+    <script src="js/mmd-reference-manager.js"></script>
+    <script src="js/unified-mmd-modal.js"></script>
     <script src="js/pm-automation.js"></script>
     <script src="js/pm-management.js"></script>
+    <script>
+        // MMD Handler Functions - Bridge between HTML and MMDAssetFormManager
+        function handleMMDTypeChange() {
+            const typeSelect = document.getElementById('mmd-type-select');
+            if (!typeSelect || !window.mmdAssetFormManager) return;
+            
+            const typeId = typeSelect.value;
+            window.mmdAssetFormManager.selectedType = typeId;
+            window.mmdAssetFormManager.populateMakeDropdown(typeId);
+            
+            // Enable/disable Make "Add" button
+            const addMakeBtn = document.getElementById('add-mmd-make-btn');
+            if (addMakeBtn) {
+                addMakeBtn.disabled = !typeId;
+                if (typeId) {
+                    addMakeBtn.setAttribute('onclick', `openUnifiedMMDModal({type_id: '${typeId}'})`);
+                }
+            }
+        }
+        
+        function handleMMDMakeChange() {
+            const makeSelect = document.getElementById('mmd-make-select');
+            if (!makeSelect || !window.mmdAssetFormManager) return;
+            
+            const makeId = makeSelect.value;
+            window.mmdAssetFormManager.selectedMake = makeId;
+            window.mmdAssetFormManager.populateModelDropdown(makeId);
+            
+            // Enable/disable Model "Add" button
+            const addModelBtn = document.getElementById('add-mmd-model-btn');
+            if (addModelBtn) {
+                if (makeId) {
+                    addModelBtn.disabled = false;
+                    const typeId = document.getElementById('mmd-type-select')?.value;
+                    // Update onclick to use unified modal with context
+                    addModelBtn.setAttribute('onclick', `openUnifiedMMDModal({type_id: '${typeId}', make_id: '${makeId}'})`);
+                    console.log('Model Add button enabled for Make ID:', makeId);
+                } else {
+                    addModelBtn.disabled = true;
+                    addModelBtn.removeAttribute('onclick');
+                    console.log('Model Add button disabled - no Make selected');
+                }
+            } else {
+                console.error('Add Model button not found!');
+            }
+        }
+        
+        async function handleMMDModelChange() {
+            const modelSelect = document.getElementById('mmd-model-select');
+            if (!modelSelect || !window.mmdAssetFormManager) return;
+            
+            const modelId = modelSelect.value;
+            window.mmdAssetFormManager.selectedModel = modelId;
+            await window.mmdAssetFormManager.updatePMFrequency(modelId);
+        }
+        
+        // Expose globally
+        window.handleMMDTypeChange = handleMMDTypeChange;
+        window.handleMMDMakeChange = handleMMDMakeChange;
+        window.handleMMDModelChange = handleMMDModelChange;
+        
+        // Unified MMD Modal opener
+        let unifiedMMDModalInstance = null;
+        function openUnifiedMMDModal(context = {}) {
+            if (!unifiedMMDModalInstance) {
+                const supabaseClient = window.supabaseClient || window.sharedSupabaseClient;
+                if (!supabaseClient) {
+                    if (window.showToast) {
+                        window.showToast('Database connection not available', 'error');
+                    } else {
+                        alert('Database connection not available');
+                    }
+                    return;
+                }
+                unifiedMMDModalInstance = new window.UnifiedMMDModal(supabaseClient);
+            }
+            unifiedMMDModalInstance.open(context);
+        }
+        window.openUnifiedMMDModal = openUnifiedMMDModal;
+        
+        // Fix modal closing issue - prevent clicks inside from closing the modal
+        document.addEventListener('DOMContentLoaded', function() {
+            const lookupModal = document.getElementById('lookup-modal');
+            const lookupModalContent = lookupModal?.querySelector('.modal-content');
+            const lookupInput = document.getElementById('lookup-modal-input');
+            const lookupPMFreq = document.getElementById('lookup-modal-pm-frequency');
+            
+            // Prevent all clicks inside modal content from bubbling to backdrop
+            if (lookupModalContent) {
+                ['click', 'mousedown', 'mouseup'].forEach(eventType => {
+                    lookupModalContent.addEventListener(eventType, function(e) {
+                        e.stopPropagation();
+                    }, true);
+                });
+            }
+            
+            // Specifically protect input fields
+            if (lookupInput) {
+                ['click', 'focus', 'mousedown', 'mouseup', 'keydown', 'keyup'].forEach(eventType => {
+                    lookupInput.addEventListener(eventType, function(e) {
+                        e.stopPropagation();
+                    }, true);
+                });
+            }
+            
+            // Specifically protect PM Frequency dropdown
+            if (lookupPMFreq) {
+                ['click', 'focus', 'mousedown', 'mouseup', 'change', 'keydown', 'keyup'].forEach(eventType => {
+                    lookupPMFreq.addEventListener(eventType, function(e) {
+                        e.stopPropagation();
+                    }, true);
+                });
+            }
+            
+            // Only close modal when clicking the backdrop (not content)
+            if (lookupModal) {
+                lookupModal.addEventListener('click', function(e) {
+                    // Only close if clicking directly on the modal backdrop (not children)
+                    if (e.target === lookupModal) {
+                        closeLookupModal();
+                    }
+                });
+            }
+        });
+        
+        // FIX: Protect Asset Modal from backdrop clicks interfering with buttons
+        (function setupAssetModalProtection() {
+            function attachProtection() {
+                const assetModal = document.getElementById('asset-modal');
+                if (!assetModal) {
+                    setTimeout(attachProtection, 100);
+                    return;
+                }
+                
+                const assetModalContent = assetModal.querySelector('.modal-content');
+                const assetForm = document.getElementById('asset-form');
+                const saveButton = assetForm?.querySelector('button[type="submit"]');
+                
+                // Stop ALL events on content from reaching backdrop
+                if (assetModalContent) {
+                    const stopAll = (e) => {
+                        e.stopPropagation();
+                        e.stopImmediatePropagation();
+                    };
+                    ['click', 'mousedown', 'mouseup', 'submit'].forEach(type => {
+                        assetModalContent.addEventListener(type, stopAll, true);
+                    });
+                }
+                
+                // Protect form and submit button
+                if (assetForm) {
+                    const stopAll = (e) => {
+                        e.stopPropagation();
+                        e.stopImmediatePropagation();
+                    };
+                    ['click', 'submit', 'mousedown', 'mouseup'].forEach(type => {
+                        assetForm.addEventListener(type, stopAll, true);
+                    });
+                }
+                
+                if (saveButton) {
+                    const stopAll = (e) => {
+                        e.stopPropagation();
+                        e.stopImmediatePropagation();
+                    };
+                    ['click', 'mousedown', 'mouseup'].forEach(type => {
+                        saveButton.addEventListener(type, stopAll, true);
+                    });
+                }
+                
+                // ONLY close when clicking backdrop directly (not children)
+                assetModal.addEventListener('click', function(e) {
+                    if (e.target === assetModal) {
+                        closeAssetModal();
+                    }
+                }, false);
+            }
+            
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', attachProtection);
+            } else {
+                attachProtection();
+            }
+            // Also run after delay to catch any late-loading elements
+            setTimeout(attachProtection, 500);
+        })();
+    </script>
 </body>
 </html>

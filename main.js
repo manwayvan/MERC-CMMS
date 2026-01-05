@@ -272,6 +272,7 @@ const DashboardManager = {
             const { data, error } = await client
                 .from('assets')
                 .select('*')
+                .is('deleted_at', null) // Only load assets that haven't been soft deleted
                 .order('created_at', { ascending: false });
             
             if (error) {
@@ -279,7 +280,7 @@ const DashboardManager = {
                 AppState.assets = [];
             } else {
                 AppState.assets = data || [];
-                console.log(`Loaded ${AppState.assets.length} assets`);
+                console.log(`Loaded ${AppState.assets.length} assets (excluding soft-deleted)`);
             }
         } catch (err) {
             console.error('Error loading assets:', err);
@@ -1133,7 +1134,8 @@ class AssetManager {
         } else {
             const { data, error } = await supabaseClient
                 .from('assets')
-                .select('*');
+                .select('*')
+                .is('deleted_at', null); // Only load assets that haven't been soft deleted
 
             if (error) {
                 console.error('Error loading assets:', error);
@@ -1445,6 +1447,7 @@ const WorkOrderManager = {
         const { data, error } = await supabaseClient
             .from('assets')
             .select('id, name, category, serial_number')
+            .is('deleted_at', null) // Only load assets that haven't been soft deleted
             .order('name', { ascending: true });
 
         if (error) {
@@ -2485,6 +2488,9 @@ const WorkOrderManager = {
         const day = String(now.getDate()).padStart(2, '0');
         const dateStr = `${year}${month}${day}`;
         
+        // Track created_date for work order creation
+        const createdDate = new Date().toISOString();
+        
         // Use timestamp milliseconds for uniqueness (last 4 digits)
         const seqNum = String(Date.now()).slice(-4).padStart(4, '0');
         const workOrderId = `WO-${dateStr}-${seqNum}`;
@@ -2496,6 +2502,7 @@ const WorkOrderManager = {
             priority,
             status: 'open',
             due_date: new Date(dueDate).toISOString(),
+            created_date: createdDate, // Track work order creation date
             estimated_hours: estimatedHours,
             description: description
         };
@@ -2649,29 +2656,27 @@ const WorkOrderManager = {
     // View switching (Grid/List)
     currentView: 'list',
     switchView: (view) => {
-        WorkOrderManager.currentView = view;
+        // Force list view only - ignore grid view requests
+        WorkOrderManager.currentView = 'list';
         const gridView = document.getElementById('workorders-grid-view');
         const listView = document.getElementById('workorders-list-view');
         const gridBtn = document.getElementById('grid-view-btn');
         const listBtn = document.getElementById('list-view-btn');
 
-        if (view === 'grid') {
-            if (gridView) gridView.classList.remove('hidden');
-            if (listView) listView.classList.add('hidden');
-            if (gridBtn) gridBtn.classList.add('active');
-            if (listBtn) listBtn.classList.remove('active');
-            WorkOrderManager.renderWorkOrders();
-        } else {
-            if (gridView) gridView.classList.add('hidden');
-            if (listView) listView.classList.remove('hidden');
-            if (gridBtn) gridBtn.classList.remove('active');
-            if (listBtn) listBtn.classList.add('active');
-            WorkOrderManager.renderWorkOrdersList();
+        // Always show list view, hide grid view
+        if (gridView) gridView.classList.add('hidden');
+        if (listView) listView.classList.remove('hidden');
+        if (gridBtn) {
+            gridBtn.classList.remove('active');
+            gridBtn.style.display = 'none'; // Hide grid button
         }
+        if (listBtn) listBtn.classList.add('active');
+        WorkOrderManager.renderWorkOrdersList();
     },
 
     // Initialize default view on page load
     initView: () => {
+        // Force list view only - hide grid view button
         const gridView = document.getElementById('workorders-grid-view');
         const listView = document.getElementById('workorders-list-view');
         const gridBtn = document.getElementById('grid-view-btn');
@@ -2680,8 +2685,12 @@ const WorkOrderManager = {
         // Set initial view state
         if (gridView) gridView.classList.add('hidden');
         if (listView) listView.classList.remove('hidden');
-        if (gridBtn) gridBtn.classList.remove('active');
+        if (gridBtn) {
+            gridBtn.classList.remove('active');
+            gridBtn.style.display = 'none'; // Hide grid view button
+        }
         if (listBtn) listBtn.classList.add('active');
+        WorkOrderManager.currentView = 'list';
         
         WorkOrderManager.currentView = 'list';
         // Render list view

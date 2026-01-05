@@ -55,7 +55,7 @@
             background: rgba(255, 255, 255, 0.1);
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
-        .notification-badge {
+        /* .notification-badge { */
             position: absolute;
             top: -8px;
             right: -8px;
@@ -192,28 +192,20 @@
                         <p class="text-blue-200 text-xs truncate">Enterprise Medical Device Management</p>
                     </div>
                 </a>
-                <div class="hidden md:flex items-center space-x-8">
-                    <a href="index.html" class="text-blue-200 hover:text-white transition-colors">Dashboard</a>
-                    <a href="customers.html" class="text-blue-200 hover:text-white transition-colors">Customers</a>
-                    <a href="assets.html" class="text-blue-200 hover:text-white transition-colors">Assets</a>
-                    <a href="work-orders.html" class="text-blue-200 hover:text-white transition-colors">Work Orders</a>
-                    <a href="inventory.html" class="text-blue-200 hover:text-white transition-colors">Inventory</a>
-                    <a href="compliance.html" class="text-white font-semibold border-b-2 border-blue-300 pb-1">Compliance</a>
+                <div class="hidden md:flex items-center space-x-6">
+                    <a href="index.html" class="text-blue-200 hover:text-white transition-colors whitespace-nowrap">Dashboard</a>
+                    <a href="customers.html" class="text-blue-200 hover:text-white transition-colors whitespace-nowrap">Customers</a>
+                    <a href="assets.html" class="text-blue-200 hover:text-white transition-colors whitespace-nowrap">Assets</a>
+                    <a href="work-orders.html" class="text-blue-200 hover:text-white transition-colors whitespace-nowrap">Work Orders</a>
+                    <a href="inventory.html" class="text-blue-200 hover:text-white transition-colors whitespace-nowrap">Inventory</a>
+                    <a href="compliance.html" class="text-white font-semibold border-b-2 border-blue-300 pb-1 whitespace-nowrap">Compliance</a>
+                    <a href="settings.html" class="text-blue-200 hover:text-white transition-colors whitespace-nowrap">Settings</a>
                 </div>
                 <div class="flex items-center gap-3 flex-shrink-0">
                     <button id="mobile-menu-button" class="md:hidden text-white hover:text-blue-200 transition-colors" aria-label="Open menu" aria-expanded="false">
                         <i class="fas fa-bars text-xl"></i>
                     </button>
                     <div class="flex items-center gap-3">
-                        <div class="relative">
-                            <button class="text-white hover:text-blue-200 transition-colors">
-                                <i class="fas fa-bell text-xl"></i>
-                            </button>
-                            <div class="notification-badge">3</div>
-                        </div>
-                        <a href="settings.html" class="text-white hover:text-blue-200 transition-colors" aria-label="Open settings">
-                            <i class="fas fa-gear text-xl"></i>
-                        </a>
                         <button id="logout-button" class="text-white hover:text-blue-200 transition-colors" aria-label="Sign out">
                             <i class="fas fa-right-from-bracket text-xl"></i>
                         </button>
@@ -239,22 +231,16 @@
             <a href="work-orders.html" class="block text-blue-200 hover:text-white transition-colors">Work Orders</a>
             <a href="inventory.html" class="block text-blue-200 hover:text-white transition-colors">Inventory</a>
             <a href="compliance.html" class="block text-white font-semibold">Compliance</a>
+            <a href="settings.html" class="block text-blue-200 hover:text-white transition-colors">Settings</a>
         </div>
     </div>
 
     <!-- Main Content -->
     <main class="pt-16">
-        <!-- Header Section -->
-        <section class="compliance-header-bg relative">
-            <div class="absolute inset-0 bg-slate-900 bg-opacity-70"></div>
-            <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-                <div class="text-center">
-                    <h1 class="text-4xl md:text-5xl font-bold text-white mb-4">Compliance & Reports</h1>
-                    <p class="text-xl text-blue-200 mb-8 max-w-3xl mx-auto">
-                        Comprehensive regulatory compliance management with real-time monitoring,
-                        audit trails, and enterprise reporting capabilities
-                    </p>
-                </div>
+        <!-- Page Header -->
+        <section class="bg-gradient-to-r from-blue-600 to-blue-800">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                <h1 class="text-2xl font-bold text-white">Compliance & Reports</h1>
             </div>
         </section>
 

@@ -98,25 +98,20 @@
                         <p class="text-blue-200 text-xs truncate">Enterprise Medical Device Management</p>
                     </div>
                 </a>
-                <div class="hidden md:flex items-center space-x-8">
-                    <a href="index.html" class="text-white font-semibold border-b-2 border-blue-300 pb-1">Dashboard</a>
-                    <a href="customers.html" class="text-blue-200 hover:text-white transition-colors">Customers</a>
-                    <a href="assets.html" class="text-blue-200 hover:text-white transition-colors">Assets</a>
-                    <a href="work-orders.html" class="text-blue-200 hover:text-white transition-colors">Work Orders</a>
-                    <a href="inventory.html" class="text-blue-200 hover:text-white transition-colors">Inventory</a>
-                    <a href="compliance.html" class="text-blue-200 hover:text-white transition-colors">Compliance</a>
+                <div class="hidden md:flex items-center space-x-6">
+                    <a href="index.html" class="text-white font-semibold border-b-2 border-blue-300 pb-1 whitespace-nowrap">Dashboard</a>
+                    <a href="customers.html" class="text-blue-200 hover:text-white transition-colors whitespace-nowrap">Customers</a>
+                    <a href="assets.html" class="text-blue-200 hover:text-white transition-colors whitespace-nowrap">Assets</a>
+                    <a href="work-orders.html" class="text-blue-200 hover:text-white transition-colors whitespace-nowrap">Work Orders</a>
+                    <a href="inventory.html" class="text-blue-200 hover:text-white transition-colors whitespace-nowrap">Inventory</a>
+                    <a href="compliance.html" class="text-blue-200 hover:text-white transition-colors whitespace-nowrap">Compliance</a>
+                    <a href="settings.html" class="text-blue-200 hover:text-white transition-colors whitespace-nowrap">Settings</a>
                 </div>
                 <div class="flex items-center gap-3 flex-shrink-0">
                     <button id="mobile-menu-button" class="md:hidden text-white hover:text-blue-200 transition-colors" aria-label="Open menu" aria-expanded="false">
                         <i class="fas fa-bars text-xl"></i>
                     </button>
                     <div class="flex items-center gap-3">
-                        <div class="relative">
-                            <button class="text-white hover:text-blue-200 transition-colors">
-                                <i class="fas fa-bell text-xl"></i>
-                            </button>
-                            <div class="notification-badge">5</div>
-                        </div>
                         <a href="settings.html" class="text-white hover:text-blue-200 transition-colors" aria-label="Open settings">
                             <i class="fas fa-gear text-xl"></i>
                         </a>
@@ -145,24 +140,16 @@
             <a href="work-orders.html" class="block text-blue-200 hover:text-white transition-colors">Work Orders</a>
             <a href="inventory.html" class="block text-blue-200 hover:text-white transition-colors">Inventory</a>
             <a href="compliance.html" class="block text-blue-200 hover:text-white transition-colors">Compliance</a>
+            <a href="settings.html" class="block text-blue-200 hover:text-white transition-colors">Settings</a>
         </div>
     </div>
 
     <!-- Main Content -->
     <main class="pt-16">
-        <!-- Hero Section -->
-        <section class="hero-bg relative">
-            <div class="absolute inset-0 bg-slate-900 bg-opacity-60"></div>
-            <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-                <div class="text-center">
-                    <h1 class="text-4xl md:text-5xl font-bold text-white mb-4">
-                        <span id="hero-text">Enterprise Medical Device Management</span>
-                    </h1>
-                    <p class="text-xl text-blue-200 mb-8 max-w-3xl mx-auto">
-                        Comprehensive CMMS solution for healthcare organizations with real-time monitoring,
-                        compliance management, and predictive maintenance
-                    </p>
-                </div>
+        <!-- Page Header -->
+        <section class="bg-gradient-to-r from-blue-600 to-blue-800">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                <h1 class="text-2xl font-bold text-white">Dashboard</h1>
             </div>
         </section>
         <!-- Live Statistics Panel -->
@@ -171,25 +158,25 @@
                 <h2 class="text-3xl font-bold text-slate-800 mb-8 text-center">Real-Time System Statistics</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <!-- Total Assets -->
-                    <div class="bg-slate-50 rounded-lg p-4 text-center">
+                    <a href="assets.html" class="bg-slate-50 rounded-lg p-4 text-center hover:bg-slate-100 transition-colors cursor-pointer block">
                         <div id="total-assets" class="text-2xl font-bold text-blue-600">0</div>
                         <div class="text-slate-600 text-sm">Total Assets</div>
-                    </div>
+                    </a>
                     <!-- Active Work Orders -->
-                    <div class="bg-slate-50 rounded-lg p-4 text-center">
+                    <a href="work-orders.html" class="bg-slate-50 rounded-lg p-4 text-center hover:bg-slate-100 transition-colors cursor-pointer block">
                         <div id="active-work-orders" class="text-2xl font-bold text-amber-600">0</div>
                         <div class="text-slate-600 text-sm">Active Work Orders</div>
-                    </div>
+                    </a>
                     <!-- Compliance Rate -->
-                    <div class="bg-slate-50 rounded-lg p-4 text-center">
+                    <a href="compliance.html" class="bg-slate-50 rounded-lg p-4 text-center hover:bg-slate-100 transition-colors cursor-pointer block">
                         <div id="compliance-rate" class="text-2xl font-bold text-green-600">0%</div>
                         <div class="text-slate-600 text-sm">Compliance Rate</div>
-                    </div>
+                    </a>
                     <!-- Maintenance Due -->
-                    <div class="bg-slate-50 rounded-lg p-4 text-center">
+                    <a href="assets.html" class="bg-slate-50 rounded-lg p-4 text-center hover:bg-slate-100 transition-colors cursor-pointer block">
                         <div id="maintenance-due" class="text-2xl font-bold text-red-600">0</div>
                         <div class="text-slate-600 text-sm">Maintenance Due</div>
-                    </div>
+                    </a>
                 </div>
             </div>
         </section>

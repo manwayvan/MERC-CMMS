@@ -916,6 +916,22 @@ const InventoryManager = {
         if (transactionForm) {
             transactionForm.addEventListener('submit', (e) => this.saveTransaction(e));
         }
+
+        // Quick Add forms
+        const quickCategoryForm = document.getElementById('quick-add-category-form');
+        if (quickCategoryForm) {
+            quickCategoryForm.addEventListener('submit', (e) => this.saveQuickCategory(e));
+        }
+
+        const quickVendorForm = document.getElementById('quick-add-vendor-form');
+        if (quickVendorForm) {
+            quickVendorForm.addEventListener('submit', (e) => this.saveQuickVendor(e));
+        }
+
+        const quickLocationForm = document.getElementById('quick-add-location-form');
+        if (quickLocationForm) {
+            quickLocationForm.addEventListener('submit', (e) => this.saveQuickLocation(e));
+        }
     },
 
     showToast(message, type = 'info') {
@@ -937,6 +953,167 @@ const InventoryManager = {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    },
+
+    // Quick Add Category
+    openQuickAddCategoryModal() {
+        const modal = document.getElementById('quick-add-category-modal');
+        const form = document.getElementById('quick-add-category-form');
+        if (form) form.reset();
+        if (modal) modal.classList.add('active');
+    },
+
+    closeQuickAddCategoryModal() {
+        const modal = document.getElementById('quick-add-category-modal');
+        if (modal) modal.classList.remove('active');
+    },
+
+    async saveQuickCategory(e) {
+        e.preventDefault();
+        const name = document.getElementById('quick-category-name').value.trim();
+        const description = document.getElementById('quick-category-description').value.trim() || null;
+
+        if (!name) {
+            this.showToast('Category name is required', 'error');
+            return;
+        }
+
+        try {
+            const { data, error } = await this.supabaseClient
+                .from('part_categories')
+                .insert({ name, description })
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            this.showToast('Category added successfully', 'success');
+            await this.loadPartCategories();
+            await this.populatePartCategoryDropdown();
+            
+            // Set the newly created category as selected in the part form
+            const partCategorySelect = document.getElementById('part-category');
+            if (partCategorySelect && data) {
+                partCategorySelect.value = data.id;
+            }
+
+            this.closeQuickAddCategoryModal();
+        } catch (error) {
+            console.error('Error saving category:', error);
+            this.showToast(`Failed to save category: ${error.message}`, 'error');
+        }
+    },
+
+    // Quick Add Vendor
+    openQuickAddVendorModal() {
+        const modal = document.getElementById('quick-add-vendor-modal');
+        const form = document.getElementById('quick-add-vendor-form');
+        if (form) form.reset();
+        if (modal) modal.classList.add('active');
+    },
+
+    closeQuickAddVendorModal() {
+        const modal = document.getElementById('quick-add-vendor-modal');
+        if (modal) modal.classList.remove('active');
+    },
+
+    async saveQuickVendor(e) {
+        e.preventDefault();
+        const name = document.getElementById('quick-vendor-name').value.trim();
+        const contactPerson = document.getElementById('quick-vendor-contact').value.trim() || null;
+        const email = document.getElementById('quick-vendor-email').value.trim() || null;
+        const phone = document.getElementById('quick-vendor-phone').value.trim() || null;
+
+        if (!name) {
+            this.showToast('Vendor name is required', 'error');
+            return;
+        }
+
+        try {
+            const { data, error } = await this.supabaseClient
+                .from('vendors')
+                .insert({ 
+                    name, 
+                    contact_person: contactPerson,
+                    email,
+                    phone,
+                    is_active: true
+                })
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            this.showToast('Vendor added successfully', 'success');
+            await this.loadVendors();
+            await this.populateVendorDropdown();
+            
+            // Set the newly created vendor as selected in the part form
+            const partVendorSelect = document.getElementById('part-vendor');
+            if (partVendorSelect && data) {
+                partVendorSelect.value = data.id;
+            }
+
+            this.closeQuickAddVendorModal();
+        } catch (error) {
+            console.error('Error saving vendor:', error);
+            this.showToast(`Failed to save vendor: ${error.message}`, 'error');
+        }
+    },
+
+    // Quick Add Location
+    openQuickAddLocationModal() {
+        const modal = document.getElementById('quick-add-location-modal');
+        const form = document.getElementById('quick-add-location-form');
+        if (form) form.reset();
+        if (modal) modal.classList.add('active');
+    },
+
+    closeQuickAddLocationModal() {
+        const modal = document.getElementById('quick-add-location-modal');
+        if (modal) modal.classList.remove('active');
+    },
+
+    async saveQuickLocation(e) {
+        e.preventDefault();
+        const name = document.getElementById('quick-location-name').value.trim();
+        const description = document.getElementById('quick-location-description').value.trim() || null;
+        const address = document.getElementById('quick-location-address').value.trim() || null;
+
+        if (!name) {
+            this.showToast('Location name is required', 'error');
+            return;
+        }
+
+        try {
+            const { data, error } = await this.supabaseClient
+                .from('inventory_locations')
+                .insert({ 
+                    name, 
+                    description,
+                    address,
+                    is_active: true
+                })
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            this.showToast('Location added successfully', 'success');
+            await this.loadLocations();
+            await this.populateLocationDropdown();
+            
+            // Set the newly created location as selected in the part form
+            const partLocationSelect = document.getElementById('part-location');
+            if (partLocationSelect && data) {
+                partLocationSelect.value = data.id;
+            }
+
+            this.closeQuickAddLocationModal();
+        } catch (error) {
+            console.error('Error saving location:', error);
+            this.showToast(`Failed to save location: ${error.message}`, 'error');
+        }
     }
 };
 
@@ -964,6 +1141,14 @@ function openPOModal() { InventoryManager.openPOModal(); }
 function filterParts() { InventoryManager.filterParts(); }
 function filterVendors() { InventoryManager.filterVendors(); }
 function filterTransactions() { InventoryManager.filterTransactions(); }
+
+// Quick Add functions
+function openQuickAddCategoryModal() { InventoryManager.openQuickAddCategoryModal(); }
+function closeQuickAddCategoryModal() { InventoryManager.closeQuickAddCategoryModal(); }
+function openQuickAddVendorModal() { InventoryManager.openQuickAddVendorModal(); }
+function closeQuickAddVendorModal() { InventoryManager.closeQuickAddVendorModal(); }
+function openQuickAddLocationModal() { InventoryManager.openQuickAddLocationModal(); }
+function closeQuickAddLocationModal() { InventoryManager.closeQuickAddLocationModal(); }
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {

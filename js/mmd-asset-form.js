@@ -7,6 +7,7 @@
 class MMDAssetFormManager {
     constructor() {
         this.supabaseClient = window.supabaseClient || window.sharedSupabaseClient;
+        this.referenceManager = null;
         this.mmdData = {
             types: [],
             makes: [],
@@ -25,19 +26,46 @@ class MMDAssetFormManager {
             return;
         }
 
+        // Initialize reference manager (single source of truth)
+        if (window.MMDReferenceManager) {
+            this.referenceManager = new window.MMDReferenceManager(this.supabaseClient);
+            // Register for cache invalidation
+            this.referenceManager.onCacheInvalidate(() => {
+                this.loadMMDHierarchy();
+            });
+        }
+
         await this.loadMMDHierarchy();
         this.setupEventListeners();
     }
 
     /**
-     * Load complete MMD hierarchy efficiently using RPC function
+     * Load complete MMD hierarchy using unified reference manager
      */
     async loadMMDHierarchy() {
         try {
+            // Use reference manager if available (single source of truth)
+            if (this.referenceManager) {
+                const data = await this.referenceManager.loadAll();
+                this.mmdData = {
+                    types: data.types || [],
+                    makes: data.makes || [],
+                    models: data.models || [],
+                    frequencies: data.frequencies || []
+                };
+                console.log('MMD Asset Form loaded from Reference Manager:', {
+                    types: this.mmdData.types.length,
+                    makes: this.mmdData.makes.length,
+                    models: this.mmdData.models.length
+                });
+                this.populateTypeDropdown();
+                return;
+            }
+
+            // Fallback to RPC if reference manager not available
             const { data, error } = await this.supabaseClient.rpc('get_mmd_hierarchy');
             
             if (error) {
-                // Fallback to individual queries if RPC fails
                 console.warn('RPC failed, using fallback queries:', error);
                 await this.loadMMDHierarchyFallback();
                 return;
@@ -48,7 +76,6 @@ class MMDAssetFormManager {
             if (data && Array.isArray(data) && data.length > 0) {
                 result = data[0];
             } else if (data && !Array.isArray(data)) {
-                // In case RPC returns a single object instead of array
                 result = data;
             }
 
@@ -65,7 +92,6 @@ class MMDAssetFormManager {
                     models: this.mmdData.models.length
                 });
             } else {
-                // If no data, use fallback
                 console.warn('RPC returned no data, using fallback queries');
                 await this.loadMMDHierarchyFallback();
                 return;
@@ -75,7 +101,6 @@ class MMDAssetFormManager {
         } catch (error) {
             console.error('Error loading MMD hierarchy:', error);
             this.showError('Failed to load equipment data. Please refresh the page.');
-            // Try fallback on error
             await this.loadMMDHierarchyFallback();
         }
     }
@@ -163,17 +188,7 @@ class MMDAssetFormManager {
         this.clearPMFrequency();
         this.updateSummary();
         
-        // Update visual state - make dropdown is now enabled
-        const makeContainer = document.getElementById('mmd-make-container');
-        if (makeContainer && typeId) {
-            makeContainer.classList.remove('border-gray-200');
-            makeContainer.classList.add('border-blue-200');
-            const label = makeContainer.querySelector('label span');
-            if (label) {
-                label.classList.remove('bg-gray-400');
-                label.classList.add('bg-blue-600');
-            }
-        }
+        // Visual state updates removed - using standard form styling now
     }
 
     /**
@@ -206,6 +221,7 @@ class MMDAssetFormManager {
                     option.dataset.pmFrequencyId = model.pm_frequency_id || '';
                     option.dataset.pmFrequencyName = model.pm_frequency_name || '';
                     option.dataset.pmFrequencyDays = model.pm_frequency_days || '';
+                    option.dataset.depreciationProfileId = model.depreciation_profile_id || '';
                     if (model.description) {
                         option.title = model.description;
                     }
@@ -221,6 +237,7 @@ class MMDAssetFormManager {
                     option.value = model.id;
                     option.textContent = model.name;
                     option.dataset.pmFrequencyId = model.pm_frequency_id || '';
+                    option.dataset.depreciationProfileId = model.depreciation_profile_id || '';
                     modelSelect.appendChild(option);
                 });
             }
@@ -235,6 +252,7 @@ class MMDAssetFormManager {
                 option.value = model.id;
                 option.textContent = model.name;
                 option.dataset.pmFrequencyId = model.pm_frequency_id || '';
+                option.dataset.depreciationProfileId = model.depreciation_profile_id || '';
                 modelSelect.appendChild(option);
             });
         }
@@ -280,8 +298,9 @@ class MMDAssetFormManager {
     /**
      * Update PM Frequency display when Model is selected
      */
-    updatePMFrequency(modelId) {
+    async updatePMFrequency(modelId) {
         const pmFrequencyDisplay = document.getElementById('mmd-pm-frequency-display');
+        if (!pmFrequencyDisplay) return;
         const modelSelect = document.getElementById('mmd-model-select');
         
         if (!pmFrequencyDisplay || !modelSelect) return;
@@ -295,20 +314,22 @@ class MMDAssetFormManager {
         const pmFrequencyId = selectedOption.dataset.pmFrequencyId;
         const pmFrequencyName = selectedOption.dataset.pmFrequencyName;
         const pmFrequencyDays = selectedOption.dataset.pmFrequencyDays;
+        const depreciationProfileId = selectedOption.dataset.depreciationProfileId;
+
+        // Auto-assign depreciation profile from model
+        if (depreciationProfileId && window.assetDepreciationHandler) {
+            window.assetDepreciationHandler.setProfileForAsset(null, depreciationProfileId);
+        } else if (window.assetDepreciationHandler && modelId) {
+            // Try to load from database if not in option data
+            await window.assetDepreciationHandler.loadProfileForModel(modelId);
+        }
 
         if (pmFrequencyId && pmFrequencyName) {
+            pmFrequencyDisplay.className = 'form-input bg-green-50 text-gray-700';
             pmFrequencyDisplay.innerHTML = `
-                <div class="bg-green-50 border-2 border-green-300 rounded-lg p-4">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <span class="text-sm font-bold text-green-900">PM Frequency:</span>
-                            <span class="text-sm font-semibold text-green-800 ml-2">${this.escapeHtml(pmFrequencyName)}</span>
-                            ${pmFrequencyDays ? `<span class="text-xs text-green-600 ml-2">(${pmFrequencyDays} days)</span>` : ''}
-                        </div>
-                        <i class="fas fa-check-circle text-green-600 text-xl"></i>
-                    </div>
-                    <p class="text-xs text-green-700 mt-2">✓ Auto-populated from selected model</p>
-                </div>
+                <span class="font-semibold">${this.escapeHtml(pmFrequencyName)}</span>
+                ${pmFrequencyDays ? `<span class="text-sm text-gray-600 ml-2">(${pmFrequencyDays} days)</span>` : ''}
+                <span class="text-xs text-green-600 ml-2"><i class="fas fa-check-circle"></i> Auto-populated</span>
             `;
             this.selectedPMFrequency = {
                 id: pmFrequencyId,
@@ -322,33 +343,16 @@ class MMDAssetFormManager {
                 pmFrequencyDaysInput.value = pmFrequencyDays || '';
             }
             
-            // Update visual state - PM frequency is now set
-            const pmContainer = document.getElementById('mmd-pm-container');
-            if (pmContainer) {
-                pmContainer.classList.remove('border-gray-200');
-                pmContainer.classList.add('border-green-200');
-                const label = pmContainer.querySelector('label span');
-                if (label) {
-                    label.classList.remove('bg-gray-400');
-                    label.classList.add('bg-green-600');
-                }
-            }
+            // Visual state updates removed - using standard form styling now
             
             // Trigger next maintenance calculation if last maintenance is set
             if (typeof calculateNextMaintenance === 'function') {
                 calculateNextMaintenance();
             }
         } else {
+            pmFrequencyDisplay.className = 'form-input bg-amber-50 text-amber-800';
             pmFrequencyDisplay.innerHTML = `
-                <div class="bg-amber-50 border-2 border-amber-300 rounded-lg p-4">
-                    <div class="flex items-center">
-                        <i class="fas fa-exclamation-triangle text-amber-600 mr-2 text-xl"></i>
-                        <div>
-                            <span class="text-sm font-semibold text-amber-800 block">No PM frequency assigned</span>
-                            <span class="text-xs text-amber-700">This model needs a PM frequency. Please assign one in Settings.</span>
-                        </div>
-                    </div>
-                </div>
+                <span class="text-sm"><i class="fas fa-exclamation-triangle mr-1"></i>No PM frequency assigned</span>
             `;
             this.selectedPMFrequency = null;
         }
@@ -362,7 +366,8 @@ class MMDAssetFormManager {
     clearPMFrequency() {
         const pmFrequencyDisplay = document.getElementById('mmd-pm-frequency-display');
         if (pmFrequencyDisplay) {
-            pmFrequencyDisplay.innerHTML = '<p class="text-sm text-gray-500">Select a model to see PM frequency</p>';
+            pmFrequencyDisplay.className = 'form-input bg-gray-50 text-gray-600';
+            pmFrequencyDisplay.innerHTML = '<span class="text-sm italic">Select a model to see PM frequency</span>';
         }
         this.selectedPMFrequency = null;
     }
@@ -473,9 +478,9 @@ class MMDAssetFormManager {
 
         if (modelSelect) {
             modelSelect.removeEventListener('change', this._modelChangeHandler);
-            this._modelChangeHandler = (e) => {
+            this._modelChangeHandler = async (e) => {
                 this.selectedModel = e.target.value;
-                this.updatePMFrequency(this.selectedModel);
+                await this.updatePMFrequency(this.selectedModel);
                 // Visual feedback is handled by handleMMDModelChange
             };
             modelSelect.addEventListener('change', this._modelChangeHandler);

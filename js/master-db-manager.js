@@ -72,10 +72,12 @@ const MasterDBManager = {
 
     async openMasterModal() {
         const modal = document.getElementById('master-db-modal');
-        this.currentTab = 'configurations';
-        this.switchMasterTab('configurations');
+        if (!modal) return;
+
+        // Default to unified tab
+        this.currentTab = 'unified';
+        this.switchMasterTab('unified');
         await this.loadConfigurations();
-        await this.loadHierarchy();
         await this.loadPMFrequencies();
         modal.classList.add('active');
     },
@@ -84,35 +86,65 @@ const MasterDBManager = {
         this.currentTab = tab;
         
         // Update tab buttons
+        const unifiedTab = document.getElementById('master-db-tab-unified');
         const configTab = document.getElementById('master-db-tab-configurations');
-        const hierarchyTab = document.getElementById('master-db-tab-hierarchy');
         const frequenciesTab = document.getElementById('master-db-tab-frequencies');
+        
+        const unifiedContent = document.getElementById('master-db-unified-content');
         const configContent = document.getElementById('master-db-configurations-content');
-        const hierarchyContent = document.getElementById('master-db-hierarchy-content');
         const frequenciesContent = document.getElementById('master-db-frequencies-content');
 
         // Reset all tabs
-        [configTab, hierarchyTab, frequenciesTab].forEach(t => {
-            t.classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
-            t.classList.add('text-slate-500');
+        [unifiedTab, configTab, frequenciesTab].forEach(t => {
+            if (t) {
+                t.classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
+                t.classList.add('text-slate-500');
+            }
         });
-        [configContent, hierarchyContent, frequenciesContent].forEach(c => {
+        [unifiedContent, configContent, frequenciesContent].forEach(c => {
             if (c) c.style.display = 'none';
         });
 
         // Activate selected tab
-        if (tab === 'configurations') {
-            configTab.classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
-            configTab.classList.remove('text-slate-500');
+        if (tab === 'unified') {
+            if (unifiedTab) {
+                unifiedTab.classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
+                unifiedTab.classList.remove('text-slate-500');
+            }
+            if (unifiedContent) {
+                unifiedContent.style.display = 'block';
+                this.loadUnifiedGrid();
+            }
+        } else if (tab === 'configurations') {
+            if (configTab) {
+                configTab.classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
+                configTab.classList.remove('text-slate-500');
+            }
             if (configContent) configContent.style.display = 'block';
-        } else if (tab === 'hierarchy') {
-            hierarchyTab.classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
-            hierarchyTab.classList.remove('text-slate-500');
-            if (hierarchyContent) hierarchyContent.style.display = 'block';
         } else if (tab === 'frequencies') {
-            frequenciesTab.classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
-            frequenciesTab.classList.remove('text-slate-500');
+            if (frequenciesTab) {
+                frequenciesTab.classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
+                frequenciesTab.classList.remove('text-slate-500');
+            }
             if (frequenciesContent) frequenciesContent.style.display = 'block';
+            this.loadPMFrequencies();
+        }
+    },
+
+    async loadUnifiedGrid() {
+        if (!window.UnifiedMMDGrid) {
+            console.error('UnifiedMMDGrid not loaded');
+            return;
+        }
+
+        try {
+            if (!this.unifiedGrid) {
+                this.unifiedGrid = new window.UnifiedMMDGrid('unified-mmd-grid', this.supabaseClient);
+            }
+            await this.unifiedGrid.init();
+        } catch (error) {
+            console.error('Error loading unified grid:', error);
+            this.showToast('Failed to load MMD data', 'error');
         }
     },
 
@@ -498,6 +530,7 @@ const MasterDBManager = {
                 const fields = document.getElementById('model-fields');
                 if (fields) fields.style.display = 'block';
                 await this.loadCategoryDropdowns();
+                await this.loadPMFrequencyDropdown();
                 const make = this.hierarchyData.makes.find(m => m.id === data.make_id);
                 if (make) {
                     const typeId = make.type_id || (make.equipment_types && make.equipment_types.id);
@@ -506,6 +539,7 @@ const MasterDBManager = {
                 }
                 document.getElementById('model-make-id').value = data.make_id || '';
                 document.getElementById('model-name').value = data.name || '';
+                document.getElementById('model-pm-frequency-id').value = data.pm_frequency_id || '';
                 document.getElementById('model-description').value = data.description || '';
             } else if (type === 'pm-frequency') {
                 const fields = document.getElementById('pm-frequency-fields');
@@ -633,6 +667,17 @@ const MasterDBManager = {
                     this.showToast('Equipment Type and Name are required', 'error');
                     return;
                 }
+                
+                // Use validation module if available
+                if (window.MMDValidation) {
+                    const validator = new window.MMDValidation(this.supabaseClient);
+                    const validation = await validator.validateMakeCreation(name, typeId);
+                    if (!validation.valid) {
+                        this.showToast(validation.error, 'error');
+                        return;
+                    }
+                }
+                
                 payload = {
                     type_id: typeId,
                     name: name,
@@ -644,13 +689,32 @@ const MasterDBManager = {
                 table = 'equipment_models';
                 const makeId = document.getElementById('model-make-id').value;
                 const name = document.getElementById('model-name').value.trim();
+                const pmFrequencyId = document.getElementById('model-pm-frequency-id')?.value || '';
+                
+                // STRICT VALIDATION: PM Frequency is REQUIRED at Model level
                 if (!makeId || !name) {
                     this.showToast('Make and Name are required', 'error');
                     return;
                 }
+                if (!pmFrequencyId) {
+                    this.showToast('PM Frequency is REQUIRED for Model. This is the source of truth for all assets using this model.', 'error');
+                    return;
+                }
+                
+                // Use validation module if available
+                if (window.MMDValidation) {
+                    const validator = new window.MMDValidation(this.supabaseClient);
+                    const validation = await validator.validateModelCreation(name, makeId, pmFrequencyId);
+                    if (!validation.valid) {
+                        this.showToast(validation.error, 'error');
+                        return;
+                    }
+                }
+                
                 payload = {
                     make_id: makeId,
                     name: name,
+                    pm_frequency_id: pmFrequencyId, // REQUIRED
                     description: document.getElementById('model-description').value.trim() || null,
                     is_active: true
                 };
@@ -743,12 +807,28 @@ const MasterDBManager = {
 
             if (error) throw error;
 
-            this.showToast('Item deleted successfully', 'success');
+            this.showToast('Item archived successfully', 'success');
+            
+            // Invalidate cache to ensure all pages get updated data
+            if (window.MMDReferenceManager) {
+                window.MMDReferenceManager.invalidateCache();
+            }
             
             // Reload data
             await this.loadHierarchy();
             await this.loadPMFrequencies();
             await this.loadStats();
+            
+            // Reload grids if they exist
+            if (this.typesGrid && this.currentTab === 'types') {
+                await this.loadTypesGrid();
+            }
+            if (this.makesGrid && this.currentTab === 'makes') {
+                await this.loadMakesGrid();
+            }
+            if (this.modelsGrid && this.currentTab === 'models') {
+                await this.loadModelsGrid();
+            }
 
             // Trigger refresh in other pages
             if (window.loadReferenceData) {
@@ -758,8 +838,8 @@ const MasterDBManager = {
                 window.loadPMFrequencies();
             }
             // Refresh Asset Modal MMD data if it's loaded
-            if (window.MMDAssetFormManager && window.MMDAssetFormManager.loadMMDHierarchy) {
-                await window.MMDAssetFormManager.loadMMDHierarchy();
+            if (window.mmdAssetFormManager && window.mmdAssetFormManager.loadMMDHierarchy) {
+                await window.mmdAssetFormManager.loadMMDHierarchy();
             }
         } catch (error) {
             console.error('Error deleting:', error);
@@ -1169,6 +1249,34 @@ const MasterDBManager = {
         document.getElementById('bulk-upload-modal').classList.remove('active');
     },
 
+    // Proper CSV parsing that handles quoted fields with commas
+    parseCSVLine(line) {
+        const result = [];
+        let current = '';
+        let inQuotes = false;
+        for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            if (char === '"') {
+                if (inQuotes && line[i + 1] === '"') {
+                    // Escaped quote (double quote)
+                    current += '"';
+                    i++; // Skip next quote
+                } else {
+                    // Toggle quote state
+                    inQuotes = !inQuotes;
+                }
+            } else if (char === ',' && !inQuotes) {
+                // Field separator (only if not in quotes)
+                result.push(current.trim());
+                current = '';
+            } else {
+                current += char;
+            }
+        }
+        result.push(current.trim()); // Add last field
+        return result;
+    },
+
     async previewBulkUpload(file) {
         if (!file) return;
 
@@ -1176,7 +1284,13 @@ const MasterDBManager = {
         reader.onload = (e) => {
             const text = e.target.result;
             const lines = text.split('\n').filter(l => l.trim());
-            const headers = lines[0].split(',').map(h => h.trim());
+            if (lines.length === 0) {
+                this.showToast('CSV file is empty', 'error');
+                return;
+            }
+            
+            // Parse header with proper CSV handling
+            const headers = this.parseCSVLine(lines[0]).map(h => h.trim().replace(/^"|"$/g, ''));
             
             // Show preview
             const previewDiv = document.getElementById('bulk-upload-preview');
@@ -1185,11 +1299,11 @@ const MasterDBManager = {
             
             previewTable.innerHTML = `
                 <thead class="bg-slate-50">
-                    <tr>${headers.map(h => `<th class="px-3 py-2 text-xs font-medium text-slate-500">${h}</th>`).join('')}</tr>
+                    <tr>${headers.map(h => `<th class="px-3 py-2 text-xs font-medium text-slate-500">${this.escapeHtml(h)}</th>`).join('')}</tr>
                 </thead>
                 <tbody>
                     ${lines.slice(1, 6).map(line => {
-                        const cols = line.split(',').map(c => c.trim());
+                        const cols = this.parseCSVLine(line).map(c => c.trim().replace(/^"|"$/g, ''));
                         return `<tr>${cols.map(c => `<td class="px-3 py-2 text-sm">${this.escapeHtml(c)}</td>`).join('')}</tr>`;
                     }).join('')}
                 </tbody>
@@ -1209,11 +1323,18 @@ const MasterDBManager = {
         reader.onload = async (e) => {
             const text = e.target.result;
             const lines = text.split('\n').filter(l => l.trim());
-            const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+            if (lines.length < 2) {
+                this.showToast('CSV file must have at least a header row and one data row', 'error');
+                return;
+            }
+            
+            // Parse header with proper CSV handling
+            const headers = this.parseCSVLine(lines[0]).map(h => h.trim().replace(/^"|"$/g, '').toLowerCase());
             
             const configs = [];
             for (let i = 1; i < lines.length; i++) {
-                const cols = lines[i].split(',').map(c => c.trim());
+                // Parse each line with proper CSV handling
+                const cols = this.parseCSVLine(lines[i]).map(c => c.trim().replace(/^"|"$/g, ''));
                 const row = {};
                 headers.forEach((h, idx) => {
                     row[h] = cols[idx] || '';
@@ -1254,6 +1375,18 @@ const MasterDBManager = {
     },
 
     async findCategoryByName(name) {
+        // Try MMD equipment_types first (new system)
+        const { data: mmdType } = await this.supabaseClient
+            .from('equipment_types')
+            .select('*')
+            .ilike('name', name)
+            .is('deleted_at', null)
+            .limit(1);
+        if (mmdType?.[0]) {
+            return { id: mmdType[0].id, name: mmdType[0].name };
+        }
+        
+        // Fallback to legacy device_categories
         const { data } = await this.supabaseClient
             .from('device_categories')
             .select('*')
@@ -1263,6 +1396,19 @@ const MasterDBManager = {
     },
 
     async findMakeByName(categoryId, name) {
+        // Try MMD equipment_makes first (new system)
+        const { data: mmdMake } = await this.supabaseClient
+            .from('equipment_makes')
+            .select('*')
+            .eq('type_id', categoryId)
+            .ilike('name', name)
+            .is('deleted_at', null)
+            .limit(1);
+        if (mmdMake?.[0]) {
+            return { id: mmdMake[0].id, name: mmdMake[0].name };
+        }
+        
+        // Fallback to legacy device_makes
         const { data } = await this.supabaseClient
             .from('device_makes')
             .select('*')
@@ -1273,6 +1419,19 @@ const MasterDBManager = {
     },
 
     async findModelByName(makeId, name) {
+        // Try MMD equipment_models first (new system)
+        const { data: mmdModel } = await this.supabaseClient
+            .from('equipment_models')
+            .select('*')
+            .eq('make_id', makeId)
+            .ilike('name', name)
+            .is('deleted_at', null)
+            .limit(1);
+        if (mmdModel?.[0]) {
+            return { id: mmdModel[0].id, name: mmdModel[0].name };
+        }
+        
+        // Fallback to legacy device_models
         const { data } = await this.supabaseClient
             .from('device_models')
             .select('*')

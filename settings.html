@@ -319,28 +319,20 @@
                         <p class="text-blue-200 text-xs truncate">Enterprise Medical Device Management</p>
                     </div>
                 </a>
-                <div class="hidden md:flex items-center space-x-8">
-                    <a href="index.html" class="text-blue-200 hover:text-white transition-colors">Dashboard</a>
-                    <a href="customers.html" class="text-blue-200 hover:text-white transition-colors">Customers</a>
-                    <a href="assets.html" class="text-blue-200 hover:text-white transition-colors">Assets</a>
-                    <a href="work-orders.html" class="text-blue-200 hover:text-white transition-colors">Work Orders</a>
-                    <a href="inventory.html" class="text-blue-200 hover:text-white transition-colors">Inventory</a>
-                    <a href="compliance.html" class="text-blue-200 hover:text-white transition-colors">Compliance</a>
+                <div class="hidden md:flex items-center space-x-6">
+                    <a href="index.html" class="text-blue-200 hover:text-white transition-colors whitespace-nowrap">Dashboard</a>
+                    <a href="customers.html" class="text-blue-200 hover:text-white transition-colors whitespace-nowrap">Customers</a>
+                    <a href="assets.html" class="text-blue-200 hover:text-white transition-colors whitespace-nowrap">Assets</a>
+                    <a href="work-orders.html" class="text-blue-200 hover:text-white transition-colors whitespace-nowrap">Work Orders</a>
+                    <a href="inventory.html" class="text-blue-200 hover:text-white transition-colors whitespace-nowrap">Inventory</a>
+                    <a href="compliance.html" class="text-blue-200 hover:text-white transition-colors whitespace-nowrap">Compliance</a>
+                    <a href="settings.html" class="text-white font-semibold border-b-2 border-blue-300 pb-1 whitespace-nowrap">Settings</a>
                 </div>
                 <div class="flex items-center gap-3 flex-shrink-0">
                     <button id="mobile-menu-button" class="md:hidden text-white hover:text-blue-200 transition-colors" aria-label="Open menu" aria-expanded="false">
                         <i class="fas fa-bars text-xl"></i>
                     </button>
                     <div class="flex items-center gap-3">
-                        <div class="relative">
-                            <button class="text-white hover:text-blue-200 transition-colors" aria-label="View notifications">
-                                <i class="fas fa-bell text-xl"></i>
-                            </button>
-                            <div class="notification-badge">2</div>
-                        </div>
-                        <a href="settings.html" class="text-white hover:text-blue-200 transition-colors" aria-label="Open settings">
-                            <i class="fas fa-gear text-xl"></i>
-                        </a>
                         <button id="logout-button" class="text-white hover:text-blue-200 transition-colors" aria-label="Sign out">
                             <i class="fas fa-right-from-bracket text-xl"></i>
                         </button>
@@ -374,16 +366,10 @@
 
     <!-- Main Content -->
     <main class="pt-16">
-        <!-- Hero Section -->
-        <section class="settings-header-bg relative">
-            <div class="absolute inset-0 bg-slate-900 bg-opacity-50"></div>
-            <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-                <div class="text-center">
-                    <h1 class="text-4xl md:text-5xl font-bold text-white mb-4">Settings & Configuration</h1>
-                    <p class="text-xl text-blue-200 max-w-3xl mx-auto">
-                        Manage technicians, work order types, checklists, master database, and system configuration
-                    </p>
-                </div>
+        <!-- Page Header -->
+        <section class="bg-gradient-to-r from-blue-600 to-blue-800">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                <h1 class="text-2xl font-bold text-white">Settings & Configuration</h1>
             </div>
         </section>
 
@@ -416,7 +402,7 @@
                     <!-- Technicians Tab -->
                     <div id="technicians" class="tab-content active p-8">
                         <h2 class="text-2xl font-bold text-slate-800 mb-6">Technician Directory</h2>
-
+                        
                         <div class="settings-section">
                             <h3 class="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
                                 <i class="fas fa-users text-blue-600"></i>Technician Directory
@@ -426,7 +412,7 @@
                                 <div>
                                     <label class="text-sm font-medium text-slate-700">Full Name</label>
                                     <input class="form-input mt-2" type="text" name="full_name" required placeholder="e.g., Avery Clark">
-                                </div>
+                                    </div>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label class="text-sm font-medium text-slate-700">Role</label>
@@ -436,7 +422,7 @@
                                             <option value="manager">Manager</option>
                                             <option value="contractor">Contractor</option>
                                         </select>
-                                    </div>
+                                </div>
                                     <div>
                                         <label class="text-sm font-medium text-slate-700">Phone</label>
                                         <input class="form-input mt-2" type="text" name="phone" placeholder="(555) 555-5555">
@@ -445,7 +431,7 @@
                                 <div>
                                     <label class="text-sm font-medium text-slate-700">Email</label>
                                     <input class="form-input mt-2" type="email" name="email" placeholder="tech@example.com">
-                                </div>
+                                    </div>
                                 <div class="flex items-center justify-between bg-white rounded-lg p-3 border border-slate-200">
                                     <span class="text-sm text-slate-600">Active Technician</span>
                                     <input type="checkbox" name="is_active" class="rounded border-slate-300" checked>
@@ -457,9 +443,9 @@
                                 <ul id="technician-list" class="space-y-2 text-sm text-slate-600">
                                     <li>Loading technicians...</li>
                                 </ul>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    </div>
 
                     <!-- Checklists Tab -->
                     <div id="checklists" class="tab-content p-8" style="display: none;">
@@ -503,10 +489,10 @@
                     <!-- Master Database Setup Tab -->
                     <div id="master-database" class="tab-content p-8" style="display: none;">
                         <div class="flex items-center justify-between mb-6">
-                            <div>
+                                <div>
                                 <h2 class="text-2xl font-bold text-slate-800">Master Database Setup</h2>
                                 <p class="text-sm text-slate-600 mt-1">Manage the complete device catalog hierarchy: Type → Make → Model, plus PM Frequencies</p>
-                            </div>
+                                </div>
                             <button onclick="MasterDBManager.openMasterModal()" class="btn btn-primary">
                                 <i class="fas fa-database"></i>Manage Master Database
                             </button>
@@ -551,14 +537,14 @@
                                         <i class="fas fa-external-link-alt"></i>Open Master Database Manager
                                     </button>
                                 </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
                     <!-- System Tab -->
                     <div id="system" class="tab-content p-8" style="display: none;">
                         <h2 class="text-2xl font-bold text-slate-800 mb-6">System Configuration</h2>
-                        
+
                         <div class="settings-section">
                             <h3 class="text-lg font-semibold text-slate-800 mb-4">System Preferences</h3>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -585,7 +571,7 @@
                                 </div>
                             </div>
                         </div>
-
+                        
                         <div class="settings-section">
                             <h3 class="text-lg font-semibold text-slate-800 mb-4">Data Management</h3>
                             <div class="space-y-4">
@@ -593,25 +579,61 @@
                                     <div class="flex-1">
                                         <div class="settings-label">Enable data export</div>
                                         <div class="settings-description">Allow exporting data to CSV/Excel formats</div>
+                                        </div>
+                                        <button class="toggle active" role="switch" aria-checked="true" onclick="toggleSetting(this)"></button>
                                     </div>
-                                    <button class="toggle active" role="switch" aria-checked="true" onclick="toggleSetting(this)"></button>
-                                </div>
                                 <div class="toggle-row">
                                     <div class="flex-1">
                                         <div class="settings-label">Enable audit logging</div>
                                         <div class="settings-description">Track all system changes for compliance</div>
-                                    </div>
-                                    <button class="toggle active" role="switch" aria-checked="true" onclick="toggleSetting(this)"></button>
-                                </div>
+                                        </div>
+                                        <button class="toggle active" role="switch" aria-checked="true" onclick="toggleSetting(this)"></button>
                                 </div>
                             </div>
-                        </div>
+                                    </div>
+
+                        <div class="settings-section">
+                                        <div class="flex items-center justify-between mb-4">
+                                            <div>
+                                    <h3 class="text-lg font-semibold text-slate-800">Depreciation Profiles</h3>
+                                    <p class="text-sm text-slate-600 mt-1">Manage reusable depreciation calculation profiles. Assets inherit from profiles automatically.</p>
+                                            </div>
+                                        </div>
+                            
+                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                                <div class="flex items-start gap-3">
+                                    <i class="fas fa-info-circle text-blue-600 text-xl mt-1"></i>
+                                                <div>
+                                        <h4 class="font-semibold text-blue-900 mb-2">Excel-Style Management</h4>
+                                        <p class="text-sm text-blue-800 mb-2">
+                                            Click any cell to edit inline. Use Tab/Enter to navigate. Paste CSV/tab-delimited data to bulk add rows.
+                                        </p>
+                                        <ul class="text-xs text-blue-700 list-disc list-inside space-y-1">
+                                            <li>Click cell to edit • Tab/Enter to save • Escape to cancel</li>
+                                            <li>Ctrl+V to paste multiple rows from Excel/CSV</li>
+                                            <li>Only admins can add/edit/archive</li>
+                                            <li>Changes automatically update all linked assets</li>
+                                        </ul>
+                                                </div>
+                                                </div>
+                                                </div>
+                            
+                            <div class="bg-white rounded-lg border border-slate-200 overflow-auto max-h-[60vh]">
+                                <div id="depreciation-profiles-grid" class="p-4">
+                                    <div class="text-center text-slate-500 py-8">
+                                        <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                                        <p>Loading depreciation profiles...</p>
+                                            </div>
+                                            </div>
+                                                </div>
+                                            </div>
+                                                </div>
 
                         <div class="flex justify-end gap-3 mt-6">
                             <button class="btn btn-secondary" onclick="showToast('Changes discarded', 'info')">Discard Changes</button>
                             <button class="btn btn-primary" onclick="SettingsManager.saveSystemSettings()">Save Settings</button>
-                        </div>
-                    </div>
+                                        </div>
+                                    </div>
 
                     <!-- Work Order Types Tab -->
                     <div id="work-order-types" class="tab-content p-8" style="display: none;">
@@ -619,43 +641,43 @@
 
                         <div class="settings-section">
                             <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
-                                <div>
+                                            <div>
                                     <h3 class="text-lg font-semibold text-slate-800">Type Catalog</h3>
                                     <p class="text-sm text-slate-500">Manage the list of work order types used across the system.</p>
-                                </div>
-                            </div>
+                                            </div>
+                                        </div>
 
                             <form id="work-order-type-form" class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 rounded-lg p-4 border border-slate-200">
-                                <div>
+                                                <div>
                                     <label class="block text-sm font-semibold text-slate-700 mb-2">Type Code</label>
                                     <input id="work-order-type-code" class="form-input" type="text" placeholder="e.g., preventive_maintenance" required>
                                     <p class="settings-description">Used by the system to store the type in the database.</p>
-                                </div>
-                                <div>
+                                                </div>
+                                                <div>
                                     <label class="block text-sm font-semibold text-slate-700 mb-2">Display Label</label>
                                     <input id="work-order-type-label" class="form-input" type="text" placeholder="Preventive Maintenance" required>
                                     <p class="settings-description">What users see on the work order form.</p>
-                                </div>
-                                <div>
+                                                </div>
+                                                <div>
                                     <label class="block text-sm font-semibold text-slate-700 mb-2">Description</label>
                                     <input id="work-order-type-description" class="form-input" type="text" placeholder="Scheduled maintenance tasks">
-                                </div>
+                                                </div>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
                                         <label class="block text-sm font-semibold text-slate-700 mb-2">Sort Order</label>
                                         <input id="work-order-type-sort" class="form-input" type="number" value="0" min="0">
-                                    </div>
+                                            </div>
                                     <div class="flex items-center justify-between bg-white rounded-lg border border-slate-200 px-4 py-2 mt-6">
                                         <span class="text-sm text-slate-600">Active</span>
                                         <input id="work-order-type-active" type="checkbox" class="rounded border-slate-300" checked>
-                                    </div>
-                                </div>
+                                            </div>
+                                                </div>
                                 <div class="flex items-center gap-3 md:col-span-2">
                                     <button id="work-order-type-submit" class="btn btn-primary" type="submit">
                                         <i class="fas fa-plus"></i>Add Type
                                     </button>
                                     <button id="work-order-type-cancel" class="btn btn-secondary" type="button">Cancel Edit</button>
-                                </div>
+                                            </div>
                             </form>
 
                             <div class="mt-6 overflow-x-auto">
@@ -676,19 +698,19 @@
                                         </tr>
                                     </tbody>
                                 </table>
-                            </div>
-                        </div>
-                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
 
-                </div>
-            </div>
+                                    </div>
+                                </div>
         </section>
     </main>
 
     <footer class="bg-slate-800 text-white py-8">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <p class="text-slate-400">&copy; 2025 MERC-CMMS Enterprise. All rights reserved.</p>
-        </div>
+                                        </div>
     </footer>
 
     <div id="toast-container" class="fixed bottom-4 right-4 z-50"></div>
@@ -697,27 +719,27 @@
     <div id="master-db-modal" class="modal">
         <div class="modal-content" style="max-width: 1200px; max-height: 90vh;">
             <div class="flex justify-between items-center mb-6">
-                                <div>
+                                        <div>
                     <h3 class="text-2xl font-bold text-slate-800">Master Database Manager</h3>
                     <p class="text-sm text-slate-600 mt-1">Manage Type → Make → Model hierarchy and PM Frequencies</p>
-                </div>
+                                        </div>
                 <button onclick="MasterDBManager.closeModal()" class="text-slate-400 hover:text-slate-600">
                     <i class="fas fa-times text-xl"></i>
                 </button>
-            </div>
+                                    </div>
 
             <!-- Tabs for different sections -->
             <div class="flex gap-2 mb-6 border-b border-slate-200">
-                <button id="master-db-tab-configurations" onclick="MasterDBManager.switchMasterTab('configurations')" class="px-4 py-2 font-semibold text-blue-600 border-b-2 border-blue-600">
-                    <i class="fas fa-cogs"></i> Device Configurations
+                <button id="master-db-tab-unified" onclick="MasterDBManager.switchMasterTab('unified')" class="px-4 py-2 font-semibold text-blue-600 border-b-2 border-blue-600">
+                    <i class="fas fa-table"></i> Type → Make → Model
                 </button>
-                <button id="master-db-tab-hierarchy" onclick="MasterDBManager.switchMasterTab('hierarchy')" class="px-4 py-2 font-semibold text-slate-500 hover:text-slate-700">
-                    <i class="fas fa-sitemap"></i> Type → Make → Model
+                <button id="master-db-tab-configurations" onclick="MasterDBManager.switchMasterTab('configurations')" class="px-4 py-2 font-semibold text-slate-500 hover:text-slate-700">
+                    <i class="fas fa-cogs"></i> Device Configurations
                 </button>
                 <button id="master-db-tab-frequencies" onclick="MasterDBManager.switchMasterTab('frequencies')" class="px-4 py-2 font-semibold text-slate-500 hover:text-slate-700">
                     <i class="fas fa-calendar-alt"></i> PM Frequencies
                 </button>
-            </div>
+                                </div>
 
             <!-- Configurations Tab Content -->
             <div id="master-db-configurations-content" class="space-y-4">
@@ -730,7 +752,7 @@
                     <button onclick="MasterDBManager.showBulkUploadModal()" class="btn btn-secondary">
                         <i class="fas fa-upload"></i> Bulk Upload
                     </button>
-                </div>
+                        </div>
 
                 <!-- Configurations Table -->
                 <div class="overflow-x-auto">
@@ -756,32 +778,39 @@
                             </tr>
                         </tbody>
                     </table>
-                </div>
-            </div>
+                            </div>
+                        </div>
 
-            <!-- Hierarchy Tab Content -->
-            <div id="master-db-hierarchy-content" class="space-y-4" style="display: none;">
-                <!-- Search and Add Buttons -->
-                <div class="flex gap-3 mb-4">
-                    <input type="text" id="hierarchy-search" placeholder="Search types, makes, or models..." class="form-input flex-1" onkeyup="MasterDBManager.filterHierarchy()">
-                    <button onclick="MasterDBManager.openQuickAddModal()" class="btn btn-primary">
-                        <i class="fas fa-bolt"></i> Quick Add (Type → Make → Model → PM)
-                    </button>
-                    <button onclick="MasterDBManager.openAddModal('category')" class="btn btn-secondary">
-                        <i class="fas fa-plus"></i> Add Type Only
-                    </button>
-                </div>
-
-                <!-- Hierarchical Tree View -->
-                <div class="bg-white rounded-lg border border-slate-200 max-h-[60vh] overflow-y-auto">
-                    <div id="hierarchy-tree" class="p-4">
+            <!-- Unified MMD Grid Tab Content -->
+            <div id="master-db-unified-content" class="space-y-4">
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                    <div class="flex items-start gap-3">
+                        <i class="fas fa-info-circle text-blue-600 text-xl mt-1"></i>
+                                    <div>
+                            <h4 class="font-semibold text-blue-900 mb-2">Excel-Style Unified View</h4>
+                            <p class="text-sm text-blue-800 mb-2">
+                                Single view showing Type → Make → Model hierarchy. Click any cell to edit inline. Use Tab/Enter to navigate.
+                            </p>
+                            <ul class="text-xs text-blue-700 list-disc list-inside space-y-1">
+                                <li>Click cell to edit • Tab/Enter to save • Escape to cancel</li>
+                                <li>Type column: Select from dropdown or type new name</li>
+                                <li>Make column: Select from dropdown (filtered by Type) or type new name</li>
+                                <li>Model column: Type model name (requires Make and PM Frequency)</li>
+                                <li>PM Frequency: Select from dropdown (required for Models)</li>
+                                <li>Click "Add New Row" to add at bottom</li>
+                            </ul>
+                                    </div>
+                                </div>
+                                    </div>
+                <div class="bg-white rounded-lg border border-slate-200 overflow-auto max-h-[60vh]">
+                    <div id="unified-mmd-grid" class="p-4">
                         <div class="text-center text-slate-500 py-8">
                             <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
-                            <p>Loading hierarchy...</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+                            <p>Loading MMD data...</p>
+                                </div>
+                                    </div>
+                                </div>
+                            </div>
 
             <!-- PM Frequencies Tab Content -->
             <div id="master-db-frequencies-content" class="space-y-4" style="display: none;">
@@ -789,8 +818,8 @@
                     <input type="text" id="frequency-search" placeholder="Search PM frequencies..." class="form-input flex-1" onkeyup="MasterDBManager.filterFrequencies()">
                     <button onclick="MasterDBManager.openAddModal('pm-frequency')" class="btn btn-primary">
                         <i class="fas fa-plus"></i> Add Frequency
-                    </button>
-                </div>
+                            </button>
+                        </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left">
                         <thead class="bg-slate-50">
@@ -812,10 +841,10 @@
                             </tr>
                         </tbody>
                     </table>
-                </div>
-            </div>
-        </div>
-    </div>
+                        </div>
+                    </div>
+                                    </div>
+                                </div>
 
     <!-- Add/Edit Configuration Modal -->
     <div id="config-modal" class="modal">
@@ -825,25 +854,25 @@
                 <button onclick="MasterDBManager.closeConfigModal()" class="text-slate-400 hover:text-slate-600">
                     <i class="fas fa-times text-xl"></i>
                 </button>
-            </div>
+                                    </div>
             <form id="config-form" class="space-y-4">
                 <input type="hidden" id="config-id">
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-2">Configuration Name <span class="text-red-500">*</span></label>
                     <input type="text" id="config-name" class="form-input" required placeholder="e.g., Zoll R Series Defib - Monthly PM">
                     <p class="text-xs text-slate-500 mt-1">A descriptive name for this configuration</p>
-                </div>
+                                </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-2">Device Type <span class="text-red-500">*</span></label>
                         <div class="flex gap-2">
                             <select id="config-category" class="form-input flex-1" required onchange="MasterDBManager.updateConfigMakes()">
                                 <option value="">Select Type</option>
-                            </select>
+                                    </select>
                             <button type="button" onclick="MasterDBManager.showQuickAddType()" class="btn btn-secondary btn-sm whitespace-nowrap" title="Add New Type">
                                 <i class="fas fa-plus"></i>
                             </button>
-                        </div>
+                                    </div>
                         <div id="config-new-type-container" class="mt-2 hidden">
                             <input type="text" id="config-new-type-name" class="form-input mb-2" placeholder="New Type Name">
                             <textarea id="config-new-type-desc" class="form-input text-sm" rows="2" placeholder="Description (optional)"></textarea>
@@ -854,19 +883,19 @@
                                 <button type="button" onclick="MasterDBManager.cancelQuickAdd('type')" class="btn btn-secondary btn-sm">
                                     <i class="fas fa-times"></i> Cancel
                                 </button>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div>
+                                <div>
                         <label class="block text-sm font-medium text-slate-700 mb-2">Manufacturer <span class="text-red-500">*</span></label>
                         <div class="flex gap-2">
                             <select id="config-make" class="form-input flex-1" required onchange="MasterDBManager.updateConfigModels()" disabled>
                                 <option value="">Select Manufacturer</option>
-                            </select>
+                                    </select>
                             <button type="button" onclick="MasterDBManager.showQuickAddMake()" class="btn btn-secondary btn-sm whitespace-nowrap" title="Add New Manufacturer" id="config-add-make-btn" disabled>
                                 <i class="fas fa-plus"></i>
                             </button>
-                        </div>
+                                    </div>
                         <div id="config-new-make-container" class="mt-2 hidden">
                             <input type="text" id="config-new-make-name" class="form-input mb-2" placeholder="New Manufacturer Name">
                             <textarea id="config-new-make-desc" class="form-input text-sm" rows="2" placeholder="Description (optional)"></textarea>
@@ -877,10 +906,10 @@
                                 <button type="button" onclick="MasterDBManager.cancelQuickAdd('make')" class="btn btn-secondary btn-sm">
                                     <i class="fas fa-times"></i> Cancel
                                 </button>
+                                </div>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    </div>
-                </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-2">Model <span class="text-red-500">*</span></label>
@@ -902,37 +931,37 @@
                                 <button type="button" onclick="MasterDBManager.cancelQuickAdd('model')" class="btn btn-secondary btn-sm">
                                     <i class="fas fa-times"></i> Cancel
                                 </button>
-                            </div>
                         </div>
                     </div>
+                                    </div>
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-2">PM Frequency</label>
                         <select id="config-pm-frequency" class="form-input">
                             <option value="">No PM Schedule</option>
                         </select>
-                    </div>
-                </div>
+                                </div>
+                                    </div>
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-2">PM Checklist</label>
                     <select id="config-checklist" class="form-input">
                         <option value="">No Checklist</option>
                     </select>
-                </div>
+                                </div>
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-2">Description</label>
                     <textarea id="config-description" rows="3" class="form-input" placeholder="Optional description"></textarea>
-                </div>
+                            </div>
                 <div class="flex items-center gap-2">
                     <input type="checkbox" id="config-active" checked class="rounded border-gray-300">
                     <label for="config-active" class="text-sm font-medium text-slate-700">Active</label>
-                </div>
-                <div class="flex justify-end gap-3 mt-6">
+                        </div>
+                        <div class="flex justify-end gap-3 mt-6">
                     <button type="button" onclick="MasterDBManager.closeConfigModal()" class="btn btn-secondary">Cancel</button>
                     <button type="submit" class="btn btn-primary">Save Configuration</button>
                 </div>
             </form>
-                            </div>
                         </div>
+                    </div>
 
     <!-- Bulk Upload Modal -->
     <div id="bulk-upload-modal" class="modal">
@@ -942,7 +971,7 @@
                 <button onclick="MasterDBManager.closeBulkUploadModal()" class="text-slate-400 hover:text-slate-600">
                     <i class="fas fa-times text-xl"></i>
                 </button>
-            </div>
+                                </div>
             <div class="space-y-4">
                 <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
                     <h4 class="font-semibold text-blue-900 mb-2">CSV Format</h4>
@@ -951,26 +980,26 @@
                     <a href="#" onclick="MasterDBManager.downloadTemplate()" class="text-sm text-blue-600 hover:underline mt-2 inline-block">
                         <i class="fas fa-download"></i> Download CSV Template
                     </a>
-                </div>
-                <div>
+                                    </div>
+                                    <div>
                     <label class="block text-sm font-medium text-slate-700 mb-2">Select CSV File</label>
                     <input type="file" id="bulk-upload-file" accept=".csv" class="form-input">
-                </div>
+                                    </div>
                 <div id="bulk-upload-preview" class="hidden">
                     <h4 class="font-semibold text-slate-800 mb-2">Preview (first 5 rows)</h4>
                     <div class="overflow-x-auto max-h-60 overflow-y-auto border border-slate-200 rounded">
                         <table class="w-full text-sm" id="bulk-preview-table"></table>
-                    </div>
-                </div>
+                                </div>
+                                </div>
                         <div class="flex justify-end gap-3 mt-6">
                     <button type="button" onclick="MasterDBManager.closeBulkUploadModal()" class="btn btn-secondary">Cancel</button>
                     <button type="button" onclick="MasterDBManager.processBulkUpload()" class="btn btn-primary" id="bulk-upload-btn" disabled>
                         <i class="fas fa-upload"></i> Upload Configurations
                     </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </div>
 
     <!-- Add/Edit Item Modal (for individual items) -->
     <div id="master-db-item-modal" class="modal">
@@ -979,8 +1008,8 @@
                 <h3 class="text-2xl font-bold text-slate-800" id="master-db-item-modal-title">Add Device Type</h3>
                 <button onclick="MasterDBManager.closeItemModal()" class="text-slate-400 hover:text-slate-600">
                     <i class="fas fa-times text-xl"></i>
-                </button>
-        </div>
+                            </button>
+                        </div>
             <form id="master-db-form" class="space-y-4">
                 <input type="hidden" id="master-db-id">
                 <input type="hidden" id="master-db-type">
@@ -995,7 +1024,7 @@
                         <label class="block text-sm font-medium text-slate-700 mb-2">Description</label>
                         <textarea id="category-description" class="form-input" rows="3" placeholder="Brief description"></textarea>
                     </div>
-                </div>
+                            </div>
 
                 <!-- Make Fields -->
                 <div id="make-fields" style="display: none;">
@@ -1004,7 +1033,7 @@
                         <select id="make-type-id" class="form-input" required>
                             <option value="">Select Device Type</option>
                         </select>
-                    </div>
+                            </div>
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-2">Manufacturer Name <span class="text-red-500">*</span></label>
                         <input type="text" id="make-name" class="form-input" required placeholder="e.g., Philips">
@@ -1012,8 +1041,8 @@
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-2">Description</label>
                         <textarea id="make-description" class="form-input" rows="3" placeholder="Brief description"></textarea>
+                        </div>
                     </div>
-                </div>
 
                 <!-- Model Fields -->
                 <div id="model-fields" style="display: none;">
@@ -1022,39 +1051,48 @@
                         <select id="model-type-id" class="form-input" required onchange="MasterDBManager.updateMakeDropdown()">
                             <option value="">Select Device Type</option>
                         </select>
-                    </div>
+                        </div>
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-2">Manufacturer <span class="text-red-500">*</span></label>
                         <select id="model-make-id" class="form-input" required>
                             <option value="">Select Manufacturer</option>
                         </select>
                     </div>
-                    <div>
+                                <div>
                         <label class="block text-sm font-medium text-slate-700 mb-2">Model Name <span class="text-red-500">*</span></label>
                         <input type="text" id="model-name" class="form-input" required placeholder="e.g., HeartStart FR3">
-                    </div>
+                                </div>
                     <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">PM Frequency <span class="text-red-500">*</span></label>
+                        <select id="model-pm-frequency-id" class="form-input" required>
+                            <option value="">Select PM Frequency</option>
+                        </select>
+                        <p class="text-xs text-slate-500 mt-1">
+                            <i class="fas fa-info-circle"></i> PM Frequency is REQUIRED at Model level. This is the source of truth for all assets using this model.
+                        </p>
+                            </div>
+                                <div>
                         <label class="block text-sm font-medium text-slate-700 mb-2">Description</label>
                         <textarea id="model-description" class="form-input" rows="3" placeholder="Brief description"></textarea>
-                    </div>
+                                </div>
                 </div>
 
                 <!-- PM Frequency Fields -->
                 <div id="pm-frequency-fields" style="display: none;">
-                    <div>
+                                <div>
                         <label class="block text-sm font-medium text-slate-700 mb-2">Name <span class="text-red-500">*</span></label>
                         <input type="text" id="pm-frequency-name" class="form-input" required placeholder="e.g., Monthly">
-                    </div>
-                    <div>
+                                </div>
+                                <div>
                         <label class="block text-sm font-medium text-slate-700 mb-2">Code <span class="text-red-500">*</span></label>
                         <input type="text" id="pm-frequency-code" class="form-input" required placeholder="e.g., monthly">
                         <p class="text-xs text-slate-500 mt-1">Used internally by the system (lowercase, no spaces)</p>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
                             <label class="block text-sm font-medium text-slate-700 mb-2">Days <span class="text-red-500">*</span></label>
                             <input type="number" id="pm-frequency-days" class="form-input" required min="1" placeholder="30">
-                        </div>
+                                    </div>
                         <div>
                             <label class="block text-sm font-medium text-slate-700 mb-2">Sort Order</label>
                             <input type="number" id="pm-frequency-sort" class="form-input" min="0" value="0">
@@ -1065,16 +1103,16 @@
                         <textarea id="pm-frequency-description" class="form-input" rows="2" placeholder="e.g., Every 30 days"></textarea>
                     </div>
                     <div class="flex items-center justify-between bg-white rounded-lg border border-slate-200 px-4 py-3">
-                        <span class="text-sm text-slate-600">Active</span>
+                                        <span class="text-sm text-slate-600">Active</span>
                         <input type="checkbox" id="pm-frequency-active" class="rounded border-slate-300" checked>
-                    </div>
-                </div>
+                                    </div>
+                                </div>
 
                 <div class="flex justify-end space-x-3 pt-4 border-t border-slate-200">
                     <button type="button" onclick="MasterDBManager.closeItemModal()" class="btn btn-secondary">Cancel</button>
                     <button type="submit" id="master-db-save-btn" onclick="event.preventDefault(); MasterDBManager.handleSubmit(event);" class="btn btn-primary">Save</button>
-                </div>
-            </form>
+                                </div>
+                            </form>
         </div>
     </div>
 
@@ -1115,15 +1153,15 @@
                                 <i class="fas fa-industry text-green-600"></i>
                                 Manufacturer
                             </h4>
-                            <div>
+                                <div>
                                 <label class="block text-sm font-medium text-slate-700 mb-2">Select or Add New</label>
                                 <select id="quick-make-select" class="form-input mb-2" disabled onchange="MasterDBManager.handleQuickMakeChange()">
                                     <option value="">-- Select Type First --</option>
-                                </select>
+                                    </select>
                                 <div class="text-xs text-slate-500 mb-2">OR</div>
                                 <input type="text" id="quick-make-name" class="form-input mb-2" placeholder="New Make Name" disabled oninput="MasterDBManager.handleQuickMakeChange()">
                                 <textarea id="quick-make-desc" class="form-input text-sm" rows="2" placeholder="Description (optional)" disabled></textarea>
-                            </div>
+                                </div>
                         </div>
                     </div>
 
@@ -1134,17 +1172,17 @@
                                 <i class="fas fa-cube text-purple-600"></i>
                                 Model
                             </h4>
-                            <div>
+                                <div>
                                 <label class="block text-sm font-medium text-slate-700 mb-2">Select or Add New</label>
                                 <select id="quick-model-select" class="form-input mb-2" disabled onchange="MasterDBManager.handleQuickModelChange()">
                                     <option value="">-- Select Make First --</option>
-                                </select>
+                                    </select>
                                 <div class="text-xs text-slate-500 mb-2">OR</div>
                                 <input type="text" id="quick-model-name" class="form-input mb-2" placeholder="New Model Name" disabled oninput="MasterDBManager.handleQuickModelChange()">
                                 <textarea id="quick-model-desc" class="form-input text-sm" rows="2" placeholder="Description (optional)" disabled></textarea>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
                     <!-- PM Frequency Column -->
                     <div class="space-y-4">
@@ -1159,17 +1197,17 @@
                                     <option value="">-- Select Model First --</option>
                                 </select>
                                 <p class="text-xs text-slate-500 mt-2">PM frequency will be linked to the model</p>
-                            </div>
                         </div>
                     </div>
                 </div>
+            </div>
 
                 <!-- Summary Preview -->
                 <div class="bg-slate-50 border border-slate-200 rounded-lg p-4">
                     <h4 class="font-semibold text-slate-800 mb-2">Preview</h4>
                     <div id="quick-add-preview" class="text-sm text-slate-600">
                         <p class="italic">Fill in the fields above to see preview</p>
-                    </div>
+        </div>
                 </div>
 
                 <div class="flex justify-end space-x-3 pt-4 border-t border-slate-200">
@@ -1258,8 +1296,73 @@
     <script src="config.js"></script>
     <script src="auth.js"></script>
     <script src="main.js"></script>
+    <script src="js/mmd-validation.js"></script>
+    <script src="js/mmd-reference-manager.js"></script>
+    <script src="js/excel-grid-manager.js"></script>
+    <script src="js/unified-mmd-grid.js"></script>
+    <script src="js/depreciation-reference-manager.js"></script>
+    <script src="js/depreciation-profiles-manager.js"></script>
     <script src="js/master-db-manager.js?v=2"></script>
     <script src="js/settings-manager.js"></script>
+    <script>
+        // Initialize Depreciation Profiles Manager on System tab
+        async function initDepreciationProfiles() {
+            const container = document.getElementById('depreciation-profiles-grid');
+            if (!container) {
+                console.error('Depreciation profiles container not found');
+                return;
+            }
+
+            // Check if already initialized
+            if (window.depreciationProfilesManager) {
+                return;
+            }
+
+            // Wait for Supabase client
+            let supabaseClient = window.sharedSupabaseClient;
+            if (!supabaseClient) {
+                // Wait a bit for it to initialize
+                await new Promise(resolve => setTimeout(resolve, 500));
+                supabaseClient = window.sharedSupabaseClient;
+            }
+
+            if (!supabaseClient) {
+                console.error('Supabase client not available');
+                container.innerHTML = '<div class="text-center text-red-600 py-8"><i class="fas fa-exclamation-triangle text-2xl mb-2"></i><p>Error: Supabase client not initialized</p></div>';
+                return;
+            }
+
+            try {
+                window.depreciationProfilesManager = new window.DepreciationProfilesManager(
+                    'depreciation-profiles-grid',
+                    supabaseClient
+                );
+                await window.depreciationProfilesManager.init();
+            } catch (error) {
+                console.error('Error initializing depreciation profiles:', error);
+                container.innerHTML = `<div class="text-center text-red-600 py-8"><i class="fas fa-exclamation-triangle text-2xl mb-2"></i><p>Error loading: ${error.message}</p></div>`;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Initialize when System tab button is clicked
+            const systemTabButton = document.querySelector('[data-tab="system"]');
+            if (systemTabButton) {
+                systemTabButton.addEventListener('click', async () => {
+                    // Small delay to ensure tab is shown
+                    setTimeout(async () => {
+                        await initDepreciationProfiles();
+                    }, 100);
+                });
+            }
+
+            // Also initialize if System tab is already active on page load
+            const systemContent = document.getElementById('system');
+            if (systemContent && systemContent.style.display !== 'none') {
+                await initDepreciationProfiles();
+            }
+        });
+    </script>
     <script>
         // Initialize SettingsManager and MasterDBManager when DOM is ready
         document.addEventListener('DOMContentLoaded', async () => {
@@ -1275,7 +1378,7 @@
         });
         
         // Tab switching function
-        function switchTab(tabName) {
+        async function switchTab(tabName) {
             // Hide all tab contents
             document.querySelectorAll('.tab-content').forEach(content => {
                 content.classList.remove('active');
@@ -1298,6 +1401,11 @@
             const selectedButton = document.querySelector(`[data-tab="${tabName}"]`);
             if (selectedButton) {
                 selectedButton.classList.add('active');
+            }
+
+            // Initialize depreciation profiles when System tab is shown
+            if (tabName === 'system') {
+                await initDepreciationProfiles();
             }
         }
 
