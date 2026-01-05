@@ -333,6 +333,9 @@ class UnifiedMMDModal {
                 this.close();
             }
         }, false);
+
+        // Setup checklist handlers
+        this.setupChecklistHandlers();
     }
 
     enableMakeFields() {
@@ -534,7 +537,7 @@ class UnifiedMMDModal {
         }
 
         const select = document.getElementById('unified-checklist-select');
-        select.innerHTML = '<option value="">-- No Checklist --</option>';
+        select.innerHTML = '<option value="">-- Select Existing Checklist --</option>';
         if (data) {
             data.forEach(checklist => {
                 const option = document.createElement('option');
@@ -543,6 +546,259 @@ class UnifiedMMDModal {
                 select.appendChild(option);
             });
         }
+    }
+
+    addChecklistItem() {
+        const item = {
+            id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+            task_name: '',
+            task_description: '',
+            task_type: 'checkbox',
+            is_required: false,
+            sort_order: this.checklistItems.length
+        };
+        this.checklistItems.push(item);
+        this.renderChecklistItems();
+    }
+
+    removeChecklistItem(itemId) {
+        this.checklistItems = this.checklistItems.filter(item => item.id !== itemId);
+        // Reorder
+        this.checklistItems.forEach((item, index) => {
+            item.sort_order = index;
+        });
+        this.renderChecklistItems();
+    }
+
+    updateChecklistItem(itemId, field, value) {
+        const item = this.checklistItems.find(i => i.id === itemId);
+        if (item) {
+            item[field] = value;
+        }
+    }
+
+    renderChecklistItems() {
+        const container = document.getElementById('unified-checklist-items-list');
+        if (!container) return;
+
+        if (this.checklistItems.length === 0) {
+            container.innerHTML = '<p class="text-xs text-gray-500 text-center py-4">No items yet. Click "Add Item" or import from CSV/XML.</p>';
+            return;
+        }
+
+        container.innerHTML = this.checklistItems.map((item, index) => `
+            <div class="bg-white border border-gray-200 rounded p-3 flex gap-3 items-start" data-item-id="${item.id}">
+                <div class="flex-1 space-y-2">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-semibold text-gray-600 w-8">${index + 1}.</span>
+                        <input type="text" 
+                               class="form-input text-sm flex-1" 
+                               placeholder="Task name *" 
+                               value="${this.escapeHtml(item.task_name)}"
+                               onchange="window.unifiedMMDModalInstance?.updateChecklistItem('${item.id}', 'task_name', this.value)">
+                    </div>
+                    <textarea class="form-input text-xs" 
+                              rows="2" 
+                              placeholder="Task description (optional)"
+                              onchange="window.unifiedMMDModalInstance?.updateChecklistItem('${item.id}', 'task_description', this.value)">${this.escapeHtml(item.task_description || '')}</textarea>
+                    <div class="flex items-center gap-4 text-xs">
+                        <label class="flex items-center gap-1">
+                            <input type="checkbox" 
+                                   ${item.is_required ? 'checked' : ''}
+                                   onchange="window.unifiedMMDModalInstance?.updateChecklistItem('${item.id}', 'is_required', this.checked)">
+                            <span>Required</span>
+                        </label>
+                        <select class="form-input text-xs" 
+                                onchange="window.unifiedMMDModalInstance?.updateChecklistItem('${item.id}', 'task_type', this.value)">
+                            <option value="checkbox" ${item.task_type === 'checkbox' ? 'selected' : ''}>Checkbox</option>
+                            <option value="text" ${item.task_type === 'text' ? 'selected' : ''}>Text Input</option>
+                            <option value="number" ${item.task_type === 'number' ? 'selected' : ''}>Number</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="button" 
+                        class="text-red-500 hover:text-red-700 text-sm"
+                        onclick="window.unifiedMMDModalInstance?.removeChecklistItem('${item.id}')"
+                        title="Remove item">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        `).join('');
+    }
+
+    showImportArea(format) {
+        const importArea = document.getElementById('unified-checklist-import-area');
+        const importData = document.getElementById('unified-checklist-import-data');
+        if (importArea && importData) {
+            importArea.style.display = 'block';
+            if (format === 'csv') {
+                importData.placeholder = 'Paste CSV data (comma-separated). Format: Task Name, Description, Required (true/false), Type (checkbox/text/number)\nExample:\nCheck battery voltage, Measure and record voltage, true, checkbox\nInspect cables, Check for damage or wear, true, checkbox';
+            } else if (format === 'xml') {
+                importData.placeholder = 'Paste XML data. Format:\n<checklist>\n  <item>\n    <name>Task Name</name>\n    <description>Description</description>\n    <required>true</required>\n    <type>checkbox</type>\n  </item>\n</checklist>';
+            }
+            importData.value = '';
+            importData.focus();
+        }
+    }
+
+    hideImportArea() {
+        const importArea = document.getElementById('unified-checklist-import-area');
+        const importData = document.getElementById('unified-checklist-import-data');
+        if (importArea) importArea.style.display = 'none';
+        if (importData) importData.value = '';
+    }
+
+    parseAndImportItems() {
+        const importData = document.getElementById('unified-checklist-import-data').value.trim();
+        if (!importData) {
+            alert('Please paste data to import');
+            return;
+        }
+
+        try {
+            let items = [];
+            
+            // Try CSV first
+            if (importData.includes(',') || importData.includes('\t')) {
+                items = this.parseCSV(importData);
+            } else if (importData.trim().startsWith('<')) {
+                // Try XML
+                items = this.parseXML(importData);
+            } else {
+                // Try line-by-line (simple format)
+                items = this.parseSimpleFormat(importData);
+            }
+
+            if (items.length === 0) {
+                alert('No items could be parsed from the data. Please check the format.');
+                return;
+            }
+
+            // Add items to checklist
+            items.forEach(item => {
+                const checklistItem = {
+                    id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+                    task_name: item.name || item.task_name || '',
+                    task_description: item.description || item.task_description || '',
+                    task_type: item.type || item.task_type || 'checkbox',
+                    is_required: item.required === true || item.required === 'true' || item.is_required === true,
+                    sort_order: this.checklistItems.length
+                };
+                this.checklistItems.push(checklistItem);
+            });
+
+            this.renderChecklistItems();
+            this.hideImportArea();
+            
+            if (window.showToast) {
+                window.showToast(`Imported ${items.length} checklist item(s)`, 'success');
+            }
+        } catch (error) {
+            console.error('Error parsing import data:', error);
+            alert(`Error parsing data: ${error.message}`);
+        }
+    }
+
+    parseCSV(data) {
+        const lines = data.split('\n').filter(line => line.trim());
+        const items = [];
+        
+        // Skip header if present
+        let startIndex = 0;
+        const firstLine = lines[0].toLowerCase();
+        if (firstLine.includes('task') || firstLine.includes('name') || firstLine.includes('description')) {
+            startIndex = 1;
+        }
+
+        for (let i = startIndex; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (!line) continue;
+
+            // Parse CSV line (handle quoted fields)
+            const fields = this.parseCSVLine(line);
+            
+            if (fields.length >= 1) {
+                items.push({
+                    name: fields[0] || '',
+                    description: fields[1] || '',
+                    required: fields[2] === 'true' || fields[2] === '1' || fields[2] === 'yes',
+                    type: fields[3] || 'checkbox'
+                });
+            }
+        }
+
+        return items;
+    }
+
+    parseCSVLine(line) {
+        const fields = [];
+        let currentField = '';
+        let inQuotes = false;
+
+        for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            
+            if (char === '"') {
+                inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+                fields.push(currentField.trim());
+                currentField = '';
+            } else {
+                currentField += char;
+            }
+        }
+        fields.push(currentField.trim()); // Add last field
+
+        return fields;
+    }
+
+    parseXML(data) {
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(data, 'text/xml');
+        
+        // Check for parsing errors
+        const parseError = xmlDoc.querySelector('parsererror');
+        if (parseError) {
+            throw new Error('Invalid XML format: ' + parseError.textContent);
+        }
+
+        const items = [];
+        const itemNodes = xmlDoc.querySelectorAll('item, checklist-item, task');
+        
+        itemNodes.forEach(node => {
+            const name = node.querySelector('name, task-name, title')?.textContent || '';
+            const description = node.querySelector('description, desc, task-description')?.textContent || '';
+            const required = node.querySelector('required, is-required')?.textContent || 'false';
+            const type = node.querySelector('type, task-type')?.textContent || 'checkbox';
+            
+            if (name) {
+                items.push({
+                    name: name.trim(),
+                    description: description.trim(),
+                    required: required.toLowerCase() === 'true' || required === '1',
+                    type: type.trim() || 'checkbox'
+                });
+            }
+        });
+
+        return items;
+    }
+
+    parseSimpleFormat(data) {
+        const lines = data.split('\n').filter(line => line.trim());
+        return lines.map(line => ({
+            name: line.trim(),
+            description: '',
+            required: false,
+            type: 'checkbox'
+        }));
+    }
+
+    escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     async save() {
