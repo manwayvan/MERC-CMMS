@@ -76,8 +76,8 @@
 .tab-button:hover { background: #f8fafc; }
 .tab-content { display: none; }
 .tab-content.active { display: block; }
-#mobile-menu { position: fixed; top: 64px; left: 0; right: 0; z-index: 40; background: linear-gradient(135deg, #1e293b 0%, #2563eb 50%, #0891b2 100%); padding: 1rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); transform: translateY(0); visibility: visible; opacity: 1; transition: transform 0.3s ease, opacity 0.3s ease; }
-#mobile-menu.hidden { transform: translateY(-100%); opacity: 0; pointer-events: none; visibility: hidden; }
+#mobile-menu { position: fixed; top: 64px; right: 0; left: auto; min-width: 200px; z-index: 40; background: linear-gradient(135deg, #1e293b 0%, #2563eb 50%, #0891b2 100%); padding: 1rem; box-shadow: -4px 4px 6px -1px rgba(0, 0, 0, 0.1); transform: translateX(0); visibility: visible; opacity: 1; transition: transform 0.3s ease, opacity 0.3s ease; border-radius: 0 0 0 8px; }
+#mobile-menu.hidden { transform: translateX(100%); opacity: 0; pointer-events: none; visibility: hidden; }
 .drag-drop-zone { border: 2px dashed #cbd5e1; border-radius: 8px; padding: 40px; text-align: center; transition: all 0.2s; cursor: pointer; }
 .drag-drop-zone.drag-over { border-color: #2563eb; background: #eff6ff; }
 .wo-card { background: white; border-radius: 8px; padding: 16px; margin-bottom: 12px; border-left: 4px solid #2563eb; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); }
@@ -144,7 +144,7 @@
             </div>
         </div>
     </nav>
-    <div id="mobile-menu" class="md:hidden hidden">
+    <div id="mobile-menu" class="md:hidden hidden medical-gradient shadow-lg">
         <div class="px-4 py-4 space-y-2">
             <a href="index.html" class="block text-blue-200 hover:text-white transition-colors">Dashboard</a>
             <a href="customers.html" class="block text-blue-200 hover:text-white transition-colors">Customers</a>
@@ -152,6 +152,7 @@
             <a href="work-orders.html" class="block text-blue-200 hover:text-white transition-colors">Work Orders</a>
             <a href="inventory.html" class="block text-blue-200 hover:text-white transition-colors">Inventory</a>
             <a href="compliance.html" class="block text-blue-200 hover:text-white transition-colors">Compliance</a>
+            <a href="settings.html" class="block text-blue-200 hover:text-white transition-colors">Settings</a>
         </div>
     </div>
 
