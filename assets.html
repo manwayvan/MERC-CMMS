@@ -4143,10 +4143,19 @@
             
             try {
                 // Get column information from information_schema
-                const { data, error } = await supabaseClient.rpc('get_table_columns', { 
-                    table_name: 'assets',
-                    schema_name: 'public'
-                }).catch(() => ({ data: null, error: { message: 'RPC function not available' } }));
+                let data = null;
+                let error = null;
+                try {
+                    const result = await supabaseClient.rpc('get_table_columns', { 
+                        table_name: 'assets',
+                        schema_name: 'public'
+                    });
+                    data = result.data;
+                    error = result.error;
+                } catch (rpcError) {
+                    // RPC function may not exist - this is expected, use fallback
+                    error = { message: 'RPC function not available' };
+                }
 
                 if (error) {
                     // RPC function may not exist - this is expected, use fallback
@@ -6166,3 +6175,4 @@
     </script>
 </body>
 </html>
+image.png

@@ -1145,8 +1145,7 @@ class UnifiedMMDModal {
                     if (this.currentConfigId) {
                         // Update existing configuration
                         const updateData = {
-                            type_id: typeId,
-                            category_id: typeId, // Legacy support
+                            category_id: typeId,
                             make_id: makeId,
                             model_id: modelId,
                             pm_frequency_id: pmFrequencyId,
@@ -1164,8 +1163,7 @@ class UnifiedMMDModal {
                         const { data: existing } = await this.supabaseClient
                             .from('device_configurations')
                             .select('id')
-                            .eq('type_id', typeId)
-                            .or(`category_id.eq.${typeId}`)
+                            .eq('category_id', typeId)
                             .eq('make_id', makeId)
                             .eq('model_id', modelId)
                             .eq('is_active', true)
@@ -1176,8 +1174,7 @@ class UnifiedMMDModal {
                                 .from('device_configurations')
                                 .insert([{
                                     name: `${typeName} - ${makeName} - ${modelName}`,
-                                    type_id: typeId,
-                                    category_id: typeId, // Legacy support
+                                    category_id: typeId,
                                     make_id: makeId,
                                     model_id: modelId,
                                     pm_frequency_id: pmFrequencyId,
@@ -1299,7 +1296,7 @@ class UnifiedMMDModal {
             // Load device configurations - use simple select first, then enrich
             const { data: configs, error } = await this.supabaseClient
                 .from('device_configurations')
-                .select('id, name, type_id, category_id, make_id, model_id, pm_frequency_id, checklist_id, is_active')
+                .select('id, name, category_id, make_id, model_id, pm_frequency_id, checklist_id, is_active')
                 .eq('is_active', true)
                 .order('name');
 

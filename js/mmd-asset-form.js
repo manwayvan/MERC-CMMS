@@ -565,14 +565,6 @@ class MMDAssetFormManager {
     }
 }
 
-// Initialize on page load
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        window.MMDAssetFormManager = new MMDAssetFormManager();
-        window.MMDAssetFormManager.init();
-    });
-} else {
-    window.MMDAssetFormManager = new MMDAssetFormManager();
-    window.MMDAssetFormManager.init();
-}
+// Expose the class globally so it can be instantiated
+window.MMDAssetFormManager = MMDAssetFormManager;
 

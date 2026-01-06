@@ -577,7 +577,7 @@ const SettingsManager = {
             // Load device configurations - use simple select first, then enrich
             const { data: configs, error } = await this.supabaseClient
                 .from('device_configurations')
-                .select('id, name, type_id, category_id, make_id, model_id, pm_frequency_id, checklist_id, is_active')
+                .select('id, name, category_id, make_id, model_id, pm_frequency_id, checklist_id, is_active')
                 .eq('is_active', true)
                 .order('name');
 
