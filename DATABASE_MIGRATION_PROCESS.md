@@ -23,13 +23,14 @@ All database migrations are now applied directly through the Supabase MCP (Model
 
 ### 20260106000000_enable_rls_depreciation_profiles.sql
 - **Purpose**: Enable Row Level Security on `depreciation_profiles` table
-- **Status**: Applied via MCP
+- **Status**: ✅ Ready for MCP Application
 - **Fixes**: Supabase Security Advisor warning for RLS disabled in public schema
 - **Policies Created**:
   - SELECT: All authenticated users
   - INSERT: Authenticated users
   - UPDATE: Authenticated users  
   - DELETE: Authenticated users
+- **SQL Location**: `database/migrations/20260106000000_enable_rls_depreciation_profiles.sql`
 
 ## Future Database Operations
 
