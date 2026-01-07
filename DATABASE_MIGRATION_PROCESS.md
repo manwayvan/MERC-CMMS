@@ -41,9 +41,20 @@ All future database schema changes, RLS policies, constraints, and migrations wi
 3. Committed to git for version control
 4. Documented in this file
 
+## Verification
+
+After applying migrations, use the verification script to confirm:
+- `database/migrations/verify_rls_depreciation_profiles.sql` - Checks RLS status and policies
+
+## Application Scripts
+
+For manual application or re-application:
+- `database/migrations/apply_rls_depreciation_profiles.sql` - Idempotent application script
+
 ## Notes
 
 - MCP connection ensures all database operations are consistent
 - No manual SQL Editor steps required
 - All changes are tracked and reversible
 - Security policies are automatically applied
+- Verification scripts available for all migrations
