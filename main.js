@@ -5223,20 +5223,70 @@ const ChecklistManager = {
         }
 
         const items = [];
-        const itemNodes = xmlDoc.querySelectorAll('item, checklist-item, task');
         
-        itemNodes.forEach(node => {
-            const name = node.querySelector('name, task-name, title')?.textContent || '';
-            const description = node.querySelector('description, desc, task-description')?.textContent || '';
-            const required = node.querySelector('required, is-required')?.textContent || 'false';
-            const type = node.querySelector('type, task-type')?.textContent || 'checkbox';
+        // Only select direct <item> elements - be very specific to avoid matching nested elements
+        // First try to find items within a <checklist> root, otherwise look at document root
+        let rootElement = xmlDoc.querySelector('checklist') || xmlDoc.documentElement;
+        
+        // Get all child nodes and filter to only ELEMENT nodes with tagName 'item'
+        const allNodes = Array.from(rootElement.childNodes);
+        const itemNodes = allNodes.filter(node => {
+            // Only process ELEMENT nodes (not text nodes, comments, etc.)
+            return node.nodeType === Node.ELEMENT_NODE && 
+                   (node.tagName && node.tagName.toLowerCase() === 'item');
+        });
+        
+        // Defensive: Also check for alternative tag names if no 'item' elements found
+        if (itemNodes.length === 0) {
+            const checklistItems = allNodes.filter(node => 
+                node.nodeType === Node.ELEMENT_NODE && 
+                node.tagName && 
+                (node.tagName.toLowerCase() === 'checklist-item' || node.tagName.toLowerCase() === 'task')
+            );
+            itemNodes.push(...checklistItems);
+        }
+        
+        itemNodes.forEach(itemNode => {
+            // Verify this is actually an item element (defensive check)
+            const tagName = itemNode.tagName ? itemNode.tagName.toLowerCase() : '';
+            if (tagName !== 'item' && tagName !== 'checklist-item' && tagName !== 'task') {
+                return; // Skip non-item elements
+            }
             
+            // Get child ELEMENT nodes only (ignore text nodes, whitespace, etc.)
+            const childElements = Array.from(itemNode.childNodes).filter(
+                node => node.nodeType === Node.ELEMENT_NODE
+            );
+            
+            // Extract values from child elements
+            let name = '';
+            let description = '';
+            let required = 'false';
+            let type = 'checkbox';
+            
+            childElements.forEach(child => {
+                const childTagName = child.tagName ? child.tagName.toLowerCase() : '';
+                // Get text content - this handles multi-line descriptions correctly
+                const textContent = child.textContent || '';
+                
+                if (childTagName === 'name' || childTagName === 'task-name' || childTagName === 'title') {
+                    name = textContent.trim();
+                } else if (childTagName === 'description' || childTagName === 'desc' || childTagName === 'task-description') {
+                    description = textContent.trim();
+                } else if (childTagName === 'required' || childTagName === 'is-required') {
+                    required = textContent.trim();
+                } else if (childTagName === 'type' || childTagName === 'task-type') {
+                    type = textContent.trim();
+                }
+            });
+            
+            // Only create item if name is present (required field)
             if (name) {
                 items.push({
-                    name: name.trim(),
-                    description: description.trim(),
-                    required: required.toLowerCase() === 'true' || required === '1',
-                    type: type.trim() || 'checkbox'
+                    name: name,
+                    description: description,
+                    required: required.toLowerCase() === 'true' || required === '1' || required === 'yes',
+                    type: type || 'checkbox'
                 });
             }
         });
