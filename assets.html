@@ -688,7 +688,7 @@
                                         onchange="handleMMDTypeChange()">
                                     <option value="">-- Select Equipment Type --</option>
                                 </select>
-                                <button type="button" onclick="openUnifiedMMDModal()" 
+                                <button type="button" id="add-mmd-type-btn"
                                         class="btn btn-primary px-3 py-2 flex-shrink-0" 
                                         title="Add New Equipment Configuration">
                                     <i class="fas fa-plus"></i>
@@ -707,7 +707,7 @@
                                         onchange="handleMMDMakeChange()">
                                     <option value="">-- Select Type First --</option>
                                 </select>
-                                <button type="button" id="add-mmd-make-btn" onclick="(function(){ const tId = document.getElementById('mmd-type-select')?.value; if(typeof openUnifiedMMDModal === 'function' && tId) { openUnifiedMMDModal({type_id: tId}); } else if(!tId) { alert('Please select a Type first'); } else { console.error('openUnifiedMMDModal not available'); alert('MMD Modal not loaded. Please refresh the page.'); } })()" 
+                                <button type="button" id="add-mmd-make-btn"
                                         class="btn btn-primary px-3 py-2 flex-shrink-0" 
                                         title="Add New Equipment Configuration" disabled>
                                     <i class="fas fa-plus"></i>
@@ -726,7 +726,7 @@
                                         onchange="handleMMDModelChange()">
                                     <option value="">-- Select Make First --</option>
                                 </select>
-                                <button type="button" id="add-mmd-model-btn" onclick="(function(){ const tId = document.getElementById('mmd-type-select')?.value; const mId = document.getElementById('mmd-make-select')?.value; if(typeof openUnifiedMMDModal === 'function' && tId && mId) { openUnifiedMMDModal({type_id: tId, make_id: mId}); } else if(!tId || !mId) { alert('Please select a Type and Make first'); } else { console.error('openUnifiedMMDModal not available'); alert('MMD Modal not loaded. Please refresh the page.'); } })()" 
+                                <button type="button" id="add-mmd-model-btn"
                                         class="btn btn-primary px-3 py-2 flex-shrink-0" 
                                         title="Add New Equipment Configuration" disabled>
                                     <i class="fas fa-plus"></i>
@@ -2745,6 +2745,11 @@
             // Reset MMD form
             if (window.mmdAssetFormManager) {
                 window.mmdAssetFormManager.reset();
+            }
+            
+            // Re-setup MMD Add buttons when modal opens
+            if (typeof setupMMDAddButtons === 'function') {
+                setTimeout(setupMMDAddButtons, 200);
             }
             
             // Load MMD hierarchy if not already loaded (using unified reference manager)
@@ -5960,9 +5965,6 @@
             const addMakeBtn = document.getElementById('add-mmd-make-btn');
             if (addMakeBtn) {
                 addMakeBtn.disabled = !typeId;
-                if (typeId) {
-                    addMakeBtn.setAttribute('onclick', `openUnifiedMMDModal({type_id: '${typeId}'})`);
-                }
             }
         }
         
@@ -6065,6 +6067,103 @@
             }
         }
         window.updateDepreciationPreview = updateDepreciationPreview;
+        
+        // Setup MMD Add button event listeners
+        function setupMMDAddButtons() {
+            // Type Add Button
+            const addTypeBtn = document.getElementById('add-mmd-type-btn');
+            if (addTypeBtn && !addTypeBtn.dataset.listenerAttached) {
+                addTypeBtn.dataset.listenerAttached = 'true';
+                addTypeBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Type Add button clicked');
+                    if (typeof openUnifiedMMDModal === 'function') {
+                        openUnifiedMMDModal({});
+                    } else {
+                        console.error('openUnifiedMMDModal not available');
+                        if (window.showToast) {
+                            window.showToast('MMD Modal not loaded. Please refresh the page.', 'error');
+                        } else {
+                            alert('MMD Modal not loaded. Please refresh the page.');
+                        }
+                    }
+                });
+            }
+            
+            // Make Add Button
+            const addMakeBtn = document.getElementById('add-mmd-make-btn');
+            if (addMakeBtn && !addMakeBtn.dataset.listenerAttached) {
+                addMakeBtn.dataset.listenerAttached = 'true';
+                addMakeBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Make Add button clicked');
+                    const typeId = document.getElementById('mmd-type-select')?.value;
+                    if (!typeId) {
+                        if (window.showToast) {
+                            window.showToast('Please select a Type first', 'warning');
+                        } else {
+                            alert('Please select a Type first');
+                        }
+                        return;
+                    }
+                    if (typeof openUnifiedMMDModal === 'function') {
+                        openUnifiedMMDModal({type_id: typeId});
+                    } else {
+                        console.error('openUnifiedMMDModal not available');
+                        if (window.showToast) {
+                            window.showToast('MMD Modal not loaded. Please refresh the page.', 'error');
+                        } else {
+                            alert('MMD Modal not loaded. Please refresh the page.');
+                        }
+                    }
+                });
+            }
+            
+            // Model Add Button
+            const addModelBtn = document.getElementById('add-mmd-model-btn');
+            if (addModelBtn && !addModelBtn.dataset.listenerAttached) {
+                addModelBtn.dataset.listenerAttached = 'true';
+                addModelBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Model Add button clicked');
+                    const typeId = document.getElementById('mmd-type-select')?.value;
+                    const makeId = document.getElementById('mmd-make-select')?.value;
+                    if (!typeId || !makeId) {
+                        if (window.showToast) {
+                            window.showToast('Please select a Type and Make first', 'warning');
+                        } else {
+                            alert('Please select a Type and Make first');
+                        }
+                        return;
+                    }
+                    if (typeof openUnifiedMMDModal === 'function') {
+                        openUnifiedMMDModal({type_id: typeId, make_id: makeId});
+                    } else {
+                        console.error('openUnifiedMMDModal not available');
+                        if (window.showToast) {
+                            window.showToast('MMD Modal not loaded. Please refresh the page.', 'error');
+                        } else {
+                            alert('MMD Modal not loaded. Please refresh the page.');
+                        }
+                    }
+                });
+            }
+        }
+        
+        // Expose globally
+        window.setupMMDAddButtons = setupMMDAddButtons;
+        
+        // Setup buttons when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function() {
+                setTimeout(setupMMDAddButtons, 1000);
+            });
+        } else {
+            setTimeout(setupMMDAddButtons, 1000);
+        }
         
         // Fix modal closing issue - prevent clicks inside from closing the modal
         document.addEventListener('DOMContentLoaded', function() {
