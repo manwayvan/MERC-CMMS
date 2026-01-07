@@ -574,7 +574,8 @@ const SettingsManager = {
         if (!tbody) return;
 
         try {
-            // Load device configurations - use simple select first, then enrich
+            // Load device configurations - show ALL active configurations
+            // This ensures consistency with the summary cards which show all types/makes/models
             const { data: configs, error } = await this.supabaseClient
                 .from('device_configurations')
                 .select('id, name, category_id, make_id, model_id, pm_frequency_id, checklist_id, is_active')

@@ -1159,18 +1159,18 @@ class UnifiedMMDModal {
                             .update(updateData)
                             .eq('id', this.currentConfigId);
                     } else {
-                        // Create new configuration
+                        // Create new configuration - check for ANY existing (active or inactive)
                         const { data: existing } = await this.supabaseClient
                             .from('device_configurations')
-                            .select('id')
+                            .select('id, is_active')
                             .eq('category_id', typeId)
                             .eq('make_id', makeId)
                             .eq('model_id', modelId)
-                            .eq('is_active', true)
                             .maybeSingle();
 
                         if (!existing) {
-                            await this.supabaseClient
+                            // No existing config - insert new one
+                            const { error: insertError } = await this.supabaseClient
                                 .from('device_configurations')
                                 .insert([{
                                     name: `${typeName} - ${makeName} - ${modelName}`,
@@ -1181,11 +1181,38 @@ class UnifiedMMDModal {
                                     checklist_id: checklistId || null,
                                     is_active: true
                                 }]);
-                        } else if (checklistId) {
-                            // Update existing configuration with checklist
+                            if (insertError) {
+                                // If insert fails due to unique constraint, try to update instead
+                                if (insertError.code === '23505' || insertError.message.includes('unique') || insertError.message.includes('duplicate')) {
+                                    console.warn('Configuration already exists, updating instead');
+                                    await this.supabaseClient
+                                        .from('device_configurations')
+                                        .update({
+                                            name: `${typeName} - ${makeName} - ${modelName}`,
+                                            pm_frequency_id: pmFrequencyId,
+                                            checklist_id: checklistId || null,
+                                            is_active: true
+                                        })
+                                        .eq('category_id', typeId)
+                                        .eq('make_id', makeId)
+                                        .eq('model_id', modelId);
+                                } else {
+                                    throw insertError;
+                                }
+                            }
+                        } else {
+                            // Configuration exists - update it
+                            const updateData = {
+                                name: `${typeName} - ${makeName} - ${modelName}`,
+                                pm_frequency_id: pmFrequencyId,
+                                is_active: true
+                            };
+                            if (checklistId) {
+                                updateData.checklist_id = checklistId;
+                            }
                             await this.supabaseClient
                                 .from('device_configurations')
-                                .update({ checklist_id: checklistId })
+                                .update(updateData)
                                 .eq('id', existing.id);
                         }
                     }
