@@ -5076,6 +5076,182 @@ const ChecklistManager = {
             console.error('Error deleting checklist:', error);
             showToast('Failed to delete checklist.', 'error');
         }
+    },
+
+    showImportArea(format) {
+        const importArea = document.getElementById('checklist-import-area');
+        const importData = document.getElementById('checklist-import-data');
+        if (importArea && importData) {
+            importArea.style.display = 'block';
+            if (format === 'csv') {
+                importData.placeholder = 'Paste CSV data (comma-separated). Format: Task Name, Description, Required (true/false), Type (checkbox/text/number)\nExample:\nCheck battery voltage, Measure and record voltage, true, checkbox\nInspect cables, Check for damage or wear, true, checkbox';
+            } else if (format === 'xml') {
+                importData.placeholder = 'Paste XML data. Format:\n<checklist>\n  <item>\n    <name>Task Name</name>\n    <description>Description</description>\n    <required>true</required>\n    <type>checkbox</type>\n  </item>\n</checklist>';
+            }
+            importData.value = '';
+            importData.focus();
+        }
+    },
+
+    hideImportArea() {
+        const importArea = document.getElementById('checklist-import-area');
+        const importData = document.getElementById('checklist-import-data');
+        if (importArea) importArea.style.display = 'none';
+        if (importData) importData.value = '';
+    },
+
+    parseAndImportItems() {
+        const importData = document.getElementById('checklist-import-data');
+        if (!importData) {
+            alert('Import area not found');
+            return;
+        }
+
+        const data = importData.value.trim();
+        if (!data) {
+            alert('Please paste data to import');
+            return;
+        }
+
+        try {
+            let items = [];
+            
+            // Try CSV first
+            if (data.includes(',') || data.includes('\t')) {
+                items = ChecklistManager.parseCSV(data);
+            } else if (data.trim().startsWith('<')) {
+                // Try XML
+                items = ChecklistManager.parseXML(data);
+            } else {
+                // Try line-by-line (simple format)
+                items = ChecklistManager.parseSimpleFormat(data);
+            }
+
+            if (items.length === 0) {
+                alert('No items could be parsed from the data. Please check the format.');
+                return;
+            }
+
+            // Add items to checklist
+            items.forEach(item => {
+                const checklistItem = {
+                    id: 'item-' + Date.now().toString() + Math.random().toString(36).substr(2, 9),
+                    task_name: item.name || item.task_name || '',
+                    task_description: item.description || item.task_description || '',
+                    task_type: item.type || item.task_type || 'checkbox',
+                    is_required: item.required === true || item.required === 'true' || item.is_required === true,
+                    sort_order: ChecklistManager.currentItems.length
+                };
+                ChecklistManager.currentItems.push(checklistItem);
+            });
+
+            ChecklistManager.renderItems();
+            ChecklistManager.hideImportArea();
+            
+            if (typeof showToast === 'function') {
+                showToast(`Imported ${items.length} checklist item(s)`, 'success');
+            } else {
+                alert(`Imported ${items.length} checklist item(s)`);
+            }
+        } catch (error) {
+            console.error('Error parsing import data:', error);
+            alert(`Error parsing data: ${error.message}`);
+        }
+    },
+
+    parseCSV(data) {
+        const lines = data.split('\n').filter(line => line.trim());
+        const items = [];
+        
+        // Skip header if present
+        let startIndex = 0;
+        const firstLine = lines[0].toLowerCase();
+        if (firstLine.includes('task') || firstLine.includes('name') || firstLine.includes('description')) {
+            startIndex = 1;
+        }
+
+        for (let i = startIndex; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (!line) continue;
+
+            // Parse CSV line (handle quoted fields)
+            const fields = ChecklistManager.parseCSVLine(line);
+            
+            if (fields.length >= 1) {
+                items.push({
+                    name: fields[0] || '',
+                    description: fields[1] || '',
+                    required: fields[2] === 'true' || fields[2] === '1' || fields[2] === 'yes',
+                    type: fields[3] || 'checkbox'
+                });
+            }
+        }
+
+        return items;
+    },
+
+    parseCSVLine(line) {
+        const fields = [];
+        let currentField = '';
+        let inQuotes = false;
+
+        for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            
+            if (char === '"') {
+                inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+                fields.push(currentField.trim());
+                currentField = '';
+            } else {
+                currentField += char;
+            }
+        }
+        fields.push(currentField.trim()); // Add last field
+
+        return fields;
+    },
+
+    parseXML(data) {
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(data, 'text/xml');
+        
+        // Check for parsing errors
+        const parseError = xmlDoc.querySelector('parsererror');
+        if (parseError) {
+            throw new Error('Invalid XML format: ' + parseError.textContent);
+        }
+
+        const items = [];
+        const itemNodes = xmlDoc.querySelectorAll('item, checklist-item, task');
+        
+        itemNodes.forEach(node => {
+            const name = node.querySelector('name, task-name, title')?.textContent || '';
+            const description = node.querySelector('description, desc, task-description')?.textContent || '';
+            const required = node.querySelector('required, is-required')?.textContent || 'false';
+            const type = node.querySelector('type, task-type')?.textContent || 'checkbox';
+            
+            if (name) {
+                items.push({
+                    name: name.trim(),
+                    description: description.trim(),
+                    required: required.toLowerCase() === 'true' || required === '1',
+                    type: type.trim() || 'checkbox'
+                });
+            }
+        });
+
+        return items;
+    },
+
+    parseSimpleFormat(data) {
+        const lines = data.split('\n').filter(line => line.trim());
+        return lines.map(line => ({
+            name: line.trim(),
+            description: '',
+            required: false,
+            type: 'checkbox'
+        }));
     }
 };
 

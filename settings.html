@@ -1294,8 +1294,33 @@
                     <div class="flex items-center justify-between mb-4">
                         <h4 class="text-lg font-semibold text-slate-800">Checklist Items</h4>
                         <div class="flex gap-2">
+                            <button type="button" onclick="ChecklistManager.showImportArea('csv')" class="btn btn-secondary btn-sm">
+                                <i class="fas fa-file-csv"></i>Import CSV
+                            </button>
+                            <button type="button" onclick="ChecklistManager.showImportArea('xml')" class="btn btn-secondary btn-sm">
+                                <i class="fas fa-file-code"></i>Import XML
+                            </button>
                             <button type="button" onclick="ChecklistManager.addChecklistItem()" class="btn btn-secondary btn-sm">
-                                <i class="fas fa-plus"></i>Task
+                                <i class="fas fa-plus"></i>Add Task
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Import Area (hidden by default) -->
+                    <div id="checklist-import-area" class="mb-4 p-4 bg-slate-50 rounded-lg border border-slate-200" style="display: none;">
+                        <div class="flex items-center justify-between mb-2">
+                            <h5 class="text-sm font-semibold text-slate-700">Import Checklist Items</h5>
+                            <button type="button" onclick="ChecklistManager.hideImportArea()" class="text-slate-400 hover:text-slate-600">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <textarea id="checklist-import-data" rows="8" class="w-full form-input font-mono text-sm" placeholder="Paste CSV or XML data here..."></textarea>
+                        <div class="flex gap-2 mt-2">
+                            <button type="button" onclick="ChecklistManager.parseAndImportItems()" class="btn btn-primary btn-sm">
+                                <i class="fas fa-check"></i>Parse & Add Items
+                            </button>
+                            <button type="button" onclick="ChecklistManager.hideImportArea()" class="btn btn-secondary btn-sm">
+                                <i class="fas fa-times"></i>Cancel
                             </button>
                         </div>
                     </div>
