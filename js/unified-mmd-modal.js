@@ -1271,9 +1271,16 @@ class UnifiedMMDModal {
                 }
             }
 
-            // Refresh Settings page summary stats if on Settings page
-            if (typeof SettingsManager !== 'undefined' && SettingsManager.loadMasterDatabaseStats) {
-                await SettingsManager.loadMasterDatabaseStats();
+            // Refresh Settings page if available - refresh BOTH stats and configs
+            if (window.SettingsManager) {
+                // Refresh stats first (summary cards)
+                if (typeof window.SettingsManager.loadMasterDatabaseStats === 'function') {
+                    await window.SettingsManager.loadMasterDatabaseStats();
+                }
+                // Then refresh configurations list
+                if (typeof window.SettingsManager.loadMMDConfigurations === 'function') {
+                    await window.SettingsManager.loadMMDConfigurations();
+                }
             }
             
             // Also try to refresh if the function exists globally
@@ -1283,11 +1290,6 @@ class UnifiedMMDModal {
             
             // Reload MMD configurations list in the modal if it's open
             await this.loadAllMMDConfigurations();
-            
-            // Refresh Settings page MMD list if on Settings page
-            if (typeof SettingsManager !== 'undefined' && SettingsManager.loadMMDConfigurations) {
-                await SettingsManager.loadMMDConfigurations();
-            }
 
             // Show success message
             if (window.showToast) {
