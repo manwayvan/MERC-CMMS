@@ -68,19 +68,15 @@ const ScheduledMaintenanceManager = {
                 option.textContent = customer.name;
                 customerSelect.appendChild(option);
             });
-        }
-
-        // Populate location filter
-        const locationSelect = document.getElementById('sm-location-filter');
-        if (locationSelect) {
-            locationSelect.innerHTML = '<option value="">All Locations</option>';
-            this.locations.forEach(location => {
-                const option = document.createElement('option');
-                option.value = location.id;
-                option.textContent = location.name;
-                locationSelect.appendChild(option);
+            
+            // Update locations when customer changes
+            customerSelect.addEventListener('change', () => {
+                this.updateLocationFilter();
             });
         }
+
+        // Populate location filter (initially all)
+        this.updateLocationFilter();
 
         // Populate equipment type filter
         const typeSelect = document.getElementById('sm-type-filter');
@@ -93,6 +89,34 @@ const ScheduledMaintenanceManager = {
                 typeSelect.appendChild(option);
             });
         }
+
+        // Update next PM dates when Last PM Date changes
+        const lastPMDateInput = document.getElementById('sm-last-pm-date');
+        if (lastPMDateInput) {
+            lastPMDateInput.addEventListener('change', () => {
+                this.renderAssetsList();
+            });
+        }
+    },
+
+    updateLocationFilter() {
+        const customerId = document.getElementById('sm-customer-filter')?.value;
+        const locationSelect = document.getElementById('sm-location-filter');
+        
+        if (!locationSelect) return;
+
+        locationSelect.innerHTML = '<option value="">All Locations</option>';
+        
+        const filteredLocations = customerId 
+            ? this.locations.filter(loc => loc.customer_id === customerId)
+            : this.locations;
+        
+        filteredLocations.forEach(location => {
+            const option = document.createElement('option');
+            option.value = location.id;
+            option.textContent = location.name;
+            locationSelect.appendChild(option);
+        });
     },
 
     async loadFilteredAssets() {
@@ -107,7 +131,7 @@ const ScheduledMaintenanceManager = {
             const status = document.getElementById('sm-status-filter')?.value;
             const locationId = document.getElementById('sm-location-filter')?.value;
 
-            // Build query
+            // Build base query
             let query = this.supabaseClient
                 .from('assets')
                 .select(`
@@ -125,6 +149,7 @@ const ScheduledMaintenanceManager = {
                         id,
                         name,
                         pm_frequency_id,
+                        make_id,
                         pm_frequencies:pm_frequency_id (
                             id,
                             name,
@@ -133,6 +158,7 @@ const ScheduledMaintenanceManager = {
                         equipment_makes:make_id (
                             id,
                             name,
+                            type_id,
                             equipment_types:type_id (
                                 id,
                                 name
@@ -152,16 +178,47 @@ const ScheduledMaintenanceManager = {
             if (status) {
                 query = query.eq('status', status);
             }
-            if (typeId) {
-                // Filter by equipment type via model -> make -> type
-                query = query.eq('equipment_models.equipment_makes.equipment_types.id', typeId);
-            }
 
             const { data: assets, error } = await query.order('name');
 
+            // Filter by equipment type in JavaScript (nested query doesn't work well with Supabase)
+            let filteredAssets = assets || [];
+            if (typeId && filteredAssets.length > 0) {
+                // Need to load models with makes and types separately
+                const modelIds = [...new Set(filteredAssets.map(a => a.model_id).filter(Boolean))];
+                if (modelIds.length > 0) {
+                    const { data: models } = await this.supabaseClient
+                        .from('equipment_models')
+                        .select(`
+                            id,
+                            make_id,
+                            equipment_makes:make_id (
+                                id,
+                                type_id
+                            )
+                        `)
+                        .in('id', modelIds);
+                    
+                    const modelsWithType = new Set();
+                    if (models) {
+                        models.forEach(model => {
+                            if (model.equipment_makes?.type_id === typeId) {
+                                modelsWithType.add(model.id);
+                            }
+                        });
+                    }
+                    
+                    filteredAssets = filteredAssets.filter(asset => 
+                        !asset.model_id || modelsWithType.has(asset.model_id)
+                    );
+                } else {
+                    filteredAssets = [];
+                }
+            }
+
             if (error) throw error;
 
-            this.filteredAssets = assets || [];
+            this.filteredAssets = filteredAssets;
             this.selectedAssetIds.clear();
             this.renderAssetsList();
 
