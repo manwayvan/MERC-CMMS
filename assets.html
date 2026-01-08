@@ -701,8 +701,8 @@
                                     </select>
                                     <button type="button" id="add-hierarchy-type-btn"
                                             class="btn btn-primary px-3 py-2 flex-shrink-0" 
-                                            title="Add New Device Type (opens Settings)"
-                                            onclick="window.open('settings.html#device-hierarchy', '_blank')">
+                                            title="Add New Device Type"
+                                            onclick="addHierarchyDeviceType()">
                                         <i class="fas fa-plus"></i>
                                     </button>
                                 </div>
@@ -721,8 +721,8 @@
                                     </select>
                                     <button type="button" id="add-hierarchy-manufacturer-btn"
                                             class="btn btn-primary px-3 py-2 flex-shrink-0" 
-                                            title="Add New Manufacturer (opens Settings)" disabled
-                                            onclick="window.open('settings.html#device-hierarchy', '_blank')">
+                                            title="Add New Manufacturer" disabled
+                                            onclick="addHierarchyManufacturer()">
                                         <i class="fas fa-plus"></i>
                                     </button>
                                 </div>
@@ -741,8 +741,8 @@
                                     </select>
                                     <button type="button" id="add-hierarchy-model-btn"
                                             class="btn btn-primary px-3 py-2 flex-shrink-0" 
-                                            title="Add New Device Model (opens Settings)" disabled
-                                            onclick="window.open('settings.html#device-hierarchy', '_blank')">
+                                            title="Add New Device Model" disabled
+                                            onclick="addHierarchyDeviceModel()">
                                         <i class="fas fa-plus"></i>
                                     </button>
                                 </div>
@@ -2921,6 +2921,10 @@
             }
             if (addModelBtn) {
                 addModelBtn.disabled = !manufacturerId;
+                // Update onclick to pass manufacturerId
+                if (manufacturerId) {
+                    addModelBtn.setAttribute('data-manufacturer-id', manufacturerId);
+                }
             }
             if (pmProgramDisplay) pmProgramDisplay.value = '';
             if (pmFrequencyDisplay) pmFrequencyDisplay.value = '';
