@@ -1065,22 +1065,29 @@ class UnifiedMMDModal {
             const checklistSelect = document.getElementById('unified-checklist-select').value;
             const checklistNew = document.getElementById('unified-checklist-new').value.trim();
 
-            // Validate
+            // Validate - Allow creating just Type, or Type+Make, or Type+Make+Model
+            // PM Frequency only required if creating a Model
             if (!typeSelect && !typeNew) {
                 alert('Please select or enter an Equipment Type');
                 return;
             }
-            if (!makeSelect && !makeNew) {
-                alert('Please select or enter a Make');
+            
+            // If creating a Make, Type must exist
+            if ((makeSelect || makeNew) && !typeId && !typeNew) {
+                alert('Please select or enter an Equipment Type first');
                 return;
             }
-            if (!modelSelect && !modelNew) {
-                alert('Please select or enter a Model');
-                return;
-            }
-            if (!pmFrequencyId) {
-                alert('PM Frequency is required');
-                return;
+            
+            // If creating a Model, Make and PM Frequency are required
+            if (modelSelect || modelNew) {
+                if (!makeSelect && !makeNew) {
+                    alert('Please select or enter a Make');
+                    return;
+                }
+                if (!pmFrequencyId) {
+                    alert('PM Frequency is required when creating a Model');
+                    return;
+                }
             }
 
             let typeId = typeSelect;
@@ -1093,14 +1100,40 @@ class UnifiedMMDModal {
                     .from('equipment_types')
                     .insert([{
                         name: typeNew,
-                        description: document.getElementById('unified-type-desc').value.trim() || null,
+                        description: document.getElementById('unified-type-desc')?.value.trim() || null,
                         is_active: true
                     }])
                     .select()
                     .single();
                 
-                if (error) throw error;
-                typeId = data.id;
+                if (error) {
+                    // If unique constraint violation, type already exists
+                    if (error.code === '23505' || error.message.includes('unique') || error.message.includes('duplicate')) {
+                        // Try to find existing type
+                        const { data: existingType } = await this.supabaseClient
+                            .from('equipment_types')
+                            .select('id')
+                            .eq('name', typeNew)
+                            .is('deleted_at', null)
+                            .maybeSingle();
+                        
+                        if (existingType) {
+                            typeId = existingType.id;
+                            if (window.showToast) {
+                                showToast(`Equipment Type "${typeNew}" already exists. Using existing type.`, 'info');
+                            }
+                        } else {
+                            throw error;
+                        }
+                    } else {
+                        throw error;
+                    }
+                } else {
+                    typeId = data.id;
+                    if (window.showToast) {
+                        showToast(`Equipment Type "${typeNew}" created successfully`, 'success');
+                    }
+                }
             }
 
             // Create Make if needed
@@ -1110,14 +1143,41 @@ class UnifiedMMDModal {
                     .insert([{
                         name: makeNew,
                         type_id: typeId,
-                        description: document.getElementById('unified-make-desc').value.trim() || null,
+                        description: document.getElementById('unified-make-desc')?.value.trim() || null,
                         is_active: true
                     }])
                     .select()
                     .single();
                 
-                if (error) throw error;
-                makeId = data.id;
+                if (error) {
+                    // If unique constraint violation, make already exists
+                    if (error.code === '23505' || error.message.includes('unique') || error.message.includes('duplicate')) {
+                        // Try to find existing make
+                        const { data: existingMake } = await this.supabaseClient
+                            .from('equipment_makes')
+                            .select('id')
+                            .eq('name', makeNew)
+                            .eq('type_id', typeId)
+                            .is('deleted_at', null)
+                            .maybeSingle();
+                        
+                        if (existingMake) {
+                            makeId = existingMake.id;
+                            if (window.showToast) {
+                                showToast(`Make "${makeNew}" already exists for this type. Using existing make.`, 'info');
+                            }
+                        } else {
+                            throw error;
+                        }
+                    } else {
+                        throw error;
+                    }
+                } else {
+                    makeId = data.id;
+                    if (window.showToast) {
+                        showToast(`Make "${makeNew}" created successfully`, 'success');
+                    }
+                }
             }
 
             // Create Model if needed
@@ -1128,20 +1188,51 @@ class UnifiedMMDModal {
                         name: modelNew,
                         make_id: makeId,
                         pm_frequency_id: pmFrequencyId,
-                        description: document.getElementById('unified-model-desc').value.trim() || null,
+                        description: document.getElementById('unified-model-desc')?.value.trim() || null,
                         is_active: true
                     }])
                     .select()
                     .single();
                 
-                if (error) throw error;
-                modelId = data.id;
+                if (error) {
+                    // If unique constraint violation, model already exists
+                    if (error.code === '23505' || error.message.includes('unique') || error.message.includes('duplicate')) {
+                        // Try to find existing model
+                        const { data: existingModel } = await this.supabaseClient
+                            .from('equipment_models')
+                            .select('id')
+                            .eq('name', modelNew)
+                            .eq('make_id', makeId)
+                            .maybeSingle();
+                        
+                        if (existingModel) {
+                            modelId = existingModel.id;
+                            // Update PM frequency if provided
+                            if (pmFrequencyId) {
+                                await this.supabaseClient
+                                    .from('equipment_models')
+                                    .update({ pm_frequency_id: pmFrequencyId })
+                                    .eq('id', modelId);
+                            }
+                        } else {
+                            throw error;
+                        }
+                    } else {
+                        throw error;
+                    }
+                } else {
+                    modelId = data.id;
+                }
             } else if (modelId && pmFrequencyId) {
                 // Update existing model with PM frequency
-                await this.supabaseClient
+                const { error: updateError } = await this.supabaseClient
                     .from('equipment_models')
                     .update({ pm_frequency_id: pmFrequencyId })
                     .eq('id', modelId);
+                
+                if (updateError) {
+                    console.warn('Could not update model PM frequency:', updateError);
+                }
             }
 
             // Create checklist if needed
@@ -1185,89 +1276,75 @@ class UnifiedMMDModal {
                 }
             }
 
-            // Create or update device configuration
-            if (modelId) {
+            // Create or update device configuration (OPTIONAL - only if all components exist)
+            // Device configuration is a convenience record, not required for MMD hierarchy
+            if (typeId && makeId && modelId) {
                 try {
                     const typeName = document.getElementById('unified-type-select')?.selectedOptions[0]?.textContent || typeNew;
                     const makeName = document.getElementById('unified-make-select')?.selectedOptions[0]?.textContent || makeNew;
                     const modelName = document.getElementById('unified-model-select')?.selectedOptions[0]?.textContent || modelNew;
 
+                    const configData = {
+                        name: `${typeName} - ${makeName} - ${modelName}`,
+                        category_id: typeId,
+                        make_id: makeId,
+                        model_id: modelId,
+                        pm_frequency_id: pmFrequencyId,
+                        checklist_id: checklistId || null,
+                        is_active: true
+                    };
+
                     if (this.currentConfigId) {
                         // Update existing configuration
-                        const updateData = {
-                            category_id: typeId,
-                            make_id: makeId,
-                            model_id: modelId,
-                            pm_frequency_id: pmFrequencyId,
-                            name: `${typeName} - ${makeName} - ${modelName}`
-                        };
-                        if (checklistId) {
-                            updateData.checklist_id = checklistId;
-                        }
-                        await this.supabaseClient
+                        const { error: updateError } = await this.supabaseClient
                             .from('device_configurations')
-                            .update(updateData)
+                            .update(configData)
                             .eq('id', this.currentConfigId);
+                        
+                        if (updateError) {
+                            console.warn('Could not update device configuration:', updateError);
+                            // Don't throw - configuration is optional
+                        }
                     } else {
-                        // Create new configuration - check for ANY existing (active or inactive)
-                        const { data: existing } = await this.supabaseClient
+                        // Use UPSERT to handle existing records gracefully
+                        // This will insert if new, update if exists (based on unique constraint)
+                        const { error: upsertError } = await this.supabaseClient
                             .from('device_configurations')
-                            .select('id, is_active')
-                            .eq('category_id', typeId)
-                            .eq('make_id', makeId)
-                            .eq('model_id', modelId)
-                            .maybeSingle();
-
-                        if (!existing) {
-                            // No existing config - insert new one
-                            const { error: insertError } = await this.supabaseClient
+                            .upsert(configData, {
+                                onConflict: 'category_id,make_id,model_id',
+                                ignoreDuplicates: false
+                            });
+                        
+                        if (upsertError) {
+                            // If upsert fails, try to find and update existing record
+                            const { data: existing } = await this.supabaseClient
                                 .from('device_configurations')
-                                .insert([{
-                                    name: `${typeName} - ${makeName} - ${modelName}`,
-                                    category_id: typeId,
-                                    make_id: makeId,
-                                    model_id: modelId,
-                                    pm_frequency_id: pmFrequencyId,
-                                    checklist_id: checklistId || null,
-                                    is_active: true
-                                }]);
-                            if (insertError) {
-                                // If insert fails due to unique constraint, try to update instead
-                                if (insertError.code === '23505' || insertError.message.includes('unique') || insertError.message.includes('duplicate')) {
-                                    console.warn('Configuration already exists, updating instead');
-                                    await this.supabaseClient
-                                        .from('device_configurations')
-                                        .update({
-                                            name: `${typeName} - ${makeName} - ${modelName}`,
-                                            pm_frequency_id: pmFrequencyId,
-                                            checklist_id: checklistId || null,
-                                            is_active: true
-                                        })
-                                        .eq('category_id', typeId)
-                                        .eq('make_id', makeId)
-                                        .eq('model_id', modelId);
-                                } else {
-                                    throw insertError;
+                                .select('id')
+                                .eq('category_id', typeId)
+                                .eq('make_id', makeId)
+                                .eq('model_id', modelId)
+                                .maybeSingle();
+                            
+                            if (existing) {
+                                // Update existing record
+                                const { error: updateError } = await this.supabaseClient
+                                    .from('device_configurations')
+                                    .update(configData)
+                                    .eq('id', existing.id);
+                                
+                                if (updateError) {
+                                    console.warn('Could not update existing device configuration:', updateError);
                                 }
+                            } else {
+                                console.warn('Could not save device configuration:', upsertError);
+                                // Don't throw - configuration is optional, MMD hierarchy is what matters
                             }
-                        } else {
-                            // Configuration exists - update it
-                            const updateData = {
-                                name: `${typeName} - ${makeName} - ${modelName}`,
-                                pm_frequency_id: pmFrequencyId,
-                                is_active: true
-                            };
-                            if (checklistId) {
-                                updateData.checklist_id = checklistId;
-                            }
-                            await this.supabaseClient
-                                .from('device_configurations')
-                                .update(updateData)
-                                .eq('id', existing.id);
                         }
                     }
                 } catch (configError) {
-                    console.warn('Could not save device configuration:', configError);
+                    console.warn('Could not save device configuration (non-critical):', configError);
+                    // Don't throw - device configuration is optional
+                    // The important part (Type, Make, Model) has already been saved
                 }
             }
 
