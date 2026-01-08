@@ -10,7 +10,8 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
 <script src="auth.js"></script>
-<script src="js/mmd-asset-form.js"></script>
+    <script src="js/parent-child-hierarchy-manager.js"></script>
+    <script src="js/mmd-asset-form.js"></script>
 <script src="js/depreciation-reference-manager.js"></script>
 <script src="js/asset-depreciation-handler.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
@@ -677,78 +678,120 @@
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Asset Name *</label>
                             <input type="text" name="name" required class="form-input" placeholder="e.g., MRI Scanner">
                         </div>
-                        <!-- Equipment Type - Inline -->
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                Equipment Type <span class="text-red-500">*</span>
-                            </label>
-                            <div class="flex gap-2">
-                                <select id="mmd-type-select" required 
-                                        class="form-input flex-1"
-                                        onchange="handleMMDTypeChange()">
-                                    <option value="">-- Select Equipment Type --</option>
-                                </select>
-                                <button type="button" id="add-mmd-type-btn"
-                                        class="btn btn-primary px-3 py-2 flex-shrink-0" 
-                                        title="Add New Equipment Configuration">
-                                    <i class="fas fa-plus"></i>
-                                </button>
+                        <!-- Parent-Child Hierarchy: Device Type → Manufacturer → Model → PM Program -->
+                        <div class="md:col-span-2 border border-blue-200 rounded-lg p-4 bg-blue-50 mb-4">
+                            <h4 class="font-semibold text-blue-900 mb-3 flex items-center">
+                                <i class="fas fa-sitemap mr-2"></i>
+                                Device Hierarchy Configuration
+                            </h4>
+                            <p class="text-xs text-blue-800 mb-4">
+                                Select from the hierarchy defined in Settings. All relationships are enforced to ensure data consistency.
+                            </p>
+                            
+                            <!-- Device Type -->
+                            <div class="mb-3">
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                    Device Type <span class="text-red-500">*</span>
+                                </label>
+                                <div class="flex gap-2">
+                                    <select id="hierarchy-device-type-select" required 
+                                            class="form-input flex-1"
+                                            onchange="handleHierarchyDeviceTypeChange()">
+                                        <option value="">-- Select Device Type --</option>
+                                    </select>
+                                    <button type="button" id="add-hierarchy-type-btn"
+                                            class="btn btn-primary px-3 py-2 flex-shrink-0" 
+                                            title="Add New Device Type (opens Settings)"
+                                            onclick="window.open('settings.html#device-hierarchy', '_blank')">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Manufacturer -->
+                            <div class="mb-3">
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                    Manufacturer <span class="text-red-500">*</span>
+                                </label>
+                                <div class="flex gap-2">
+                                    <select id="hierarchy-manufacturer-select" required disabled 
+                                            class="form-input flex-1"
+                                            onchange="handleHierarchyManufacturerChange()">
+                                        <option value="">-- Select Device Type First --</option>
+                                    </select>
+                                    <button type="button" id="add-hierarchy-manufacturer-btn"
+                                            class="btn btn-primary px-3 py-2 flex-shrink-0" 
+                                            title="Add New Manufacturer (opens Settings)" disabled
+                                            onclick="window.open('settings.html#device-hierarchy', '_blank')">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Device Model -->
+                            <div class="mb-3">
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                    Device Model <span class="text-red-500">*</span>
+                                </label>
+                                <div class="flex gap-2">
+                                    <select id="hierarchy-device-model-select" name="device_model_id" required disabled 
+                                            class="form-input flex-1"
+                                            onchange="handleHierarchyDeviceModelChange()">
+                                        <option value="">-- Select Manufacturer First --</option>
+                                    </select>
+                                    <button type="button" id="add-hierarchy-model-btn"
+                                            class="btn btn-primary px-3 py-2 flex-shrink-0" 
+                                            title="Add New Device Model (opens Settings)" disabled
+                                            onclick="window.open('settings.html#device-hierarchy', '_blank')">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- PM Program (Auto-assigned, Read-only) -->
+                            <div class="mb-3">
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                    PM Program <span class="text-xs text-gray-500">(Auto-assigned)</span>
+                                </label>
+                                <input type="text" id="hierarchy-pm-program-display" 
+                                       class="form-input bg-gray-100" 
+                                       readonly 
+                                       placeholder="PM program will be auto-assigned when model is selected">
+                                <p class="text-xs text-gray-500 mt-1">
+                                    <i class="fas fa-info-circle"></i> PM program is automatically assigned from the selected model. 
+                                    If no PM program exists, create one in Settings first.
+                                </p>
+                            </div>
+                            
+                            <!-- PM Frequency (Read-only, from PM Program) -->
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                    PM Frequency <span class="text-xs text-gray-500">(Read-only)</span>
+                                </label>
+                                <input type="text" id="hierarchy-pm-frequency-display" 
+                                       class="form-input bg-gray-100" 
+                                       readonly 
+                                       placeholder="PM frequency will be shown when model is selected">
+                                <input type="hidden" id="hierarchy-pm-frequency-id" name="pm_frequency_id">
+                                <input type="hidden" id="hierarchy-pm-program-id" name="pm_program_id">
+                                <input type="hidden" id="hierarchy-pm-frequency-days" name="pm_frequency_days">
+                            </div>
+                            
+                            <!-- PM Checklist Info (Read-only) -->
+                            <div id="hierarchy-pm-checklist-info" class="mt-3 p-3 bg-white border border-gray-200 rounded-lg" style="display: none;">
+                                <div class="flex items-center justify-between mb-2">
+                                    <label class="block text-sm font-semibold text-gray-700">
+                                        PM Checklist <span class="text-xs text-gray-500">(Auto-attached)</span>
+                                    </label>
+                                </div>
+                                <div id="hierarchy-pm-checklist-items" class="text-xs text-gray-600 space-y-1">
+                                    <!-- Checklist items will be populated here -->
+                                </div>
                             </div>
                         </div>
                         
-                        <!-- Make - Inline -->
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                Make <span class="text-red-500">*</span>
-                            </label>
-                            <div class="flex gap-2">
-                                <select id="mmd-make-select" required disabled 
-                                        class="form-input flex-1"
-                                        onchange="handleMMDMakeChange()">
-                                    <option value="">-- Select Type First --</option>
-                                </select>
-                                <button type="button" id="add-mmd-make-btn"
-                                        class="btn btn-primary px-3 py-2 flex-shrink-0" 
-                                        title="Add New Equipment Configuration" disabled>
-                                    <i class="fas fa-plus"></i>
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <!-- Model - Inline -->
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                Model <span class="text-red-500">*</span>
-                            </label>
-                            <div class="flex gap-2">
-                                <select id="mmd-model-select" name="model_id" required disabled 
-                                        class="form-input flex-1"
-                                        onchange="handleMMDModelChange()">
-                                    <option value="">-- Select Make First --</option>
-                                </select>
-                                <button type="button" id="add-mmd-model-btn"
-                                        class="btn btn-primary px-3 py-2 flex-shrink-0" 
-                                        title="Add New Equipment Configuration" disabled>
-                                    <i class="fas fa-plus"></i>
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <!-- PM Frequency (Selectable) - Inline -->
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                PM Frequency
-                            </label>
-                            <select id="mmd-pm-frequency-select" name="pm_frequency_id" class="form-input">
-                                <option value="">-- Select PM Frequency --</option>
-                            </select>
-                            <p class="text-xs text-gray-500 mt-1">Auto-populated from model, but can be overridden</p>
-                        </div>
-                        
-                        <!-- Hidden fields for form submission -->
-                        <input type="hidden" id="mmd-type-id" name="type_id">
-                        <input type="hidden" id="mmd-make-id" name="make_id">
-                        <input type="hidden" id="mmd-pm-frequency-days" name="pm_frequency_days">
+                        <!-- Legacy model_id field (for backward compatibility) -->
+                        <input type="hidden" id="mmd-model-select" name="model_id">
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Serial Number *</label>
                             <input type="text" name="serial_number" required class="form-input">
@@ -2800,6 +2843,204 @@
 
         function closePMManagement() {
             document.getElementById('pm-management-modal').classList.remove('active');
+        }
+
+        // Parent-Child Hierarchy Manager Instance
+        let assetHierarchyManager = null;
+
+        // Initialize hierarchy manager
+        async function initAssetHierarchyManager() {
+            if (!assetHierarchyManager && window.ParentChildHierarchyManager && supabaseClient) {
+                assetHierarchyManager = new ParentChildHierarchyManager(supabaseClient);
+                await assetHierarchyManager.loadFullHierarchy();
+            }
+            return assetHierarchyManager;
+        }
+
+        // Hierarchy dropdown handlers
+        async function handleHierarchyDeviceTypeChange() {
+            const typeSelect = document.getElementById('hierarchy-device-type-select');
+            const manufacturerSelect = document.getElementById('hierarchy-manufacturer-select');
+            const modelSelect = document.getElementById('hierarchy-device-model-select');
+            const pmProgramDisplay = document.getElementById('hierarchy-pm-program-display');
+            const pmFrequencyDisplay = document.getElementById('hierarchy-pm-frequency-display');
+            const pmChecklistInfo = document.getElementById('hierarchy-pm-checklist-info');
+            const addManufacturerBtn = document.getElementById('add-hierarchy-manufacturer-btn');
+
+            const deviceTypeId = typeSelect ? typeSelect.value : null;
+
+            // Reset downstream dropdowns
+            if (manufacturerSelect) {
+                manufacturerSelect.innerHTML = '<option value="">-- Select Device Type First --</option>';
+                manufacturerSelect.disabled = !deviceTypeId;
+            }
+            if (modelSelect) {
+                modelSelect.innerHTML = '<option value="">-- Select Manufacturer First --</option>';
+                modelSelect.disabled = true;
+            }
+            if (addManufacturerBtn) {
+                addManufacturerBtn.disabled = !deviceTypeId;
+            }
+            if (pmProgramDisplay) pmProgramDisplay.value = '';
+            if (pmFrequencyDisplay) pmFrequencyDisplay.value = '';
+            if (pmChecklistInfo) pmChecklistInfo.style.display = 'none';
+
+            if (!deviceTypeId) return;
+
+            // Load manufacturers for selected device type
+            await initAssetHierarchyManager();
+            if (assetHierarchyManager) {
+                const manufacturers = assetHierarchyManager.getManufacturersByDeviceType(deviceTypeId);
+                if (manufacturerSelect) {
+                    manufacturerSelect.innerHTML = '<option value="">-- Select Manufacturer --</option>';
+                    manufacturers.forEach(mfg => {
+                        const option = document.createElement('option');
+                        option.value = mfg.id;
+                        option.textContent = mfg.name;
+                        manufacturerSelect.appendChild(option);
+                    });
+                    manufacturerSelect.disabled = false;
+                }
+            }
+        }
+
+        async function handleHierarchyManufacturerChange() {
+            const manufacturerSelect = document.getElementById('hierarchy-manufacturer-select');
+            const modelSelect = document.getElementById('hierarchy-device-model-select');
+            const pmProgramDisplay = document.getElementById('hierarchy-pm-program-display');
+            const pmFrequencyDisplay = document.getElementById('hierarchy-pm-frequency-display');
+            const pmChecklistInfo = document.getElementById('hierarchy-pm-checklist-info');
+            const addModelBtn = document.getElementById('add-hierarchy-model-btn');
+
+            const manufacturerId = manufacturerSelect ? manufacturerSelect.value : null;
+
+            // Reset downstream dropdowns
+            if (modelSelect) {
+                modelSelect.innerHTML = '<option value="">-- Select Manufacturer First --</option>';
+                modelSelect.disabled = !manufacturerId;
+            }
+            if (addModelBtn) {
+                addModelBtn.disabled = !manufacturerId;
+            }
+            if (pmProgramDisplay) pmProgramDisplay.value = '';
+            if (pmFrequencyDisplay) pmFrequencyDisplay.value = '';
+            if (pmChecklistInfo) pmChecklistInfo.style.display = 'none';
+
+            if (!manufacturerId) return;
+
+            // Load device models for selected manufacturer
+            await initAssetHierarchyManager();
+            if (assetHierarchyManager) {
+                const models = assetHierarchyManager.getDeviceModelsByManufacturer(manufacturerId);
+                if (modelSelect) {
+                    modelSelect.innerHTML = '<option value="">-- Select Device Model --</option>';
+                    models.forEach(model => {
+                        const option = document.createElement('option');
+                        option.value = model.id;
+                        option.textContent = model.name;
+                        modelSelect.appendChild(option);
+                    });
+                    modelSelect.disabled = false;
+                }
+            }
+        }
+
+        async function handleHierarchyDeviceModelChange() {
+            const modelSelect = document.getElementById('hierarchy-device-model-select');
+            const pmProgramDisplay = document.getElementById('hierarchy-pm-program-display');
+            const pmFrequencyDisplay = document.getElementById('hierarchy-pm-frequency-display');
+            const pmFrequencyIdInput = document.getElementById('hierarchy-pm-frequency-id');
+            const pmProgramIdInput = document.getElementById('hierarchy-pm-program-id');
+            const pmFrequencyDaysInput = document.getElementById('hierarchy-pm-frequency-days');
+            const pmChecklistInfo = document.getElementById('hierarchy-pm-checklist-info');
+            const pmChecklistItems = document.getElementById('hierarchy-pm-checklist-items');
+            const legacyModelIdInput = document.getElementById('mmd-model-select');
+
+            const deviceModelId = modelSelect ? modelSelect.value : null;
+
+            // Clear PM program info
+            if (pmProgramDisplay) pmProgramDisplay.value = '';
+            if (pmFrequencyDisplay) pmFrequencyDisplay.value = '';
+            if (pmFrequencyIdInput) pmFrequencyIdInput.value = '';
+            if (pmProgramIdInput) pmProgramIdInput.value = '';
+            if (pmFrequencyDaysInput) pmFrequencyDaysInput.value = '';
+            if (pmChecklistInfo) pmChecklistInfo.style.display = 'none';
+            if (legacyModelIdInput) legacyModelIdInput.value = deviceModelId || '';
+
+            if (!deviceModelId) return;
+
+            // Get PM program for selected model
+            await initAssetHierarchyManager();
+            if (assetHierarchyManager) {
+                const pmProgramResult = await assetHierarchyManager.getPMProgramForAsset(deviceModelId);
+
+                if (!pmProgramResult.valid) {
+                    showToast(pmProgramResult.error, 'error');
+                    return;
+                }
+
+                const { pmProgram, pmChecklist, pmChecklistItems: items } = pmProgramResult;
+
+                // Display PM program
+                if (pmProgram && pmProgramDisplay) {
+                    pmProgramDisplay.value = pmProgram.name || 'N/A';
+                }
+                if (pmProgram && pmProgramIdInput) {
+                    pmProgramIdInput.value = pmProgram.id;
+                }
+
+                // Display PM frequency
+                if (pmProgram && pmProgram.pm_frequencies) {
+                    const freq = pmProgram.pm_frequencies;
+                    if (pmFrequencyDisplay) {
+                        pmFrequencyDisplay.value = `${freq.name} (${freq.days} days)`;
+                    }
+                    if (pmFrequencyIdInput) {
+                        pmFrequencyIdInput.value = freq.id;
+                    }
+                    if (pmFrequencyDaysInput) {
+                        pmFrequencyDaysInput.value = freq.days;
+                    }
+                }
+
+                // Display PM checklist
+                if (pmChecklist && items && items.length > 0) {
+                    if (pmChecklistInfo) {
+                        pmChecklistInfo.style.display = 'block';
+                    }
+                    if (pmChecklistItems) {
+                        pmChecklistItems.innerHTML = `
+                                <div class="font-medium text-xs mb-2">${escapeHtml(pmChecklist.name)}</div>
+                            <ul class="space-y-1">
+                                ${items.map(item => `
+                                    <li class="flex items-center gap-2">
+                                        <i class="fas fa-${item.item_type === 'checkbox' ? 'square' : 'circle'} text-slate-400 text-xs"></i>
+                                        <span>${escapeHtml(item.name)}</span>
+                                        ${item.is_required ? '<span class="text-red-500 text-xs">*</span>' : ''}
+                                    </li>
+                                `).join('')}
+                            </ul>
+                        `;
+                    }
+                } else if (pmChecklist) {
+                    if (pmChecklistInfo) {
+                        pmChecklistInfo.style.display = 'block';
+                    }
+                    if (pmChecklistItems) {
+                        pmChecklistItems.innerHTML = `
+                            <div class="font-medium text-xs mb-2">${escapeHtml(pmChecklist.name)}</div>
+                            <div class="text-xs text-slate-400">No checklist items defined</div>
+                        `;
+                    }
+                }
+            }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         async function showAddAssetModal() {
