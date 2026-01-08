@@ -98,6 +98,137 @@
             padding: 8px 12px;
             font-size: 12px;
         }
+        /* Hierarchy List View Styles - Excel-like */
+        .hierarchy-list-wrapper {
+            width: 100%;
+            overflow-x: auto;
+        }
+        .hierarchy-list-header {
+            display: grid;
+            grid-template-columns: 1.5fr 1.5fr 1.5fr 1.2fr 1.5fr 100px;
+            gap: 1px;
+            background: #e2e8f0;
+            border: 1px solid #cbd5e1;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .hierarchy-list-body {
+            display: flex;
+            flex-direction: column;
+        }
+        .hierarchy-row {
+            display: grid;
+            grid-template-columns: 1.5fr 1.5fr 1.5fr 1.2fr 1.5fr 100px;
+            gap: 1px;
+            background: #e2e8f0;
+            border-bottom: 1px solid #cbd5e1;
+            min-height: 45px;
+        }
+        .hierarchy-row:hover {
+            background: #f1f5f9;
+        }
+        .hierarchy-row.editing {
+            background: #fef3c7;
+        }
+        .hierarchy-col {
+            background: white;
+            padding: 0;
+        }
+        .hierarchy-col-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 10px;
+            background: #f8fafc;
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #475569;
+            border-bottom: 2px solid #cbd5e1;
+        }
+        .hierarchy-cell {
+            padding: 10px;
+            min-height: 45px;
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            color: #334155;
+        }
+        .hierarchy-add-btn {
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        .hierarchy-add-btn:hover {
+            background: #1d4ed8;
+            transform: scale(1.1);
+        }
+        .hierarchy-action-btn {
+            background: transparent;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            width: 28px;
+            height: 28px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            margin-right: 4px;
+            transition: all 0.2s;
+        }
+        .hierarchy-action-btn:hover {
+            background: #f1f5f9;
+        }
+        .hierarchy-action-btn.save {
+            color: #059669;
+            border-color: #059669;
+        }
+        .hierarchy-action-btn.save:hover {
+            background: #d1fae5;
+        }
+        .hierarchy-action-btn.cancel {
+            color: #dc2626;
+            border-color: #dc2626;
+        }
+        .hierarchy-action-btn.cancel:hover {
+            background: #fee2e2;
+        }
+        .hierarchy-action-btn.edit {
+            color: #2563eb;
+            border-color: #2563eb;
+        }
+        .hierarchy-action-btn.edit:hover {
+            background: #dbeafe;
+        }
+        .hierarchy-action-btn.delete {
+            color: #dc2626;
+            border-color: #dc2626;
+        }
+        .hierarchy-action-btn.delete:hover {
+            background: #fee2e2;
+        }
+        .hierarchy-input {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        .hierarchy-input:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+        }
         .toggle {
             position: relative;
             width: 48px;
@@ -509,41 +640,24 @@
                                     </div>
                                     </div>
 
-                        <!-- MMD Configurations List -->
+                        <!-- MMD Configurations List - Excel-like View -->
                         <div class="settings-section mb-6">
-                                        <div class="flex items-center justify-between mb-4">
-                                <h3 class="text-lg font-semibold text-slate-800">MMD Configurations</h3>
-                                <button onclick="openUnifiedMMDModal()" class="btn btn-primary btn-sm">
-                                    <i class="fas fa-plus"></i> Add New Configuration
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-semibold text-slate-800">MMD Hierarchy Management</h3>
+                                <button onclick="hierarchyListManager?.init()" class="btn btn-secondary btn-sm">
+                                    <i class="fas fa-sync"></i> Refresh
                                 </button>
-                                            </div>
+                            </div>
                             
                             <div class="bg-white rounded-lg border border-slate-200 overflow-hidden">
-                                <div class="overflow-x-auto">
-                                    <table class="w-full text-left">
-                                        <thead class="bg-slate-50">
-                                            <tr>
-                                                <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Type</th>
-                                                <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Make</th>
-                                                <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Model</th>
-                                                <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">PM Frequency</th>
-                                                <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Checklist</th>
-                                                <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Status</th>
-                                                <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="mmd-configurations-list" class="bg-white divide-y divide-slate-200">
-                                            <tr>
-                                                <td colspan="7" class="px-4 py-8 text-center text-slate-500">
-                                                    <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
-                                                    <p>Loading MMD configurations...</p>
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                        </div>
-                                                </div>
-                                                </div>
+                                <div id="hierarchy-list-container" class="p-4">
+                                    <div class="text-center text-slate-500 py-8">
+                                        <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                                        <p>Loading hierarchy data...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
                         <!-- Info Card -->
                         <div class="settings-section bg-blue-50 border-blue-200">
@@ -1498,6 +1612,8 @@
     <script src="js/depreciation-reference-manager.js"></script>
     <script src="js/depreciation-profiles-manager.js"></script>
     <script src="js/master-db-manager.js?v=2"></script>
+    <script src="js/parent-child-hierarchy-manager.js"></script>
+    <script src="js/hierarchy-list-manager.js"></script>
     <!-- Scheduled Maintenance Modal -->
     <div id="scheduled-maintenance-modal" class="modal">
         <div class="modal-content" style="max-width: 1200px;">
