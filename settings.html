@@ -1868,15 +1868,18 @@
         let hierarchyListManager = null;
         
         async function initHierarchyListManager() {
+            console.log('[Settings] initHierarchyListManager() called');
             // Check if container exists
             const container = document.getElementById('hierarchy-list-container');
             if (!container) {
-                console.warn('hierarchy-list-container not found, waiting...');
+                console.warn('[Settings] hierarchy-list-container not found, waiting...');
                 setTimeout(() => initHierarchyListManager(), 500);
                 return null;
             }
+            console.log('[Settings] Container found');
 
             if (hierarchyListManager) {
+                console.log('[Settings] Re-initializing existing manager');
                 // Re-initialize if already exists
                 await hierarchyListManager.init();
                 return hierarchyListManager;
@@ -1884,13 +1887,13 @@
             
             let supabaseClient = window.sharedSupabaseClient || window.supabaseClient;
             if (!supabaseClient) {
-                console.warn('Supabase client not available, waiting...');
+                console.warn('[Settings] Supabase client not available, waiting...');
                 await new Promise(resolve => setTimeout(resolve, 500));
                 supabaseClient = window.sharedSupabaseClient || window.supabaseClient;
             }
             
             if (!supabaseClient) {
-                console.error('Supabase client not available for hierarchy list');
+                console.error('[Settings] Supabase client not available for hierarchy list');
                 container.innerHTML = `
                     <div class="text-center py-12">
                         <i class="fas fa-exclamation-triangle text-red-500 text-4xl mb-4"></i>
@@ -1900,32 +1903,39 @@
                 `;
                 return null;
             }
+            console.log('[Settings] Supabase client found');
             
             if (!window.HierarchyListManager) {
-                console.error('HierarchyListManager class not loaded');
+                console.error('[Settings] HierarchyListManager class not loaded');
                 container.innerHTML = `
                     <div class="text-center py-12">
                         <i class="fas fa-exclamation-triangle text-red-500 text-4xl mb-4"></i>
                         <h3 class="text-lg font-semibold text-slate-800 mb-2">Script Not Loaded</h3>
                         <p class="text-sm text-slate-600">HierarchyListManager script not loaded. Please refresh the page.</p>
+                        <p class="text-xs text-slate-500 mt-2">Check that js/hierarchy-list-manager.js is loaded before this script.</p>
                     </div>
                 `;
                 return null;
             }
+            console.log('[Settings] HierarchyListManager class found, creating instance');
             
             try {
                 hierarchyListManager = new window.HierarchyListManager(supabaseClient);
+                console.log('[Settings] Instance created, initializing...');
                 await hierarchyListManager.init();
                 window.hierarchyListManager = hierarchyListManager; // Expose globally
+                console.log('[Settings] Initialization complete');
                 return hierarchyListManager;
             } catch (error) {
-                console.error('Error creating hierarchy list manager:', error);
+                console.error('[Settings] Error creating hierarchy list manager:', error);
+                console.error('[Settings] Error stack:', error.stack);
                 container.innerHTML = `
                     <div class="text-center py-12">
                         <i class="fas fa-exclamation-circle text-red-500 text-4xl mb-4"></i>
                         <h3 class="text-lg font-semibold text-slate-800 mb-2">Initialization Error</h3>
                         <p class="text-sm text-slate-600 mb-4">${error.message || 'Unknown error occurred'}</p>
-                        <button onclick="initHierarchyListManager()" class="btn btn-primary btn-sm">
+                        <pre class="text-xs text-left bg-slate-100 p-2 rounded mt-2 max-w-2xl mx-auto overflow-auto">${error.stack || 'No stack trace available'}</pre>
+                        <button onclick="initHierarchyListManager()" class="btn btn-primary btn-sm mt-4">
                             <i class="fas fa-sync"></i> Retry
                         </button>
                     </div>
@@ -1995,7 +2005,9 @@
             
             // Initialize hierarchy list manager when Master Database tab is shown
             if (tabName === 'master-db') {
+                console.log('[Settings] Master Database tab activated, initializing hierarchy list manager');
                 setTimeout(async () => {
+                    console.log('[Settings] Calling initHierarchyListManager()');
                     await initHierarchyListManager();
                 }, 100);
             }

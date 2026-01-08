@@ -19,11 +19,13 @@ class HierarchyListManager {
     }
 
     async init() {
+        console.log('[HierarchyListManager] init() called');
         const container = document.getElementById('hierarchy-list-container');
         if (!container) {
-            console.error('hierarchy-list-container element not found');
+            console.error('[HierarchyListManager] hierarchy-list-container element not found');
             return;
         }
+        console.log('[HierarchyListManager] Container found, showing loading state');
 
         // Show loading state
         container.innerHTML = `
@@ -34,21 +36,31 @@ class HierarchyListManager {
         `;
 
         try {
+            console.log('[HierarchyListManager] Checking for ParentChildHierarchyManager...');
             if (!this.hierarchyManager && window.ParentChildHierarchyManager) {
+                console.log('[HierarchyListManager] Creating ParentChildHierarchyManager instance');
                 this.hierarchyManager = new ParentChildHierarchyManager(this.supabaseClient);
+            } else if (!window.ParentChildHierarchyManager) {
+                console.error('[HierarchyListManager] ParentChildHierarchyManager not available');
+                throw new Error('ParentChildHierarchyManager class not loaded. Please ensure js/parent-child-hierarchy-manager.js is loaded.');
             }
             
+            console.log('[HierarchyListManager] Loading all data...');
             await this.loadAllData();
+            console.log('[HierarchyListManager] Data loaded, rendering...');
             this.render();
+            console.log('[HierarchyListManager] Render complete');
         } catch (error) {
-            console.error('Error initializing hierarchy list manager:', error);
+            console.error('[HierarchyListManager] Error initializing:', error);
+            console.error('[HierarchyListManager] Error stack:', error.stack);
             if (container) {
                 container.innerHTML = `
                     <div class="text-center py-12">
                         <i class="fas fa-exclamation-circle text-red-500 text-4xl mb-4"></i>
                         <h3 class="text-lg font-semibold text-slate-800 mb-2">Initialization Error</h3>
                         <p class="text-sm text-slate-600 mb-4">${this.escapeHtml(error.message || 'Unknown error occurred')}</p>
-                        <button onclick="hierarchyListManager?.init()" class="btn btn-primary btn-sm">
+                        <pre class="text-xs text-left bg-slate-100 p-2 rounded mt-2 max-w-2xl mx-auto overflow-auto">${this.escapeHtml(error.stack || 'No stack trace available')}</pre>
+                        <button onclick="hierarchyListManager?.init()" class="btn btn-primary btn-sm mt-4">
                             <i class="fas fa-sync"></i> Retry
                         </button>
                     </div>
@@ -58,20 +70,37 @@ class HierarchyListManager {
     }
 
     async loadAllData() {
+        console.log('[HierarchyListManager] loadAllData() called');
         try {
             // Initialize hierarchy manager if needed
             if (!this.hierarchyManager && window.ParentChildHierarchyManager) {
+                console.log('[HierarchyListManager] Creating hierarchy manager instance');
                 this.hierarchyManager = new ParentChildHierarchyManager(this.supabaseClient);
             }
 
             // Load hierarchy
             if (this.hierarchyManager) {
                 try {
+                    console.log('[HierarchyListManager] Loading full hierarchy...');
                     this.hierarchy = await this.hierarchyManager.loadFullHierarchy();
+                    console.log('[HierarchyListManager] Hierarchy loaded:', {
+                        deviceTypes: this.hierarchy.deviceTypes?.length || 0,
+                        manufacturers: this.hierarchy.manufacturers?.length || 0,
+                        deviceModels: this.hierarchy.deviceModels?.length || 0,
+                        pmPrograms: this.hierarchy.pmPrograms?.length || 0,
+                        pmChecklists: this.hierarchy.pmChecklists?.length || 0
+                    });
                 } catch (hierarchyError) {
-                    console.error('Error loading hierarchy:', hierarchyError);
+                    console.error('[HierarchyListManager] Error loading hierarchy:', hierarchyError);
+                    console.error('[HierarchyListManager] Error details:', {
+                        code: hierarchyError.code,
+                        message: hierarchyError.message,
+                        details: hierarchyError.details,
+                        hint: hierarchyError.hint
+                    });
                     // If tables don't exist, show helpful message
                     if (hierarchyError.code === '42P01' || hierarchyError.message?.includes('does not exist')) {
+                        console.log('[HierarchyListManager] Tables do not exist, showing migration message');
                         this.hierarchy = {
                             deviceTypes: [],
                             manufacturers: [],
@@ -109,7 +138,8 @@ class HierarchyListManager {
                     throw hierarchyError; // Re-throw if it's a different error
                 }
             } else {
-                console.warn('ParentChildHierarchyManager not available');
+                console.warn('[HierarchyListManager] ParentChildHierarchyManager not available');
+                throw new Error('ParentChildHierarchyManager not initialized');
             }
 
             // Load PM frequencies
