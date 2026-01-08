@@ -3627,11 +3627,19 @@
         }
 
         function closeAssetModal() {
-            document.getElementById('asset-modal').classList.remove('active');
+            const modal = document.getElementById('asset-modal');
+            if (modal) {
+                modal.classList.remove('active');
+            }
             currentAsset = null;
             assetImageUrls = [];
-            loadAssetImages([]); // Clear images
+            if (typeof loadAssetImages === 'function') {
+                loadAssetImages([]); // Clear images
+            }
         }
+        
+        // Expose globally for onclick handlers
+        window.closeAssetModal = closeAssetModal;
 
         async function deleteAsset(assetId) {
             // Check if Supabase client is available
