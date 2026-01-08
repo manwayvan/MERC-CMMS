@@ -1864,7 +1864,50 @@
     </script>
     <script>
         // Initialize SettingsManager and MasterDBManager when DOM is ready
+        // Initialize Hierarchy List Manager
+        let hierarchyListManager = null;
+        
+        async function initHierarchyListManager() {
+            if (hierarchyListManager) return hierarchyListManager;
+            
+            let supabaseClient = window.sharedSupabaseClient;
+            if (!supabaseClient) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+                supabaseClient = window.sharedSupabaseClient;
+            }
+            
+            if (!supabaseClient) {
+                console.error('Supabase client not available for hierarchy list');
+                return null;
+            }
+            
+            if (window.HierarchyListManager) {
+                hierarchyListManager = new window.HierarchyListManager(supabaseClient);
+                await hierarchyListManager.init();
+                window.hierarchyListManager = hierarchyListManager; // Expose globally
+                return hierarchyListManager;
+            }
+            
+            return null;
+        }
+        
         document.addEventListener('DOMContentLoaded', async () => {
+            // Initialize Hierarchy List Manager when Master Database tab is active
+            const masterDbTab = document.querySelector('[data-tab="master-db"]');
+            if (masterDbTab) {
+                masterDbTab.addEventListener('click', async () => {
+                    setTimeout(async () => {
+                        await initHierarchyListManager();
+                    }, 100);
+                });
+            }
+            
+            // Initialize if tab is already active
+            const masterDbContent = document.getElementById('master-db');
+            if (masterDbContent && masterDbContent.style.display !== 'none') {
+                await initHierarchyListManager();
+            }
+            
             // Initialize SettingsManager first
             if (typeof SettingsManager !== 'undefined') {
                 await SettingsManager.init();
@@ -1905,6 +1948,13 @@
             // Initialize depreciation profiles when System tab is shown
             if (tabName === 'system') {
                 await initDepreciationProfiles();
+            }
+            
+            // Initialize hierarchy list manager when Master Database tab is shown
+            if (tabName === 'master-db') {
+                setTimeout(async () => {
+                    await initHierarchyListManager();
+                }, 100);
             }
         }
 
