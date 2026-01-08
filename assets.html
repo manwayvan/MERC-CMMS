@@ -655,7 +655,7 @@
                         <h2 class="text-2xl font-bold text-gray-900" id="modal-title">Asset Details</h2>
                         <p class="text-sm text-gray-500 mt-1" id="modal-subtitle"></p>
                     </div>
-                    <button onclick="closeAssetModal()" class="text-gray-400 hover:text-gray-600 text-2xl">
+                    <button onclick="event.stopPropagation(); closeAssetModal(); return false;" class="text-gray-400 hover:text-gray-600 text-2xl" title="Close">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
