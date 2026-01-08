@@ -1948,10 +1948,10 @@
             console.log('[Settings] DOMContentLoaded, setting up hierarchy list manager');
             
             // Initialize Hierarchy List Manager when Master Database tab is active
-            // Check for tab button with data-tab="master-db"
-            const masterDbTab = document.querySelector('[data-tab="master-db"]');
+            // The tab is called "master-database" (not "master-db")
+            const masterDbTab = document.querySelector('[data-tab="master-database"]');
             if (masterDbTab) {
-                console.log('[Settings] Found master-db tab button, adding click listener');
+                console.log('[Settings] Found master-database tab button, adding click listener');
                 masterDbTab.addEventListener('click', async () => {
                     console.log('[Settings] Master Database tab clicked');
                     setTimeout(async () => {
@@ -1959,14 +1959,12 @@
                     }, 200);
                 });
             } else {
-                console.warn('[Settings] Master Database tab button not found with [data-tab="master-db"]');
+                console.warn('[Settings] Master Database tab button not found with [data-tab="master-database"]');
             }
             
             // Also check for direct initialization on page load if tab is active
-            // Check multiple possible tab content IDs
-            const masterDbContent = document.getElementById('master-db') || 
-                                   document.querySelector('.tab-content.active[id*="master"]') ||
-                                   document.querySelector('#master-db-modal');
+            // The tab content ID is "master-database"
+            const masterDbContent = document.getElementById('master-database');
             
             if (masterDbContent) {
                 const isVisible = masterDbContent.style.display !== 'none' && 
@@ -2035,12 +2033,12 @@
             }
             
             // Initialize hierarchy list manager when Master Database tab is shown
-            if (tabName === 'master-db') {
+            if (tabName === 'master-database') {
                 console.log('[Settings] Master Database tab activated, initializing hierarchy list manager');
                 setTimeout(async () => {
                     console.log('[Settings] Calling initHierarchyListManager()');
                     await initHierarchyListManager();
-                }, 100);
+                }, 200);
             }
         }
 
