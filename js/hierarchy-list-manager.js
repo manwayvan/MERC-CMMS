@@ -37,12 +37,28 @@ class HierarchyListManager {
 
         try {
             console.log('[HierarchyListManager] Checking for ParentChildHierarchyManager...');
+            console.log('[HierarchyListManager] window.ParentChildHierarchyManager:', typeof window.ParentChildHierarchyManager);
+            
+            // Wait for ParentChildHierarchyManager to load if not available
+            if (!window.ParentChildHierarchyManager) {
+                console.log('[HierarchyListManager] ParentChildHierarchyManager not loaded, waiting...');
+                let attempts = 0;
+                const maxAttempts = 10;
+                while (!window.ParentChildHierarchyManager && attempts < maxAttempts) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
+                    console.log(`[HierarchyListManager] Waiting for ParentChildHierarchyManager... (attempt ${attempts}/${maxAttempts})`);
+                }
+                
+                if (!window.ParentChildHierarchyManager) {
+                    console.error('[HierarchyListManager] ParentChildHierarchyManager still not available after waiting');
+                    throw new Error('ParentChildHierarchyManager class not loaded. Please ensure js/parent-child-hierarchy-manager.js is loaded before js/hierarchy-list-manager.js.');
+                }
+            }
+            
             if (!this.hierarchyManager && window.ParentChildHierarchyManager) {
                 console.log('[HierarchyListManager] Creating ParentChildHierarchyManager instance');
                 this.hierarchyManager = new ParentChildHierarchyManager(this.supabaseClient);
-            } else if (!window.ParentChildHierarchyManager) {
-                console.error('[HierarchyListManager] ParentChildHierarchyManager not available');
-                throw new Error('ParentChildHierarchyManager class not loaded. Please ensure js/parent-child-hierarchy-manager.js is loaded.');
             }
             
             console.log('[HierarchyListManager] Loading all data...');
