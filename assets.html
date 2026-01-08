@@ -3704,24 +3704,97 @@
             // Get assetId first (needed for validation logic)
             const assetId = document.getElementById('edit-asset-id').value;
             
-            // MMD-based asset creation - model_id is required
-            // Get model_id from MMD form manager (primary) or form field (fallback)
-            let modelId = null;
-            if (window.mmdAssetFormManager && window.mmdAssetFormManager.selectedModel) {
-                modelId = window.mmdAssetFormManager.selectedModel;
-            } else {
-                modelId = formData.get('model_id');
-            }
-            
-            // For new assets, model_id is mandatory
-            if (!assetId && !modelId) {
-                showToast('Please select a Model from the MMD hierarchy (Type → Make → Model)', 'error');
+            // Parent-Child Hierarchy: Get device_model_id and pm_program_id
+            const deviceModelId = formData.get('device_model_id');
+            const pmProgramId = formData.get('pm_program_id');
+            const pmFrequencyId = formData.get('pm_frequency_id');
+            const pmFrequencyDays = formData.get('pm_frequency_days');
+
+            // For new assets, device_model_id is mandatory
+            if (!assetId && !deviceModelId) {
+                showToast('Please select a Device Model from the hierarchy (Device Type → Manufacturer → Model)', 'error');
                 return;
             }
+
+            // Validate hierarchy is complete
+            if (deviceModelId) {
+                await initAssetHierarchyManager();
+                if (assetHierarchyManager) {
+                    const typeSelect = document.getElementById('hierarchy-device-type-select');
+                    const manufacturerSelect = document.getElementById('hierarchy-manufacturer-select');
+                    const deviceTypeId = typeSelect ? typeSelect.value : null;
+                    const manufacturerId = manufacturerSelect ? manufacturerSelect.value : null;
+
+                    const validation = await assetHierarchyManager.validateHierarchyComplete(
+                        deviceTypeId,
+                        manufacturerId,
+                        deviceModelId
+                    );
+
+                    if (!validation.valid) {
+                        showToast(`Hierarchy validation failed: ${validation.errors.join(', ')}`, 'error');
+                        return;
+                    }
+
+                    // Get PM program if not already set
+                    if (!pmProgramId) {
+                        const pmProgramResult = await assetHierarchyManager.getPMProgramForAsset(deviceModelId);
+                        if (pmProgramResult.valid && pmProgramResult.pmProgram) {
+                            assetData.pm_program_id = pmProgramResult.pmProgram.id;
+                            if (!pmFrequencyId && pmProgramResult.pmProgram.pm_frequencies) {
+                                assetData.pm_frequency_id = pmProgramResult.pmProgram.pm_frequencies.id;
+                                assetData.pm_interval_days = pmProgramResult.pmProgram.pm_frequencies.days;
+                            }
+                        } else {
+                            showToast('No PM program found for selected model. Please create one in Settings first.', 'error');
+                            return;
+                        }
+                    } else {
+                        assetData.pm_program_id = pmProgramId;
+                    }
+                }
+            }
+
+            // Set device_model_id (for backward compatibility, also set model_id)
+            if (deviceModelId) {
+                assetData.device_model_id = deviceModelId;
+                assetData.model_id = deviceModelId; // Legacy field
+            }
+
+            // Set PM frequency data
+            if (pmFrequencyId) {
+                assetData.pm_frequency_id = pmFrequencyId;
+            }
+            if (pmFrequencyDays) {
+                assetData.pm_interval_days = parseInt(pmFrequencyDays);
+                // Map days to schedule type
+                const days = parseInt(pmFrequencyDays);
+                if (days === 365) assetData.pm_schedule_type = 'annually';
+                else if (days === 180) assetData.pm_schedule_type = 'semiannually';
+                else if (days === 90) assetData.pm_schedule_type = 'quarterly';
+                else if (days === 30) assetData.pm_schedule_type = 'monthly';
+                else if (days === 7) assetData.pm_schedule_type = 'weekly';
+                else if (days === 1) assetData.pm_schedule_type = 'daily';
+                else assetData.pm_schedule_type = 'custom';
+                
+                // Calculate next_maintenance if last_maintenance is provided
+                const lastMaintenance = formData.get('last_maintenance');
+                if (lastMaintenance && assetData.pm_interval_days) {
+                    const nextDate = calculateNextMaintenanceDate(
+                        assetData.pm_schedule_type,
+                        lastMaintenance,
+                        assetData.pm_interval_days
+                    );
+                    if (nextDate) {
+                        assetData.next_maintenance = nextDate.toISOString();
+                    }
+                }
+            }
             
-            // Set model_id - this enforces MMD relationship
-            if (modelId) {
-                assetData.model_id = modelId;
+            // If next_maintenance is manually entered, use that instead
+            const manualNextMaintenance = formData.get('next_maintenance');
+            if (manualNextMaintenance) {
+                assetData.next_maintenance = new Date(manualNextMaintenance).toISOString();
             }
             
             // Only include location_id if it has a value
@@ -3734,74 +3807,6 @@
                 const customerId = formData.get('customer_id');
                 if (customerId) {
                     assetData.customer_id = customerId;
-                }
-            }
-            
-            // Validate MMD selection for new assets
-            if (!assetId) {
-                // New asset - must have MMD selection
-                if (window.mmdAssetFormManager) {
-                    const validation = window.mmdAssetFormManager.validateMMDSelection();
-                    if (!validation.valid) {
-                        showToast(validation.message, 'error');
-                        return;
-                    }
-                    
-                    // Get MMD data and add to assetData
-                    const mmdData = window.mmdAssetFormManager.getSelectedMMDData();
-                    assetData.model_id = mmdData.model_id;
-                    
-                    // Get PM frequency ID from form (user can override model's default)
-                    // If not set in form, use model's default
-                    const pmFrequencyId = formData.get('pm_frequency_id');
-                    if (pmFrequencyId) {
-                        assetData.pm_frequency_id = pmFrequencyId;
-                    } else if (mmdData.pm_frequency_id) {
-                        assetData.pm_frequency_id = mmdData.pm_frequency_id;
-                    }
-                    
-                    // Set PM schedule from model's PM frequency if available
-                    if (mmdData.pm_frequency_days) {
-                        assetData.pm_interval_days = mmdData.pm_frequency_days;
-                        // Map PM frequency to schedule type
-                        if (mmdData.pm_frequency_days === 365) {
-                            assetData.pm_schedule_type = 'annually';
-                        } else if (mmdData.pm_frequency_days === 180) {
-                            assetData.pm_schedule_type = 'semiannually';
-                        } else if (mmdData.pm_frequency_days === 90) {
-                            assetData.pm_schedule_type = 'quarterly';
-                        } else if (mmdData.pm_frequency_days === 30) {
-                            assetData.pm_schedule_type = 'monthly';
-                        } else if (mmdData.pm_frequency_days === 7) {
-                            assetData.pm_schedule_type = 'weekly';
-                        } else if (mmdData.pm_frequency_days === 1) {
-                            assetData.pm_schedule_type = 'daily';
-                        } else {
-                            assetData.pm_schedule_type = 'custom';
-                        }
-                        
-                        // Calculate next_maintenance if last_maintenance is provided
-                        const lastMaintenance = formData.get('last_maintenance');
-                        if (lastMaintenance) {
-                            const nextDate = calculateNextMaintenanceDate(
-                                assetData.pm_schedule_type,
-                                lastMaintenance,
-                                mmdData.pm_frequency_days
-                            );
-                            if (nextDate) {
-                                assetData.next_maintenance = nextDate.toISOString();
-                            }
-                        }
-                    }
-                    
-                    // If next_maintenance is manually entered, use that instead
-                    const manualNextMaintenance = formData.get('next_maintenance');
-                    if (manualNextMaintenance) {
-                        assetData.next_maintenance = new Date(manualNextMaintenance).toISOString();
-                    }
-                } else {
-                    showToast('MMD form manager not initialized. Please refresh the page.', 'error');
-                    return;
                 }
             }
             
