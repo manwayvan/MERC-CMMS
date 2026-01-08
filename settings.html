@@ -1945,21 +1945,52 @@
         }
         
         document.addEventListener('DOMContentLoaded', async () => {
+            console.log('[Settings] DOMContentLoaded, setting up hierarchy list manager');
+            
             // Initialize Hierarchy List Manager when Master Database tab is active
+            // Check for tab button with data-tab="master-db"
             const masterDbTab = document.querySelector('[data-tab="master-db"]');
             if (masterDbTab) {
+                console.log('[Settings] Found master-db tab button, adding click listener');
                 masterDbTab.addEventListener('click', async () => {
+                    console.log('[Settings] Master Database tab clicked');
                     setTimeout(async () => {
                         await initHierarchyListManager();
-                    }, 100);
+                    }, 200);
                 });
+            } else {
+                console.warn('[Settings] Master Database tab button not found with [data-tab="master-db"]');
             }
             
-            // Initialize if tab is already active
-            const masterDbContent = document.getElementById('master-db');
-            if (masterDbContent && masterDbContent.style.display !== 'none') {
-                await initHierarchyListManager();
+            // Also check for direct initialization on page load if tab is active
+            // Check multiple possible tab content IDs
+            const masterDbContent = document.getElementById('master-db') || 
+                                   document.querySelector('.tab-content.active[id*="master"]') ||
+                                   document.querySelector('#master-db-modal');
+            
+            if (masterDbContent) {
+                const isVisible = masterDbContent.style.display !== 'none' && 
+                                 !masterDbContent.classList.contains('hidden') &&
+                                 masterDbContent.offsetParent !== null;
+                console.log('[Settings] Master Database content found, visible:', isVisible);
+                if (isVisible) {
+                    console.log('[Settings] Tab already active, initializing immediately');
+                    setTimeout(async () => {
+                        await initHierarchyListManager();
+                    }, 300);
+                }
+            } else {
+                console.log('[Settings] Master Database content not found, will initialize on tab click');
             }
+            
+            // Also try to initialize after a short delay regardless (in case tab is already shown)
+            setTimeout(async () => {
+                const container = document.getElementById('hierarchy-list-container');
+                if (container && container.innerHTML.includes('Loading hierarchy data')) {
+                    console.log('[Settings] Container still showing loading state, attempting initialization');
+                    await initHierarchyListManager();
+                }
+            }, 1000);
             
             // Initialize SettingsManager first
             if (typeof SettingsManager !== 'undefined') {
