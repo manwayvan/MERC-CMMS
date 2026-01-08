@@ -2880,6 +2880,12 @@
             }
             if (addManufacturerBtn) {
                 addManufacturerBtn.disabled = !deviceTypeId;
+                // Store device type ID in button for add function
+                if (deviceTypeId) {
+                    addManufacturerBtn.setAttribute('data-device-type-id', deviceTypeId);
+                } else {
+                    addManufacturerBtn.removeAttribute('data-device-type-id');
+                }
             }
             if (pmProgramDisplay) pmProgramDisplay.value = '';
             if (pmFrequencyDisplay) pmFrequencyDisplay.value = '';
@@ -3046,6 +3052,159 @@
             div.textContent = text;
             return div.innerHTML;
         }
+
+        // Add hierarchy items functions
+        async function addHierarchyDeviceType() {
+            const name = prompt('Enter device type name:');
+            if (!name || !name.trim()) {
+                return;
+            }
+
+            try {
+                await initAssetHierarchyManager();
+                if (!assetHierarchyManager) {
+                    showToast('Hierarchy manager not initialized. Please refresh the page.', 'error');
+                    return;
+                }
+
+                showToast('Creating device type...', 'info');
+                const newType = await assetHierarchyManager.createDeviceType(name.trim());
+                
+                // Refresh hierarchy and dropdown
+                await assetHierarchyManager.loadFullHierarchy();
+                
+                // Refresh dropdown and select new type
+                const typeSelect = document.getElementById('hierarchy-device-type-select');
+                if (typeSelect) {
+                    typeSelect.innerHTML = '<option value="">-- Select Device Type --</option>';
+                    assetHierarchyManager.hierarchy.deviceTypes.forEach(type => {
+                        const option = document.createElement('option');
+                        option.value = type.id;
+                        option.textContent = type.name;
+                        typeSelect.appendChild(option);
+                    });
+                    typeSelect.value = newType.id;
+                    await handleHierarchyDeviceTypeChange();
+                }
+                
+                showToast('Device type created successfully', 'success');
+            } catch (error) {
+                console.error('Error creating device type:', error);
+                const errorMsg = error.message || 'Failed to create device type';
+                if (errorMsg.includes('already exists')) {
+                    showToast(errorMsg, 'warning');
+                } else {
+                    showToast(errorMsg, 'error');
+                }
+            }
+        }
+
+        async function addHierarchyManufacturer() {
+            // Get device type ID from button attribute or dropdown
+            const addBtn = document.getElementById('add-hierarchy-manufacturer-btn');
+            const deviceTypeId = addBtn?.getAttribute('data-device-type-id') || 
+                                document.getElementById('hierarchy-device-type-select')?.value || null;
+
+            if (!deviceTypeId) {
+                showToast('Please select a Device Type first', 'warning');
+                return;
+            }
+
+            const name = prompt('Enter manufacturer name:');
+            if (!name || !name.trim()) {
+                return;
+            }
+
+            try {
+                await initAssetHierarchyManager();
+                if (!assetHierarchyManager) {
+                    showToast('Hierarchy manager not initialized. Please refresh the page.', 'error');
+                    return;
+                }
+
+                showToast('Creating manufacturer...', 'info');
+                const newManufacturer = await assetHierarchyManager.createManufacturer(name.trim(), deviceTypeId);
+                
+                // Refresh hierarchy
+                await assetHierarchyManager.loadFullHierarchy();
+                
+                // Refresh dropdown and select new manufacturer
+                await handleHierarchyDeviceTypeChange();
+                const manufacturerSelect = document.getElementById('hierarchy-manufacturer-select');
+                if (manufacturerSelect) {
+                    setTimeout(async () => {
+                        manufacturerSelect.value = newManufacturer.id;
+                        await handleHierarchyManufacturerChange();
+                    }, 100);
+                }
+                
+                showToast('Manufacturer created successfully', 'success');
+            } catch (error) {
+                console.error('Error creating manufacturer:', error);
+                const errorMsg = error.message || 'Failed to create manufacturer';
+                if (errorMsg.includes('already exists')) {
+                    showToast(errorMsg, 'warning');
+                } else {
+                    showToast(errorMsg, 'error');
+                }
+            }
+        }
+
+        async function addHierarchyDeviceModel() {
+            // Get manufacturer ID from button attribute or dropdown
+            const addBtn = document.getElementById('add-hierarchy-model-btn');
+            const manufacturerId = addBtn?.getAttribute('data-manufacturer-id') || 
+                                  document.getElementById('hierarchy-manufacturer-select')?.value || null;
+
+            if (!manufacturerId) {
+                showToast('Please select a Manufacturer first', 'warning');
+                return;
+            }
+
+            const name = prompt('Enter device model name:');
+            if (!name || !name.trim()) {
+                return;
+            }
+
+            try {
+                await initAssetHierarchyManager();
+                if (!assetHierarchyManager) {
+                    showToast('Hierarchy manager not initialized. Please refresh the page.', 'error');
+                    return;
+                }
+
+                showToast('Creating device model...', 'info');
+                const newModel = await assetHierarchyManager.createDeviceModel(name.trim(), manufacturerId);
+                
+                // Refresh hierarchy
+                await assetHierarchyManager.loadFullHierarchy();
+                
+                // Refresh dropdown and select new model
+                await handleHierarchyManufacturerChange();
+                const modelSelect = document.getElementById('hierarchy-device-model-select');
+                if (modelSelect) {
+                    setTimeout(async () => {
+                        modelSelect.value = newModel.id;
+                        await handleHierarchyDeviceModelChange();
+                    }, 100);
+                }
+                
+                showToast('Device model created successfully. Note: You must create a PM Program in Settings for this model before it can be used.', 'success');
+            } catch (error) {
+                console.error('Error creating device model:', error);
+                const errorMsg = error.message || 'Failed to create device model';
+                if (errorMsg.includes('already exists')) {
+                    showToast(errorMsg, 'warning');
+                } else {
+                    showToast(errorMsg, 'error');
+                }
+            }
+        }
+
+        // Expose globally for onclick handlers
+        window.addHierarchyDeviceType = addHierarchyDeviceType;
+        window.addHierarchyManufacturer = addHierarchyManufacturer;
+        window.addHierarchyDeviceModel = addHierarchyDeviceModel;
 
         async function showAddAssetModal() {
             currentAsset = null;

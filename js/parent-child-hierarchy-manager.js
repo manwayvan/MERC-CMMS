@@ -24,7 +24,7 @@ class ParentChildHierarchyManager {
 
     async loadFullHierarchy() {
         try {
-            // Load all device types
+            // Load all device types (handle case where table doesn't exist yet)
             const { data: types, error: typesError } = await this.supabaseClient
                 .from('device_types')
                 .select('*')
@@ -32,7 +32,20 @@ class ParentChildHierarchyManager {
                 .eq('is_active', true)
                 .order('name');
 
-            if (typesError) throw typesError;
+            if (typesError) {
+                // If table doesn't exist, initialize with empty arrays
+                if (typesError.code === '42P01' || typesError.message?.includes('does not exist')) {
+                    console.warn('device_types table does not exist yet. Please run the database migrations.');
+                    this.hierarchy.deviceTypes = [];
+                    this.hierarchy.manufacturers = [];
+                    this.hierarchy.deviceModels = [];
+                    this.hierarchy.pmPrograms = [];
+                    this.hierarchy.pmChecklists = [];
+                    this.hierarchy.pmChecklistItems = [];
+                    return this.hierarchy;
+                }
+                throw typesError;
+            }
             this.hierarchy.deviceTypes = types || [];
 
             // Load all manufacturers with their device types
@@ -43,8 +56,15 @@ class ParentChildHierarchyManager {
                 .eq('is_active', true)
                 .order('name');
 
-            if (mfgError) throw mfgError;
-            this.hierarchy.manufacturers = manufacturers || [];
+            if (mfgError) {
+                if (mfgError.code === '42P01' || mfgError.message?.includes('does not exist')) {
+                    this.hierarchy.manufacturers = [];
+                } else {
+                    throw mfgError;
+                }
+            } else {
+                this.hierarchy.manufacturers = manufacturers || [];
+            }
 
             // Load all device models with their manufacturers
             const { data: models, error: modelsError } = await this.supabaseClient
@@ -54,8 +74,15 @@ class ParentChildHierarchyManager {
                 .eq('is_active', true)
                 .order('name');
 
-            if (modelsError) throw modelsError;
-            this.hierarchy.deviceModels = models || [];
+            if (modelsError) {
+                if (modelsError.code === '42P01' || modelsError.message?.includes('does not exist')) {
+                    this.hierarchy.deviceModels = [];
+                } else {
+                    throw modelsError;
+                }
+            } else {
+                this.hierarchy.deviceModels = models || [];
+            }
 
             // Load all PM programs with their models and frequencies
             const { data: pmPrograms, error: pmError } = await this.supabaseClient
@@ -65,8 +92,15 @@ class ParentChildHierarchyManager {
                 .eq('is_active', true)
                 .order('name');
 
-            if (pmError) throw pmError;
-            this.hierarchy.pmPrograms = pmPrograms || [];
+            if (pmError) {
+                if (pmError.code === '42P01' || pmError.message?.includes('does not exist')) {
+                    this.hierarchy.pmPrograms = [];
+                } else {
+                    throw pmError;
+                }
+            } else {
+                this.hierarchy.pmPrograms = pmPrograms || [];
+            }
 
             // Load all PM checklists with their programs
             const { data: checklists, error: chkError } = await this.supabaseClient
@@ -76,8 +110,15 @@ class ParentChildHierarchyManager {
                 .eq('is_active', true)
                 .order('name');
 
-            if (chkError) throw chkError;
-            this.hierarchy.pmChecklists = checklists || [];
+            if (chkError) {
+                if (chkError.code === '42P01' || chkError.message?.includes('does not exist')) {
+                    this.hierarchy.pmChecklists = [];
+                } else {
+                    throw chkError;
+                }
+            } else {
+                this.hierarchy.pmChecklists = checklists || [];
+            }
 
             // Load all checklist items
             const { data: items, error: itemsError } = await this.supabaseClient
@@ -86,8 +127,15 @@ class ParentChildHierarchyManager {
                 .is('deleted_at', null)
                 .order('sort_order');
 
-            if (itemsError) throw itemsError;
-            this.hierarchy.pmChecklistItems = items || [];
+            if (itemsError) {
+                if (itemsError.code === '42P01' || itemsError.message?.includes('does not exist')) {
+                    this.hierarchy.pmChecklistItems = [];
+                } else {
+                    throw itemsError;
+                }
+            } else {
+                this.hierarchy.pmChecklistItems = items || [];
+            }
 
             return this.hierarchy;
         } catch (error) {
