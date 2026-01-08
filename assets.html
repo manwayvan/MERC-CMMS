@@ -3062,19 +3062,45 @@
                 customerSelect.value = '';
             }
             
-            // Reset MMD form
+            // Initialize and load parent-child hierarchy
+            await initAssetHierarchyManager();
+            
+            // Populate device types dropdown
+            if (assetHierarchyManager) {
+                const deviceTypeSelect = document.getElementById('hierarchy-device-type-select');
+                if (deviceTypeSelect) {
+                    deviceTypeSelect.innerHTML = '<option value="">-- Select Device Type --</option>';
+                    assetHierarchyManager.hierarchy.deviceTypes.forEach(type => {
+                        const option = document.createElement('option');
+                        option.value = type.id;
+                        option.textContent = type.name;
+                        deviceTypeSelect.appendChild(option);
+                    });
+                }
+                
+                // Reset hierarchy dropdowns
+                const manufacturerSelect = document.getElementById('hierarchy-manufacturer-select');
+                const modelSelect = document.getElementById('hierarchy-device-model-select');
+                const pmProgramDisplay = document.getElementById('hierarchy-pm-program-display');
+                const pmFrequencyDisplay = document.getElementById('hierarchy-pm-frequency-display');
+                const pmChecklistInfo = document.getElementById('hierarchy-pm-checklist-info');
+                
+                if (manufacturerSelect) {
+                    manufacturerSelect.innerHTML = '<option value="">-- Select Device Type First --</option>';
+                    manufacturerSelect.disabled = true;
+                }
+                if (modelSelect) {
+                    modelSelect.innerHTML = '<option value="">-- Select Manufacturer First --</option>';
+                    modelSelect.disabled = true;
+                }
+                if (pmProgramDisplay) pmProgramDisplay.value = '';
+                if (pmFrequencyDisplay) pmFrequencyDisplay.value = '';
+                if (pmChecklistInfo) pmChecklistInfo.style.display = 'none';
+            }
+            
+            // Reset MMD form (legacy support)
             if (window.mmdAssetFormManager) {
                 window.mmdAssetFormManager.reset();
-            }
-            
-            // Re-setup MMD Add buttons when modal opens
-            if (typeof setupMMDAddButtons === 'function') {
-                setTimeout(setupMMDAddButtons, 200);
-            }
-            
-            // Load MMD hierarchy if not already loaded (using unified reference manager)
-            if (window.mmdAssetFormManager && window.mmdAssetFormManager.mmdData.types.length === 0) {
-                await window.mmdAssetFormManager.loadMMDHierarchy();
             }
             
             // Load depreciation profiles - ensure handler is initialized
