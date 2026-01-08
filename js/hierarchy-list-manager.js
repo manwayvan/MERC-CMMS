@@ -244,35 +244,53 @@ class HierarchyListManager {
     buildHierarchyRows() {
         const rows = [];
         
+        // Check if we have the necessary data
+        if (!this.hierarchy.pmPrograms || this.hierarchy.pmPrograms.length === 0) {
+            return rows; // Return empty array if no PM programs
+        }
+        
         // Build rows from PM Programs (which link models to frequencies)
         this.hierarchy.pmPrograms.forEach(pmProgram => {
-            const model = pmProgram.device_models;
-            if (!model) return;
-            
-            const manufacturer = model.manufacturers;
-            if (!manufacturer) return;
-            
-            const deviceType = manufacturer.device_types;
-            if (!deviceType) return;
-            
-            const pmFrequency = pmProgram.pm_frequencies;
-            const checklist = this.hierarchy.pmChecklists.find(c => c.pm_program_id === pmProgram.id);
-            
-            rows.push({
-                id: pmProgram.id,
-                deviceTypeId: deviceType.id,
-                deviceTypeName: deviceType.name,
-                manufacturerId: manufacturer.id,
-                manufacturerName: manufacturer.name,
-                modelId: model.id,
-                modelName: model.name,
-                pmProgramId: pmProgram.id,
-                pmFrequencyId: pmFrequency?.id || null,
-                pmFrequencyName: pmFrequency?.name || 'Not Set',
-                checklistId: checklist?.id || null,
-                checklistName: checklist?.name || 'Not Created',
-                isActive: pmProgram.is_active
-            });
+            try {
+                const model = pmProgram.device_models;
+                if (!model) {
+                    console.warn('PM Program missing device_model:', pmProgram.id);
+                    return;
+                }
+                
+                const manufacturer = model.manufacturers;
+                if (!manufacturer) {
+                    console.warn('Device model missing manufacturer:', model.id);
+                    return;
+                }
+                
+                const deviceType = manufacturer.device_types;
+                if (!deviceType) {
+                    console.warn('Manufacturer missing device_type:', manufacturer.id);
+                    return;
+                }
+                
+                const pmFrequency = pmProgram.pm_frequencies;
+                const checklist = this.hierarchy.pmChecklists.find(c => c.pm_program_id === pmProgram.id);
+                
+                rows.push({
+                    id: pmProgram.id,
+                    deviceTypeId: deviceType.id,
+                    deviceTypeName: deviceType.name || 'Unknown',
+                    manufacturerId: manufacturer.id,
+                    manufacturerName: manufacturer.name || 'Unknown',
+                    modelId: model.id,
+                    modelName: model.name || 'Unknown',
+                    pmProgramId: pmProgram.id,
+                    pmFrequencyId: pmFrequency?.id || null,
+                    pmFrequencyName: pmFrequency?.name || 'Not Set',
+                    checklistId: checklist?.id || null,
+                    checklistName: checklist?.name || 'Not Created',
+                    isActive: pmProgram.is_active
+                });
+            } catch (error) {
+                console.error('Error building row for PM Program:', pmProgram.id, error);
+            }
         });
         
         return rows;
