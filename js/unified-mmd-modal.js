@@ -1072,6 +1072,11 @@ class UnifiedMMDModal {
                 return;
             }
             
+            // Initialize variables early for validation
+            let typeId = typeSelect;
+            let makeId = makeSelect;
+            let modelId = modelSelect;
+            
             // If creating a Make, Type must exist
             if ((makeSelect || makeNew) && !typeId && !typeNew) {
                 alert('Please select or enter an Equipment Type first');
@@ -1089,10 +1094,6 @@ class UnifiedMMDModal {
                     return;
                 }
             }
-
-            let typeId = typeSelect;
-            let makeId = makeSelect;
-            let modelId = modelSelect;
 
             // Create Type if needed
             if (!typeId && typeNew) {

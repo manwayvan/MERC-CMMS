@@ -5,6 +5,8 @@ const BackupManager = {
     lastBackupDate: null,
     googleDriveClient: null,
     isGoogleDriveAuthenticated: false,
+    selectedFolderId: null,
+    selectedFolderName: null,
 
     async init() {
         // Get Supabase client
@@ -41,6 +43,13 @@ const BackupManager = {
         const authToken = localStorage.getItem('google_drive_access_token');
         if (authToken) {
             this.isGoogleDriveAuthenticated = true;
+            // Load saved folder preference
+            const savedFolderId = localStorage.getItem('google_drive_backup_folder_id');
+            const savedFolderName = localStorage.getItem('google_drive_backup_folder_name');
+            if (savedFolderId) {
+                this.selectedFolderId = savedFolderId;
+                this.selectedFolderName = savedFolderName;
+            }
             this.updateGoogleDriveUI();
         }
     },
@@ -79,12 +88,12 @@ const BackupManager = {
             // Store client ID
             localStorage.setItem('google_drive_client_id', clientId);
 
-            // Initialize Google API client
+            // Initialize Google API client with broader scope for folder selection
             await gapi.client.init({
                 apiKey: CONFIG?.GOOGLE_API_KEY || '',
                 clientId: clientId,
                 discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
-                scope: 'https://www.googleapis.com/auth/drive.file'
+                scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly'
             });
 
             const authInstance = gapi.auth2.getAuthInstance();
@@ -97,7 +106,19 @@ const BackupManager = {
             const accessToken = authInstance.currentUser.get().getAuthResponse().access_token;
             localStorage.setItem('google_drive_access_token', accessToken);
             this.isGoogleDriveAuthenticated = true;
+            
+            // Load saved folder preference
+            const savedFolderId = localStorage.getItem('google_drive_backup_folder_id');
+            const savedFolderName = localStorage.getItem('google_drive_backup_folder_name');
+            if (savedFolderId) {
+                this.selectedFolderId = savedFolderId;
+                this.selectedFolderName = savedFolderName;
+            }
+            
             this.updateGoogleDriveUI();
+            
+            // Prompt for folder selection after authentication
+            await this.selectBackupFolder();
 
             this.showToast('Google Drive authenticated successfully', 'success');
             return true;
@@ -117,7 +138,11 @@ const BackupManager = {
                 }
             }
             localStorage.removeItem('google_drive_access_token');
+            localStorage.removeItem('google_drive_backup_folder_id');
+            localStorage.removeItem('google_drive_backup_folder_name');
             this.isGoogleDriveAuthenticated = false;
+            this.selectedFolderId = null;
+            this.selectedFolderName = null;
             this.updateGoogleDriveUI();
             this.showToast('Disconnected from Google Drive', 'info');
         } catch (error) {
@@ -139,11 +164,11 @@ const BackupManager = {
             // Convert blob to base64
             const base64Data = await this.blobToBase64(blob);
 
-            // Create file metadata
+            // Create file metadata with selected folder
             const metadata = {
                 name: fileName,
                 mimeType: 'application/json',
-                parents: [] // Upload to root, or specify folder ID
+                parents: this.selectedFolderId ? [this.selectedFolderId] : [] // Upload to selected folder or root
             };
 
             // Upload file
@@ -188,22 +213,157 @@ const BackupManager = {
         });
     },
 
+    async selectBackupFolder() {
+        if (!this.isGoogleDriveAuthenticated) {
+            this.showToast('Please authenticate with Google Drive first', 'error');
+            return;
+        }
+
+        try {
+            // Show folder selection modal
+            const modal = document.getElementById('google-drive-folder-modal');
+            if (modal) {
+                modal.classList.add('active');
+                await this.loadGoogleDriveFolders();
+            } else {
+                // Fallback: prompt for folder ID
+                const folderId = prompt('Enter Google Drive Folder ID (or leave empty for root):');
+                if (folderId) {
+                    this.selectedFolderId = folderId;
+                    // Try to get folder name
+                    try {
+                        const response = await gapi.client.drive.files.get({
+                            fileId: folderId,
+                            fields: 'name'
+                        });
+                        this.selectedFolderName = response.result.name;
+                    } catch (e) {
+                        this.selectedFolderName = 'Custom Folder';
+                    }
+                    this.saveFolderPreference();
+                }
+            }
+        } catch (error) {
+            console.error('Error selecting folder:', error);
+            this.showToast('Error selecting folder. Using root folder.', 'warning');
+        }
+    },
+
+    async loadGoogleDriveFolders() {
+        const folderList = document.getElementById('google-drive-folder-list');
+        if (!folderList) return;
+
+        try {
+            folderList.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin"></i> Loading folders...</div>';
+
+            // Get root folder option
+            let html = `
+                <div class="folder-item p-3 border border-slate-200 rounded-lg mb-2 cursor-pointer hover:bg-slate-50 ${!this.selectedFolderId ? 'bg-blue-50 border-blue-300' : ''}" 
+                     onclick="BackupManager.selectFolder(null, 'My Drive (Root)')">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-folder text-blue-600"></i>
+                        <div class="flex-1">
+                            <div class="font-medium text-slate-900">My Drive (Root)</div>
+                            <div class="text-xs text-slate-500">Upload to root of Google Drive</div>
+                        </div>
+                        ${!this.selectedFolderId ? '<i class="fas fa-check text-blue-600"></i>' : ''}
+                    </div>
+                </div>
+            `;
+
+            // List folders
+            const response = await gapi.client.drive.files.list({
+                q: "mimeType='application/vnd.google-apps.folder' and trashed=false",
+                fields: 'files(id, name, parents)',
+                pageSize: 100,
+                orderBy: 'name'
+            });
+
+            const folders = response.result.files || [];
+            folders.forEach(folder => {
+                const isSelected = this.selectedFolderId === folder.id;
+                html += `
+                    <div class="folder-item p-3 border border-slate-200 rounded-lg mb-2 cursor-pointer hover:bg-slate-50 ${isSelected ? 'bg-blue-50 border-blue-300' : ''}" 
+                         onclick="BackupManager.selectFolder('${folder.id}', '${this.escapeHtml(folder.name)}')">
+                        <div class="flex items-center gap-3">
+                            <i class="fas fa-folder text-blue-600"></i>
+                            <div class="flex-1">
+                                <div class="font-medium text-slate-900">${this.escapeHtml(folder.name)}</div>
+                                <div class="text-xs text-slate-500">Folder ID: ${folder.id}</div>
+                            </div>
+                            ${isSelected ? '<i class="fas fa-check text-blue-600"></i>' : ''}
+                        </div>
+                    </div>
+                `;
+            });
+
+            folderList.innerHTML = html || '<div class="text-center py-4 text-slate-500">No folders found</div>';
+        } catch (error) {
+            console.error('Error loading folders:', error);
+            folderList.innerHTML = '<div class="text-center py-4 text-red-500">Error loading folders. Please try again.</div>';
+        }
+    },
+
+    selectFolder(folderId, folderName) {
+        this.selectedFolderId = folderId;
+        this.selectedFolderName = folderName || 'My Drive (Root)';
+        this.saveFolderPreference();
+        this.updateGoogleDriveUI();
+        
+        // Close modal
+        const modal = document.getElementById('google-drive-folder-modal');
+        if (modal) {
+            modal.classList.remove('active');
+        }
+        
+        this.showToast(`Backup folder set to: ${this.selectedFolderName}`, 'success');
+    },
+
+    saveFolderPreference() {
+        if (this.selectedFolderId) {
+            localStorage.setItem('google_drive_backup_folder_id', this.selectedFolderId);
+            localStorage.setItem('google_drive_backup_folder_name', this.selectedFolderName);
+        } else {
+            localStorage.removeItem('google_drive_backup_folder_id');
+            localStorage.removeItem('google_drive_backup_folder_name');
+        }
+    },
+
+    escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    },
+
     updateGoogleDriveUI() {
         const authBtn = document.getElementById('backup-google-drive-auth');
         const statusEl = document.getElementById('backup-google-drive-status');
+        const actionsDiv = document.getElementById('backup-google-drive-actions');
+        const folderBtn = document.getElementById('backup-google-drive-select-folder');
         const disconnectBtn = document.getElementById('backup-google-drive-disconnect');
+        const folderInfo = document.getElementById('backup-google-drive-folder-info');
 
         if (authBtn) {
-            authBtn.style.display = this.isGoogleDriveAuthenticated ? 'none' : 'inline-block';
+            authBtn.style.display = this.isGoogleDriveAuthenticated ? 'none' : 'block';
         }
-        if (disconnectBtn) {
-            disconnectBtn.style.display = this.isGoogleDriveAuthenticated ? 'inline-block' : 'none';
+        if (actionsDiv) {
+            actionsDiv.style.display = this.isGoogleDriveAuthenticated ? 'flex' : 'none';
         }
         if (statusEl) {
             if (this.isGoogleDriveAuthenticated) {
                 statusEl.innerHTML = '<span class="text-green-600"><i class="fas fa-check-circle"></i> Connected</span>';
             } else {
                 statusEl.innerHTML = '<span class="text-slate-400"><i class="fas fa-times-circle"></i> Not Connected</span>';
+            }
+        }
+        if (folderInfo) {
+            if (this.isGoogleDriveAuthenticated && this.selectedFolderName) {
+                folderInfo.innerHTML = `<div class="text-xs text-slate-600 mt-2"><i class="fas fa-folder"></i> ${this.escapeHtml(this.selectedFolderName)}</div>`;
+            } else if (this.isGoogleDriveAuthenticated) {
+                folderInfo.innerHTML = '<div class="text-xs text-amber-600 mt-2"><i class="fas fa-exclamation-triangle"></i> No folder selected (will use root)</div>';
+            } else {
+                folderInfo.innerHTML = '';
             }
         }
     },

@@ -604,13 +604,19 @@
                                     <button onclick="BackupManager.createBackup()" class="btn btn-primary w-full">
                                         <i class="fas fa-download"></i> Create Backup Now
                                     </button>
-                                    <div class="flex gap-2">
-                                        <button id="backup-google-drive-auth" onclick="BackupManager.authenticateGoogleDrive()" class="btn btn-secondary flex-1">
+                                    <div class="flex gap-2 flex-col">
+                                        <button id="backup-google-drive-auth" onclick="BackupManager.authenticateGoogleDrive()" class="btn btn-secondary w-full">
                                             <i class="fab fa-google-drive"></i> Connect Google Drive
                                         </button>
-                                        <button id="backup-google-drive-disconnect" onclick="BackupManager.disconnectGoogleDrive()" class="btn btn-secondary flex-1" style="display: none;">
-                                            <i class="fas fa-unlink"></i> Disconnect
-                                        </button>
+                                        <div class="flex gap-2" style="display: none;" id="backup-google-drive-actions">
+                                            <button id="backup-google-drive-select-folder" onclick="BackupManager.selectBackupFolder()" class="btn btn-secondary flex-1">
+                                                <i class="fas fa-folder"></i> Select Folder
+                                            </button>
+                                            <button id="backup-google-drive-disconnect" onclick="BackupManager.disconnectGoogleDrive()" class="btn btn-secondary flex-1">
+                                                <i class="fas fa-unlink"></i> Disconnect
+                                            </button>
+                                        </div>
+                                        <div id="backup-google-drive-folder-info"></div>
                                             </div>
                                                 </div>
                                             </div>
