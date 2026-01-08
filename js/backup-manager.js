@@ -446,6 +446,28 @@ const BackupManager = {
         }
     },
 
+    toggleDailyBackup(enabled) {
+        this.saveBackupSettings({ dailyBackupEnabled: enabled });
+        if (enabled) {
+            this.scheduleDailyBackup();
+        } else {
+            if (this.backupInterval) {
+                clearInterval(this.backupInterval);
+                this.backupInterval = null;
+            }
+        }
+        this.showToast(`Daily backup ${enabled ? 'enabled' : 'disabled'}`, 'info');
+    },
+
+    handleRestore() {
+        const fileInput = document.getElementById('backup-restore-file');
+        if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+            this.showToast('Please select a backup file to restore', 'error');
+            return;
+        }
+        this.restoreBackup(fileInput.files[0]);
+    },
+
     scheduleDailyBackup() {
         // Clear existing interval
         if (this.backupInterval) {
@@ -518,6 +540,9 @@ const BackupManager = {
         }
     }
 };
+
+// Expose globally
+window.BackupManager = BackupManager;
 
 // Initialize on page load
 if (document.readyState === 'loading') {
