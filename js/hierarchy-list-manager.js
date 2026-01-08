@@ -19,43 +19,171 @@ class HierarchyListManager {
     }
 
     async init() {
-        if (!this.hierarchyManager && window.ParentChildHierarchyManager) {
-            this.hierarchyManager = new ParentChildHierarchyManager(this.supabaseClient);
+        const container = document.getElementById('hierarchy-list-container');
+        if (!container) {
+            console.error('hierarchy-list-container element not found');
+            return;
         }
-        await this.loadAllData();
-        this.render();
+
+        // Show loading state
+        container.innerHTML = `
+            <div class="text-center py-8">
+                <i class="fas fa-spinner fa-spin text-2xl text-blue-600 mb-2"></i>
+                <p class="text-sm text-slate-600">Loading hierarchy data...</p>
+            </div>
+        `;
+
+        try {
+            if (!this.hierarchyManager && window.ParentChildHierarchyManager) {
+                this.hierarchyManager = new ParentChildHierarchyManager(this.supabaseClient);
+            }
+            
+            await this.loadAllData();
+            this.render();
+        } catch (error) {
+            console.error('Error initializing hierarchy list manager:', error);
+            if (container) {
+                container.innerHTML = `
+                    <div class="text-center py-12">
+                        <i class="fas fa-exclamation-circle text-red-500 text-4xl mb-4"></i>
+                        <h3 class="text-lg font-semibold text-slate-800 mb-2">Initialization Error</h3>
+                        <p class="text-sm text-slate-600 mb-4">${this.escapeHtml(error.message || 'Unknown error occurred')}</p>
+                        <button onclick="hierarchyListManager?.init()" class="btn btn-primary btn-sm">
+                            <i class="fas fa-sync"></i> Retry
+                        </button>
+                    </div>
+                `;
+            }
+        }
     }
 
     async loadAllData() {
         try {
+            // Initialize hierarchy manager if needed
+            if (!this.hierarchyManager && window.ParentChildHierarchyManager) {
+                this.hierarchyManager = new ParentChildHierarchyManager(this.supabaseClient);
+            }
+
             // Load hierarchy
             if (this.hierarchyManager) {
-                this.hierarchy = await this.hierarchyManager.loadFullHierarchy();
+                try {
+                    this.hierarchy = await this.hierarchyManager.loadFullHierarchy();
+                } catch (hierarchyError) {
+                    console.error('Error loading hierarchy:', hierarchyError);
+                    // If tables don't exist, show helpful message
+                    if (hierarchyError.code === '42P01' || hierarchyError.message?.includes('does not exist')) {
+                        this.hierarchy = {
+                            deviceTypes: [],
+                            manufacturers: [],
+                            deviceModels: [],
+                            pmPrograms: [],
+                            pmFrequencies: [],
+                            pmChecklists: [],
+                            pmChecklistItems: []
+                        };
+                        // Show message in UI
+                        const container = document.getElementById('hierarchy-list-container');
+                        if (container) {
+                            container.innerHTML = `
+                                <div class="text-center py-12">
+                                    <i class="fas fa-exclamation-triangle text-yellow-500 text-4xl mb-4"></i>
+                                    <h3 class="text-lg font-semibold text-slate-800 mb-2">Database Tables Not Found</h3>
+                                    <p class="text-sm text-slate-600 mb-4">
+                                        The hierarchy tables (device_types, manufacturers, device_models, etc.) have not been created yet.
+                                    </p>
+                                    <p class="text-sm text-slate-600 mb-6">
+                                        Please run the database migrations using the MCP Connector to create these tables.
+                                    </p>
+                                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left max-w-2xl mx-auto">
+                                        <p class="text-sm text-blue-800 mb-2"><strong>Migration files:</strong></p>
+                                        <ul class="text-sm text-blue-700 list-disc list-inside space-y-1">
+                                            <li>database/migrations/20260107000000_parent_child_hierarchy_system.sql</li>
+                                            <li>database/migrations/20260107000001_seed_example_hierarchy.sql</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                        return; // Don't try to render if tables don't exist
+                    }
+                    throw hierarchyError; // Re-throw if it's a different error
+                }
+            } else {
+                console.warn('ParentChildHierarchyManager not available');
             }
 
             // Load PM frequencies
-            const { data: frequencies, error: freqError } = await this.supabaseClient
-                .from('pm_frequencies')
-                .select('*')
-                .is('deleted_at', null)
-                .eq('is_active', true)
-                .order('name');
+            try {
+                const { data: frequencies, error: freqError } = await this.supabaseClient
+                    .from('pm_frequencies')
+                    .select('*')
+                    .is('deleted_at', null)
+                    .eq('is_active', true)
+                    .order('name');
 
-            if (!freqError) {
-                this.hierarchy.pmFrequencies = frequencies || [];
+                if (freqError) {
+                    console.warn('Error loading PM frequencies:', freqError);
+                    // If table doesn't exist, just use empty array
+                    if (freqError.code === '42P01' || freqError.message?.includes('does not exist')) {
+                        this.hierarchy.pmFrequencies = [];
+                    }
+                } else {
+                    this.hierarchy.pmFrequencies = frequencies || [];
+                }
+            } catch (freqError) {
+                console.warn('Error loading PM frequencies:', freqError);
+                this.hierarchy.pmFrequencies = [];
             }
         } catch (error) {
             console.error('Error loading hierarchy data:', error);
+            const container = document.getElementById('hierarchy-list-container');
+            if (container) {
+                container.innerHTML = `
+                    <div class="text-center py-12">
+                        <i class="fas fa-exclamation-circle text-red-500 text-4xl mb-4"></i>
+                        <h3 class="text-lg font-semibold text-slate-800 mb-2">Error Loading Data</h3>
+                        <p class="text-sm text-slate-600 mb-4">${this.escapeHtml(error.message || 'Unknown error occurred')}</p>
+                        <button onclick="hierarchyListManager?.init()" class="btn btn-primary btn-sm">
+                            <i class="fas fa-sync"></i> Retry
+                        </button>
+                    </div>
+                `;
+            }
             this.showToast('Error loading data: ' + (error.message || 'Unknown error'), 'error');
         }
     }
 
     render() {
         const container = document.getElementById('hierarchy-list-container');
-        if (!container) return;
+        if (!container) {
+            console.error('hierarchy-list-container not found');
+            return;
+        }
 
         // Build flat list of all hierarchy combinations
         const rows = this.buildHierarchyRows();
+        
+        // Show empty state if no rows
+        if (rows.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-12">
+                    <i class="fas fa-table text-slate-400 text-4xl mb-4"></i>
+                    <h3 class="text-lg font-semibold text-slate-800 mb-2">No Hierarchy Data</h3>
+                    <p class="text-sm text-slate-600 mb-6">
+                        No PM Programs have been created yet. Create a Device Type, Manufacturer, Model, and PM Program to see data here.
+                    </p>
+                    <div class="flex gap-2 justify-center">
+                        <button onclick="hierarchyListManager?.addDeviceType()" class="btn btn-primary btn-sm">
+                            <i class="fas fa-plus"></i> Add Device Type
+                        </button>
+                        <button onclick="window.openUnifiedMMDModal && window.openUnifiedMMDModal()" class="btn btn-secondary btn-sm">
+                            <i class="fas fa-external-link-alt"></i> Open MMD Manager
+                        </button>
+                    </div>
+                </div>
+            `;
+            return;
+        }
         
         container.innerHTML = `
             <div class="hierarchy-list-wrapper">

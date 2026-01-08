@@ -1868,27 +1868,70 @@
         let hierarchyListManager = null;
         
         async function initHierarchyListManager() {
-            if (hierarchyListManager) return hierarchyListManager;
+            // Check if container exists
+            const container = document.getElementById('hierarchy-list-container');
+            if (!container) {
+                console.warn('hierarchy-list-container not found, waiting...');
+                setTimeout(() => initHierarchyListManager(), 500);
+                return null;
+            }
+
+            if (hierarchyListManager) {
+                // Re-initialize if already exists
+                await hierarchyListManager.init();
+                return hierarchyListManager;
+            }
             
-            let supabaseClient = window.sharedSupabaseClient;
+            let supabaseClient = window.sharedSupabaseClient || window.supabaseClient;
             if (!supabaseClient) {
+                console.warn('Supabase client not available, waiting...');
                 await new Promise(resolve => setTimeout(resolve, 500));
-                supabaseClient = window.sharedSupabaseClient;
+                supabaseClient = window.sharedSupabaseClient || window.supabaseClient;
             }
             
             if (!supabaseClient) {
                 console.error('Supabase client not available for hierarchy list');
+                container.innerHTML = `
+                    <div class="text-center py-12">
+                        <i class="fas fa-exclamation-triangle text-red-500 text-4xl mb-4"></i>
+                        <h3 class="text-lg font-semibold text-slate-800 mb-2">Database Connection Error</h3>
+                        <p class="text-sm text-slate-600">Supabase client not initialized. Please refresh the page.</p>
+                    </div>
+                `;
                 return null;
             }
             
-            if (window.HierarchyListManager) {
+            if (!window.HierarchyListManager) {
+                console.error('HierarchyListManager class not loaded');
+                container.innerHTML = `
+                    <div class="text-center py-12">
+                        <i class="fas fa-exclamation-triangle text-red-500 text-4xl mb-4"></i>
+                        <h3 class="text-lg font-semibold text-slate-800 mb-2">Script Not Loaded</h3>
+                        <p class="text-sm text-slate-600">HierarchyListManager script not loaded. Please refresh the page.</p>
+                    </div>
+                `;
+                return null;
+            }
+            
+            try {
                 hierarchyListManager = new window.HierarchyListManager(supabaseClient);
                 await hierarchyListManager.init();
                 window.hierarchyListManager = hierarchyListManager; // Expose globally
                 return hierarchyListManager;
+            } catch (error) {
+                console.error('Error creating hierarchy list manager:', error);
+                container.innerHTML = `
+                    <div class="text-center py-12">
+                        <i class="fas fa-exclamation-circle text-red-500 text-4xl mb-4"></i>
+                        <h3 class="text-lg font-semibold text-slate-800 mb-2">Initialization Error</h3>
+                        <p class="text-sm text-slate-600 mb-4">${error.message || 'Unknown error occurred'}</p>
+                        <button onclick="initHierarchyListManager()" class="btn btn-primary btn-sm">
+                            <i class="fas fa-sync"></i> Retry
+                        </button>
+                    </div>
+                `;
+                return null;
             }
-            
-            return null;
         }
         
         document.addEventListener('DOMContentLoaded', async () => {
