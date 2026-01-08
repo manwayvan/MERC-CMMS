@@ -382,6 +382,9 @@
                         <button class="tab-button" data-tab="scheduled-maintenance" onclick="switchTab('scheduled-maintenance')">
                             <i class="fas fa-calendar-check"></i>Scheduled Maintenance
                         </button>
+                        <button class="tab-button" data-tab="backup" onclick="switchTab('backup')">
+                            <i class="fas fa-database"></i>Backup & Restore
+                        </button>
                     </div>
                 </div>
 
@@ -484,36 +487,36 @@
                             <button onclick="MasterDBManager.openMasterModal()" class="btn btn-primary">
                                 <i class="fas fa-database"></i>Manage Master Database
                             </button>
-                                </div>
+                        </div>
 
                         <!-- Quick Stats -->
                         <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                             <div class="settings-section text-center">
                                 <div class="text-3xl font-bold text-blue-600" id="stats-categories">-</div>
                                 <div class="text-sm text-slate-600 mt-1">Device Types</div>
-                            </div>
+                        </div>
                             <div class="settings-section text-center">
                                 <div class="text-3xl font-bold text-green-600" id="stats-makes">-</div>
                                 <div class="text-sm text-slate-600 mt-1">Manufacturers</div>
-                        </div>
+                    </div>
                             <div class="settings-section text-center">
                                 <div class="text-3xl font-bold text-purple-600" id="stats-models">-</div>
                                 <div class="text-sm text-slate-600 mt-1">Models</div>
-                            </div>
+                                        </div>
                             <div class="settings-section text-center">
                                 <div class="text-3xl font-bold text-orange-600" id="stats-frequencies">-</div>
                                 <div class="text-sm text-slate-600 mt-1">PM Frequencies</div>
-                        </div>
-                    </div>
+                                    </div>
+                                    </div>
 
                         <!-- MMD Configurations List -->
                         <div class="settings-section mb-6">
-                            <div class="flex items-center justify-between mb-4">
+                                        <div class="flex items-center justify-between mb-4">
                                 <h3 class="text-lg font-semibold text-slate-800">MMD Configurations</h3>
                                 <button onclick="openUnifiedMMDModal()" class="btn btn-primary btn-sm">
                                     <i class="fas fa-plus"></i> Add New Configuration
                                 </button>
-                            </div>
+                                            </div>
                             
                             <div class="bg-white rounded-lg border border-slate-200 overflow-hidden">
                                 <div class="overflow-x-auto">
@@ -539,14 +542,14 @@
                                         </tbody>
                                     </table>
                                         </div>
-                                    </div>
-                                </div>
+                                                </div>
+                                                </div>
 
                         <!-- Info Card -->
                         <div class="settings-section bg-blue-50 border-blue-200">
                             <div class="flex items-start gap-3">
                                 <i class="fas fa-info-circle text-blue-600 text-xl mt-1"></i>
-                                        <div>
+                                                <div>
                                     <h3 class="font-semibold text-slate-800 mb-2">Hierarchical Structure</h3>
                                     <p class="text-sm text-slate-600 mb-2">
                                         The Master Database follows a hierarchical structure where each level depends on the previous:
@@ -556,14 +559,115 @@
                                         <li><strong>Manufacturers</strong> belong to a Device Type (e.g., Philips under Diagnostic)</li>
                                         <li><strong>Models</strong> belong to a Manufacturer (e.g., HeartStart FR3 under Philips)</li>
                                         <li><strong>PM Frequencies</strong> are independent and can be used with any model</li>
-                                    </ul>
+                                                </ul>
                                     <button onclick="openUnifiedMMDModal()" class="btn btn-primary btn-sm mt-3">
                                         <i class="fas fa-external-link-alt"></i>Open Master Database Manager
                                     </button>
-                                        </div>
-                                    </div>
+                                            </div>
                                             </div>
                                         </div>
+                                    </div>
+
+                    <!-- Backup & Restore Tab -->
+                    <div id="backup" class="tab-content p-8" style="display: none;">
+                        <div class="flex items-center justify-between mb-6">
+                                            <div>
+                                <h2 class="text-2xl font-bold text-slate-800">Backup & Restore</h2>
+                                <p class="text-sm text-slate-600 mt-1">Daily automated backups to Google Drive and local storage</p>
+                                            </div>
+                                        </div>
+
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                            <!-- Backup Status Card -->
+                            <div class="settings-section">
+                                <h3 class="text-lg font-semibold text-slate-800 mb-4">Backup Status</h3>
+                                        <div class="space-y-4">
+                                    <div class="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                                        <span class="text-sm text-slate-600">Last Backup:</span>
+                                        <span id="backup-last-backup" class="text-sm font-medium text-slate-900">Never</span>
+                                                </div>
+                                    <div class="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                                        <span class="text-sm text-slate-600">Daily Backup:</span>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" id="backup-daily-enabled" class="sr-only peer" checked onchange="BackupManager.toggleDailyBackup(this.checked)">
+                                            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                        </label>
+                                                </div>
+                                    <div class="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                                        <span class="text-sm text-slate-600">Google Drive:</span>
+                                        <span id="backup-google-drive-status" class="text-sm">
+                                            <span class="text-slate-400"><i class="fas fa-times-circle"></i> Not Connected</span>
+                                        </span>
+                                                </div>
+                                            </div>
+                                <div class="mt-4 space-y-2">
+                                    <button onclick="BackupManager.createBackup()" class="btn btn-primary w-full">
+                                        <i class="fas fa-download"></i> Create Backup Now
+                                    </button>
+                                    <div class="flex gap-2">
+                                        <button id="backup-google-drive-auth" onclick="BackupManager.authenticateGoogleDrive()" class="btn btn-secondary flex-1">
+                                            <i class="fab fa-google-drive"></i> Connect Google Drive
+                                        </button>
+                                        <button id="backup-google-drive-disconnect" onclick="BackupManager.disconnectGoogleDrive()" class="btn btn-secondary flex-1" style="display: none;">
+                                            <i class="fas fa-unlink"></i> Disconnect
+                                        </button>
+                                            </div>
+                                                </div>
+                                            </div>
+
+                            <!-- Restore Card -->
+                            <div class="settings-section">
+                                <h3 class="text-lg font-semibold text-slate-800 mb-4">Restore Backup</h3>
+                                <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+                                    <div class="flex items-start gap-3">
+                                        <i class="fas fa-exclamation-triangle text-amber-600 text-xl mt-1"></i>
+                                                <div>
+                                            <h4 class="font-semibold text-amber-900 mb-2">Warning</h4>
+                                            <p class="text-sm text-amber-800">
+                                                Restoring a backup will overwrite existing data. This action cannot be undone. 
+                                                Make sure to create a backup before restoring.
+                                            </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                <div class="space-y-4">
+                                        <div>
+                                        <label class="block text-sm font-medium text-slate-700 mb-2">Select Backup File</label>
+                                        <input type="file" id="backup-restore-file" accept=".json" class="form-input">
+                                        <p class="text-xs text-slate-500 mt-1">Select a .json backup file to restore</p>
+                                        </div>
+                                    <button onclick="BackupManager.handleRestore()" class="btn btn-danger w-full">
+                                        <i class="fas fa-upload"></i> Restore from Backup
+                                    </button>
+                                    </div>
+                                </div>
+                                        </div>
+
+                        <!-- Backup History -->
+                        <div class="settings-section">
+                            <h3 class="text-lg font-semibold text-slate-800 mb-4">Backup History</h3>
+                            <div class="bg-white rounded-lg border border-slate-200 overflow-hidden">
+                                <table class="w-full text-left">
+                                    <thead class="bg-slate-50">
+                                        <tr>
+                                            <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Date & Time</th>
+                                            <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Records</th>
+                                            <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Size</th>
+                                            <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Storage</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="backup-history-list" class="bg-white divide-y divide-slate-200">
+                                        <tr>
+                                            <td colspan="4" class="px-4 py-8 text-center text-slate-500">
+                                                <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                                                <p>Loading backup history...</p>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                </div>
+                            </div>
+                        </div>
 
                     <!-- Scheduled Maintenance Tab -->
                     <div id="scheduled-maintenance" class="tab-content p-8" style="display: none;">
@@ -596,14 +700,14 @@
                                         </ul>
                                     </div>
                                 </div>
-                            </div>
+                                    </div>
+                                </div>
                         </div>
-                    </div>
 
                     <!-- System Tab -->
                     <div id="system" class="tab-content p-8" style="display: none;">
                         <h2 class="text-2xl font-bold text-slate-800 mb-6">System Configuration</h2>
-
+                        
                         <div class="settings-section">
                             <h3 class="text-lg font-semibold text-slate-800 mb-4">System Preferences</h3>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -617,7 +721,7 @@
                                         <option value="America/Los_Angeles">America/Los_Angeles (PST/PDT)</option>
                                     </select>
                                     <p class="settings-description">Timezone for all date/time displays</p>
-                                                </div>
+                                    </div>
                                                 <div>
                                     <label class="block text-sm font-semibold text-slate-700 mb-2">Maintenance Fiscal Year Start</label>
                                     <select id="system-fiscal-year" class="form-input">
@@ -627,10 +731,10 @@
                                         <option value="October">October</option>
                                                     </select>
                                     <p class="settings-description">Start month for fiscal year reporting</p>
-                                                </div>
-                                                </div>
-                                            </div>
-                        
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="settings-section">
                             <h3 class="text-lg font-semibold text-slate-800 mb-4">Data Management</h3>
                             <div class="space-y-4">
@@ -638,31 +742,31 @@
                                     <div class="flex-1">
                                         <div class="settings-label">Enable data export</div>
                                         <div class="settings-description">Allow exporting data to CSV/Excel formats</div>
-                                            </div>
-                                        <button class="toggle active" role="switch" aria-checked="true" onclick="toggleSetting(this)"></button>
-                                                </div>
+                                    </div>
+                                    <button class="toggle active" role="switch" aria-checked="true" onclick="toggleSetting(this)"></button>
+                                </div>
                                 <div class="toggle-row">
                                     <div class="flex-1">
                                         <div class="settings-label">Enable audit logging</div>
                                         <div class="settings-description">Track all system changes for compliance</div>
-                                            </div>
-                                        <button class="toggle active" role="switch" aria-checked="true" onclick="toggleSetting(this)"></button>
-                                            </div>
-                                        </div>
                                     </div>
+                                    <button class="toggle active" role="switch" aria-checked="true" onclick="toggleSetting(this)"></button>
+                                </div>
+                            </div>
+                        </div>
 
                         <div class="settings-section">
                                         <div class="flex items-center justify-between mb-4">
                                             <div>
                                     <h3 class="text-lg font-semibold text-slate-800">Depreciation Profiles</h3>
                                     <p class="text-sm text-slate-600 mt-1">Manage reusable depreciation calculation profiles. Assets inherit from profiles automatically.</p>
-                                            </div>
-                                        </div>
-                            
+                            </div>
+                        </div>
+
                             <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
                                 <div class="flex items-start gap-3">
                                     <i class="fas fa-info-circle text-blue-600 text-xl mt-1"></i>
-                                                <div>
+                                <div>
                                         <h4 class="font-semibold text-blue-900 mb-2">Excel-Style Management</h4>
                                         <p class="text-sm text-blue-800 mb-2">
                                             Click any cell to edit inline. Use Tab/Enter to navigate. Paste CSV/tab-delimited data to bulk add rows.
@@ -672,27 +776,27 @@
                                             <li>Ctrl+V to paste multiple rows from Excel/CSV</li>
                                             <li>Only admins can add/edit/archive</li>
                                             <li>Changes automatically update all linked assets</li>
-                                        </ul>
-                                                </div>
-                                                </div>
-                                                </div>
-                            
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
                             <div class="bg-white rounded-lg border border-slate-200 overflow-auto max-h-[60vh]">
                                 <div id="depreciation-profiles-grid" class="p-4">
                                     <div class="text-center text-slate-500 py-8">
                                         <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
                                         <p>Loading depreciation profiles...</p>
-                                            </div>
-                                            </div>
-                                                </div>
-                                            </div>
-                                                </div>
+                        </div>
+                            </div>
+                            </div>
+                        </div>
+                    </div>
 
                         <div class="flex justify-end gap-3 mt-6">
                             <button class="btn btn-secondary" onclick="showToast('Changes discarded', 'info')">Discard Changes</button>
                             <button class="btn btn-primary" onclick="SettingsManager.saveSystemSettings()">Save Settings</button>
-                                            </div>
-                                        </div>
+                        </div>
+                    </div>
 
                     <!-- Work Order Types Tab -->
                     <div id="work-order-types" class="tab-content p-8" style="display: none;">
@@ -700,32 +804,32 @@
 
                         <div class="settings-section">
                             <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
-                                            <div>
+                                <div>
                                     <h3 class="text-lg font-semibold text-slate-800">Type Catalog</h3>
                                     <p class="text-sm text-slate-500">Manage the list of work order types used across the system.</p>
-                                    </div>
                                 </div>
+                            </div>
 
                             <form id="work-order-type-form" class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 rounded-lg p-4 border border-slate-200">
-                                        <div>
+                                <div>
                                     <label class="block text-sm font-semibold text-slate-700 mb-2">Type Code</label>
                                     <input id="work-order-type-code" class="form-input" type="text" placeholder="e.g., preventive_maintenance" required>
                                     <p class="settings-description">Used by the system to store the type in the database.</p>
-                                        </div>
-                                                <div>
+                                </div>
+                                <div>
                                     <label class="block text-sm font-semibold text-slate-700 mb-2">Display Label</label>
                                     <input id="work-order-type-label" class="form-input" type="text" placeholder="Preventive Maintenance" required>
                                     <p class="settings-description">What users see on the work order form.</p>
-                                    </div>
-                                                <div>
+                                </div>
+                                <div>
                                     <label class="block text-sm font-semibold text-slate-700 mb-2">Description</label>
                                     <input id="work-order-type-description" class="form-input" type="text" placeholder="Scheduled maintenance tasks">
                                 </div>
                                 <div class="grid grid-cols-2 gap-4">
-                                        <div>
+                                    <div>
                                         <label class="block text-sm font-semibold text-slate-700 mb-2">Sort Order</label>
                                         <input id="work-order-type-sort" class="form-input" type="number" value="0" min="0">
-                                        </div>
+                                    </div>
                                     <div class="flex items-center justify-between bg-white rounded-lg border border-slate-200 px-4 py-2 mt-6">
                                         <span class="text-sm text-slate-600">Active</span>
                                         <input id="work-order-type-active" type="checkbox" class="rounded border-slate-300" checked>
@@ -736,7 +840,7 @@
                                         <i class="fas fa-plus"></i>Add Type
                                     </button>
                                     <button id="work-order-type-cancel" class="btn btn-secondary" type="button">Cancel Edit</button>
-                            </div>
+                                </div>
                             </form>
 
                             <div class="mt-6 overflow-x-auto">
@@ -757,9 +861,9 @@
                                         </tr>
                                     </tbody>
                                 </table>
-                                                </div>
                             </div>
                         </div>
+                    </div>
 
                                     </div>
                                 </div>
@@ -778,7 +882,7 @@
     <div id="master-db-modal" class="modal">
         <div class="modal-content" style="max-width: 1200px; max-height: 90vh;">
             <div class="flex justify-between items-center mb-6">
-                                    <div>
+                                <div>
                     <h3 class="text-2xl font-bold text-slate-800">Master Database Manager</h3>
                     <p class="text-sm text-slate-600 mt-1">Manage Type → Make → Model hierarchy and PM Frequencies</p>
                                     </div>
@@ -954,7 +1058,7 @@
                             <button type="button" onclick="MasterDBManager.showQuickAddMake()" class="btn btn-secondary btn-sm whitespace-nowrap" title="Add New Manufacturer" id="config-add-make-btn" disabled>
                                 <i class="fas fa-plus"></i>
                             </button>
-                            </div>
+                                </div>
                         <div id="config-new-make-container" class="mt-2 hidden">
                             <input type="text" id="config-new-make-name" class="form-input mb-2" placeholder="New Manufacturer Name">
                             <textarea id="config-new-make-desc" class="form-input text-sm" rows="2" placeholder="Description (optional)"></textarea>
@@ -1019,8 +1123,8 @@
                     <button type="submit" class="btn btn-primary">Save Configuration</button>
                 </div>
             </form>
+                            </div>
                         </div>
-                    </div>
 
     <!-- Bulk Upload Modal -->
     <div id="bulk-upload-modal" class="modal">
@@ -1055,10 +1159,10 @@
                     <button type="button" onclick="MasterDBManager.processBulkUpload()" class="btn btn-primary" id="bulk-upload-btn" disabled>
                         <i class="fas fa-upload"></i> Upload Configurations
                     </button>
-                                </div>
-                            </div>
                         </div>
                     </div>
+                </div>
+            </div>
 
     <!-- Add/Edit Item Modal (for individual items) -->
     <div id="master-db-item-modal" class="modal">
@@ -1068,7 +1172,7 @@
                 <button onclick="MasterDBManager.closeItemModal()" class="text-slate-400 hover:text-slate-600">
                     <i class="fas fa-times text-xl"></i>
                             </button>
-                        </div>
+        </div>
             <form id="master-db-form" class="space-y-4">
                 <input type="hidden" id="master-db-id">
                 <input type="hidden" id="master-db-type">
@@ -1388,6 +1492,122 @@
     <script src="js/depreciation-reference-manager.js"></script>
     <script src="js/depreciation-profiles-manager.js"></script>
     <script src="js/master-db-manager.js?v=2"></script>
+    <!-- Scheduled Maintenance Modal -->
+    <div id="scheduled-maintenance-modal" class="modal">
+        <div class="modal-content" style="max-width: 1200px;">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-slate-800">Bulk Schedule Maintenance</h3>
+                <button onclick="ScheduledMaintenanceManager.closeModal()" class="text-slate-400 hover:text-slate-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+
+            <div class="space-y-6">
+                <!-- Filters Section -->
+                <div class="settings-section">
+                    <h4 class="text-lg font-semibold text-slate-800 mb-4">Filter Assets</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-2">Customer</label>
+                            <select id="sm-customer-filter" class="form-input" onchange="ScheduledMaintenanceManager.handleCustomerChange(this.value)">
+                                <option value="">All Customers</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-2">Asset Type</label>
+                            <select id="sm-asset-type-filter" class="form-input" onchange="ScheduledMaintenanceManager.applyFilters()">
+                                <option value="">All Types</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-2">Status</label>
+                            <select id="sm-status-filter" class="form-input" onchange="ScheduledMaintenanceManager.applyFilters()">
+                                <option value="">All Statuses</option>
+                                <option value="active">Active</option>
+                                <option value="in-maintenance">In Maintenance</option>
+                                <option value="retired">Retired</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-2">Location</label>
+                            <select id="sm-location-filter" class="form-input" disabled onchange="ScheduledMaintenanceManager.applyFilters()">
+                                <option value="">Select Customer First</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Last PM Date Section -->
+                <div class="settings-section">
+                    <h4 class="text-lg font-semibold text-slate-800 mb-4">Set Last PM Date</h4>
+                    <div class="flex items-center gap-4">
+                        <input type="date" id="sm-last-pm-date" class="form-input" onchange="ScheduledMaintenanceManager.handleLastPMDateChange()">
+                        <p class="text-sm text-slate-600">This date will be applied to selected assets. Next PM dates will be calculated automatically.</p>
+                    </div>
+                </div>
+
+                <!-- Asset List Preview -->
+                <div class="settings-section">
+                    <div class="flex items-center justify-between mb-4">
+                        <h4 class="text-lg font-semibold text-slate-800">Assets to Schedule</h4>
+                        <div class="flex items-center gap-4">
+                            <div class="flex items-center gap-2">
+                                <input type="checkbox" id="sm-select-all-assets" class="rounded border-slate-300" onchange="ScheduledMaintenanceManager.toggleSelectAll(this.checked)">
+                                <label for="sm-select-all-assets" class="text-sm font-medium text-slate-700">Select All</label>
+                            </div>
+                            <p class="text-sm text-slate-600"><span id="sm-asset-count">0</span> assets selected</p>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-lg border border-slate-200 overflow-auto max-h-[400px]">
+                        <table class="w-full text-left">
+                            <thead class="bg-slate-50 sticky top-0">
+                                <tr>
+                                    <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase w-12"></th>
+                                    <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Asset Name</th>
+                                    <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Type</th>
+                                    <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">PM Frequency</th>
+                                    <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Last PM</th>
+                                    <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Next PM (Calculated)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sm-assets-list" class="divide-y divide-slate-200">
+                                <tr>
+                                    <td colspan="6" class="px-4 py-8 text-center text-slate-500">
+                                        <i class="fas fa-info-circle text-2xl mb-2"></i>
+                                        <p>Apply filters to see assets.</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Generation Options -->
+                <div class="settings-section">
+                    <h4 class="text-lg font-semibold text-slate-800 mb-4">Generation Options</h4>
+                    <div class="flex items-center justify-between bg-slate-50 rounded-lg p-4 border border-slate-200">
+                        <div class="flex-1">
+                            <p class="font-medium text-slate-700">Generate Work Orders Automatically</p>
+                            <p class="text-sm text-slate-600">Create PM work orders for scheduled maintenance.</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="sm-generate-wo-toggle" class="sr-only peer" checked>
+                            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex justify-end space-x-3 pt-4 border-t border-slate-200">
+                    <button type="button" onclick="ScheduledMaintenanceManager.closeModal()" class="btn btn-secondary">Cancel</button>
+                    <button type="button" onclick="ScheduledMaintenanceManager.generateScheduledMaintenance()" class="btn btn-primary" id="sm-generate-btn">
+                        <i class="fas fa-calendar-plus"></i> Generate Scheduled Maintenance
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="js/scheduled-maintenance-manager.js"></script>
     <script src="js/settings-manager.js"></script>
     <script>

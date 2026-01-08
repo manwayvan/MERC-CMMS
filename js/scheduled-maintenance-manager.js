@@ -79,7 +79,7 @@ const ScheduledMaintenanceManager = {
         this.updateLocationFilter();
 
         // Populate equipment type filter
-        const typeSelect = document.getElementById('sm-type-filter');
+        const typeSelect = document.getElementById('sm-asset-type-filter') || document.getElementById('sm-type-filter');
         if (typeSelect) {
             typeSelect.innerHTML = '<option value="">All Types</option>';
             this.equipmentTypes.forEach(type => {
@@ -127,7 +127,7 @@ const ScheduledMaintenanceManager = {
 
         try {
             const customerId = document.getElementById('sm-customer-filter')?.value;
-            const typeId = document.getElementById('sm-type-filter')?.value;
+            const typeId = document.getElementById('sm-asset-type-filter')?.value || document.getElementById('sm-type-filter')?.value;
             const status = document.getElementById('sm-status-filter')?.value;
             const locationId = document.getElementById('sm-location-filter')?.value;
 
@@ -335,11 +335,49 @@ const ScheduledMaintenanceManager = {
         }
     },
 
+    handleCustomerChange(customerId) {
+        const locationSelect = document.getElementById('sm-location-filter');
+        if (!locationSelect) return;
+
+        if (customerId) {
+            locationSelect.disabled = false;
+            locationSelect.innerHTML = '<option value="">All Locations</option>';
+            const filteredLocations = this.locations.filter(loc => loc.customer_id === customerId);
+            filteredLocations.forEach(loc => {
+                const option = document.createElement('option');
+                option.value = loc.id;
+                option.textContent = loc.name;
+                locationSelect.appendChild(option);
+            });
+        } else {
+            locationSelect.disabled = true;
+            locationSelect.innerHTML = '<option value="">Select Customer First</option>';
+        }
+        this.applyFilters();
+    },
+
+    async applyFilters() {
+        await this.loadFilteredAssets();
+    },
+
+    handleLastPMDateChange() {
+        this.renderAssetsList();
+    },
+
     clearFilters() {
-        document.getElementById('sm-customer-filter').value = '';
-        document.getElementById('sm-type-filter').value = '';
-        document.getElementById('sm-status-filter').value = '';
-        document.getElementById('sm-location-filter').value = '';
+        const customerFilter = document.getElementById('sm-customer-filter');
+        const typeFilter = document.getElementById('sm-asset-type-filter') || document.getElementById('sm-type-filter');
+        const statusFilter = document.getElementById('sm-status-filter');
+        const locationFilter = document.getElementById('sm-location-filter');
+        
+        if (customerFilter) customerFilter.value = '';
+        if (typeFilter) typeFilter.value = '';
+        if (statusFilter) statusFilter.value = '';
+        if (locationFilter) {
+            locationFilter.value = '';
+            locationFilter.disabled = true;
+            locationFilter.innerHTML = '<option value="">Select Customer First</option>';
+        }
         this.filteredAssets = [];
         this.selectedAssetIds.clear();
         this.renderAssetsList();
@@ -352,7 +390,8 @@ const ScheduledMaintenanceManager = {
         }
 
         const lastPMDate = document.getElementById('sm-last-pm-date')?.value;
-        const generateWO = document.getElementById('sm-generate-wo')?.checked;
+        const generateWOToggle = document.getElementById('sm-generate-wo-toggle');
+        const generateWO = generateWOToggle ? generateWOToggle.checked : true;
 
         if (!lastPMDate) {
             this.showToast('Please select a Last PM Date', 'error');
@@ -515,17 +554,19 @@ const ScheduledMaintenanceManager = {
             }]);
     },
 
-    openModal() {
+    async openModal() {
         const modal = document.getElementById('scheduled-maintenance-modal');
         if (modal) {
             modal.classList.add('active');
-            this.init();
+            await this.init();
             // Set default date to today
             const dateInput = document.getElementById('sm-last-pm-date');
             if (dateInput && !dateInput.value) {
                 const today = new Date().toISOString().split('T')[0];
                 dateInput.value = today;
             }
+            // Load initial assets
+            await this.applyFilters();
         }
     },
 
