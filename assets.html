@@ -3494,9 +3494,12 @@
                     const mmdData = window.mmdAssetFormManager.getSelectedMMDData();
                     assetData.model_id = mmdData.model_id;
                     
-                    // Copy PM frequency ID from model at creation time (REQUIRED per requirements)
-                    // This is copied, not inferred - it does NOT auto-update if model changes later
-                    if (mmdData.pm_frequency_id) {
+                    // Get PM frequency ID from form (user can override model's default)
+                    // If not set in form, use model's default
+                    const pmFrequencyId = formData.get('pm_frequency_id');
+                    if (pmFrequencyId) {
+                        assetData.pm_frequency_id = pmFrequencyId;
+                    } else if (mmdData.pm_frequency_id) {
                         assetData.pm_frequency_id = mmdData.pm_frequency_id;
                     }
                     
