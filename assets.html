@@ -1738,27 +1738,6 @@
                 updateStatistics();
                 renderTableHeader();
                 renderAssets();
-
-                // Store all assets in map for quick lookup
-                assetsById.clear();
-                enrichedAssets.forEach(asset => {
-                    if (asset && asset.id) {
-                        assetsById.set(asset.id, asset);
-                    }
-                });
-                
-                // Update with enriched data
-                allAssets = enrichedAssets;
-                filteredAssets = [...allAssets];
-                
-                // Apply sorting if active
-                if (currentSortColumn) {
-                    applySorting();
-                }
-                
-                updateStatistics();
-                renderTableHeader();
-                renderAssets();
                 
                 // Hide loading immediately after rendering
                 showLoading(false);
