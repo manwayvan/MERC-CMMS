@@ -1698,7 +1698,7 @@
                     allAssets = enrichedAssets;
                 } else {
                     // No models, use legacy enrichment
-                    const enrichedAssets = (data || []).map(asset => {
+                    const enrichedAssetsLegacy = (data || []).map(asset => {
                         const categoryName = referenceMaps.categoriesById.get(asset.category_id)?.name || asset.category;
                         const manufacturerKey = asset.manufacturer_id || asset.make_id;
                         const manufacturerName = referenceMaps.manufacturersById.get(manufacturerKey)?.name || asset.manufacturer;
@@ -1718,15 +1718,26 @@
                     
                     // Store all assets in map for quick lookup
                     assetsById.clear();
-                    enrichedAssets.forEach(asset => {
+                    enrichedAssetsLegacy.forEach(asset => {
                         if (asset && asset.id) {
                             assetsById.set(asset.id, asset);
                         }
                     });
                     
                     // Update with enriched data
-                    allAssets = enrichedAssets;
+                    allAssets = enrichedAssetsLegacy;
                 }
+                
+                filteredAssets = [...allAssets];
+                
+                // Apply sorting if active
+                if (currentSortColumn) {
+                    applySorting();
+                }
+                
+                updateStatistics();
+                renderTableHeader();
+                renderAssets();
 
                 // Store all assets in map for quick lookup
                 assetsById.clear();
