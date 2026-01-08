@@ -734,20 +734,20 @@
                             </div>
                         </div>
                         
-                        <!-- PM Frequency (Auto-populated, Read-only) - Inline -->
+                        <!-- PM Frequency (Selectable) - Inline -->
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">
                                 PM Frequency
                             </label>
-                            <div id="mmd-pm-frequency-display" class="form-input bg-gray-50 text-gray-600">
-                                <span class="text-sm italic">Select a model to see PM frequency</span>
-                            </div>
+                            <select id="mmd-pm-frequency-select" name="pm_frequency_id" class="form-input">
+                                <option value="">-- Select PM Frequency --</option>
+                            </select>
+                            <p class="text-xs text-gray-500 mt-1">Auto-populated from model, but can be overridden</p>
                         </div>
                         
                         <!-- Hidden fields for form submission -->
                         <input type="hidden" id="mmd-type-id" name="type_id">
                         <input type="hidden" id="mmd-make-id" name="make_id">
-                        <input type="hidden" id="mmd-pm-frequency-id" name="pm_frequency_id">
                         <input type="hidden" id="mmd-pm-frequency-days" name="pm_frequency_days">
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Serial Number *</label>
@@ -1620,24 +1620,113 @@
                 const customersMap = new Map((customersData.data || []).map(c => [c.id, c.name]));
                 const locationsMap = new Map((locationsData.data || []).map(l => [l.id, l.name]));
                 
-                // Enrich assets with customer and location names
-                const enrichedAssets = (data || []).map(asset => {
-                    const categoryName = referenceMaps.categoriesById.get(asset.category_id)?.name || asset.category;
-                    const manufacturerKey = asset.manufacturer_id || asset.make_id;
-                    const manufacturerName = referenceMaps.manufacturersById.get(manufacturerKey)?.name || asset.manufacturer;
-                    const modelName = referenceMaps.modelsById.get(asset.model_id)?.name || asset.model;
-                    const customerName = asset.customer_id ? customersMap.get(asset.customer_id) : null;
-                    const locationName = asset.location_id ? locationsMap.get(asset.location_id) : null;
+                // Load MMD hierarchy data for category (equipment_type) lookup
+                const modelIds = [...new Set((data || []).map(a => a.model_id).filter(Boolean))];
+                let modelsData = [];
+                let makesData = [];
+                let typesData = [];
+                
+                if (modelIds.length > 0) {
+                    // Load models with makes and types
+                    const { data: models } = await supabaseClient
+                        .from('equipment_models')
+                        .select('id, name, make_id, equipment_makes!equipment_models_make_id_fkey(id, name, type_id, equipment_types!equipment_makes_type_id_fkey(id, name))')
+                        .in('id', modelIds);
                     
-                    return {
-                        ...asset,
-                        category: categoryName,
-                        manufacturer: manufacturerName,
-                        model: modelName,
-                        customers: customerName ? { name: customerName } : null,
-                        locations: locationName ? { name: locationName } : null
-                    };
-                });
+                    modelsData = models || [];
+                    
+                    // Extract unique make IDs and type IDs
+                    const makeIds = [...new Set(modelsData.map(m => m.make_id).filter(Boolean))];
+                    const typeIds = [...new Set(modelsData.flatMap(m => 
+                        m.equipment_makes?.type_id ? [m.equipment_makes.type_id] : []
+                    ).filter(Boolean))];
+                    
+                    // Create maps for quick lookup
+                    const modelsMap = new Map(modelsData.map(m => [m.id, m]));
+                    const makesMap = new Map();
+                    const typesMap = new Map();
+                    
+                    modelsData.forEach(model => {
+                        if (model.equipment_makes) {
+                            makesMap.set(model.equipment_makes.id, model.equipment_makes);
+                            if (model.equipment_makes.equipment_types) {
+                                typesMap.set(model.equipment_makes.equipment_types.id, model.equipment_makes.equipment_types);
+                            }
+                        }
+                    });
+                    
+                    // Enrich assets with MMD hierarchy data
+                    const enrichedAssets = (data || []).map(asset => {
+                        // Get category (equipment_type) from MMD hierarchy: model -> make -> type
+                        let categoryName = asset.category;
+                        if (asset.model_id) {
+                            const model = modelsMap.get(asset.model_id);
+                            if (model?.equipment_makes?.equipment_types) {
+                                categoryName = model.equipment_makes.equipment_types.name;
+                            }
+                        }
+                        // Fallback to legacy category_id if MMD hierarchy not available
+                        if (!categoryName) {
+                            categoryName = referenceMaps.categoriesById.get(asset.category_id)?.name || asset.category;
+                        }
+                        
+                        const manufacturerKey = asset.manufacturer_id || asset.make_id;
+                        const manufacturerName = referenceMaps.manufacturersById.get(manufacturerKey)?.name || asset.manufacturer;
+                        const modelName = referenceMaps.modelsById.get(asset.model_id)?.name || asset.model;
+                        const customerName = asset.customer_id ? customersMap.get(asset.customer_id) : null;
+                        const locationName = asset.location_id ? locationsMap.get(asset.location_id) : null;
+                        
+                        return {
+                            ...asset,
+                            category: categoryName,
+                            manufacturer: manufacturerName,
+                            model: modelName,
+                            customers: customerName ? { name: customerName } : null,
+                            locations: locationName ? { name: locationName } : null
+                        };
+                    });
+                    
+                    // Store all assets in map for quick lookup
+                    assetsById.clear();
+                    enrichedAssets.forEach(asset => {
+                        if (asset && asset.id) {
+                            assetsById.set(asset.id, asset);
+                        }
+                    });
+                    
+                    // Update with enriched data
+                    allAssets = enrichedAssets;
+                } else {
+                    // No models, use legacy enrichment
+                    const enrichedAssets = (data || []).map(asset => {
+                        const categoryName = referenceMaps.categoriesById.get(asset.category_id)?.name || asset.category;
+                        const manufacturerKey = asset.manufacturer_id || asset.make_id;
+                        const manufacturerName = referenceMaps.manufacturersById.get(manufacturerKey)?.name || asset.manufacturer;
+                        const modelName = referenceMaps.modelsById.get(asset.model_id)?.name || asset.model;
+                        const customerName = asset.customer_id ? customersMap.get(asset.customer_id) : null;
+                        const locationName = asset.location_id ? locationsMap.get(asset.location_id) : null;
+                        
+                        return {
+                            ...asset,
+                            category: categoryName,
+                            manufacturer: manufacturerName,
+                            model: modelName,
+                            customers: customerName ? { name: customerName } : null,
+                            locations: locationName ? { name: locationName } : null
+                        };
+                    });
+                    
+                    // Store all assets in map for quick lookup
+                    assetsById.clear();
+                    enrichedAssets.forEach(asset => {
+                        if (asset && asset.id) {
+                            assetsById.set(asset.id, asset);
+                        }
+                    });
+                    
+                    // Update with enriched data
+                    allAssets = enrichedAssets;
+                }
 
                 // Store all assets in map for quick lookup
                 assetsById.clear();
@@ -3352,7 +3441,8 @@
                 image_urls: formData.get('image_urls') ? JSON.parse(formData.get('image_urls')) : null,
                 pm_schedule_type: formData.get('pm_schedule_type') || null,
                 pm_interval_days: formData.get('pm_interval_days') ? parseInt(formData.get('pm_interval_days')) : null,
-                auto_generate_wo: formData.get('auto_generate_wo') === 'on' || formData.get('auto_generate_wo') === true
+                auto_generate_wo: formData.get('auto_generate_wo') === 'on' || formData.get('auto_generate_wo') === true,
+                pm_frequency_id: formData.get('pm_frequency_id') || null
             };
             // Get assetId first (needed for validation logic)
             const assetId = document.getElementById('edit-asset-id').value;

@@ -36,6 +36,7 @@ class MMDAssetFormManager {
         }
 
         await this.loadMMDHierarchy();
+        await this.loadPMFrequencies();
         this.setupEventListeners();
     }
 
@@ -296,17 +297,56 @@ class MMDAssetFormManager {
     }
 
     /**
-     * Update PM Frequency display when Model is selected
+     * Load PM Frequencies into dropdown
+     */
+    async loadPMFrequencies() {
+        const pmFrequencySelect = document.getElementById('mmd-pm-frequency-select');
+        if (!pmFrequencySelect || !this.supabaseClient) return;
+
+        try {
+            const { data: frequencies, error } = await this.supabaseClient
+                .from('pm_frequencies')
+                .select('id, name, days')
+                .eq('is_active', true)
+                .order('sort_order', { ascending: true });
+
+            if (error) throw error;
+
+            // Clear and populate dropdown
+            pmFrequencySelect.innerHTML = '<option value="">-- Select PM Frequency --</option>';
+            if (frequencies && frequencies.length > 0) {
+                frequencies.forEach(freq => {
+                    const option = document.createElement('option');
+                    option.value = freq.id;
+                    option.textContent = `${freq.name} (${freq.days} days)`;
+                    option.dataset.days = freq.days;
+                    pmFrequencySelect.appendChild(option);
+                });
+            }
+        } catch (error) {
+            console.error('Error loading PM frequencies:', error);
+        }
+    }
+
+    /**
+     * Update PM Frequency dropdown when Model is selected
      */
     async updatePMFrequency(modelId) {
-        const pmFrequencyDisplay = document.getElementById('mmd-pm-frequency-display');
-        if (!pmFrequencyDisplay) return;
+        const pmFrequencySelect = document.getElementById('mmd-pm-frequency-select');
         const modelSelect = document.getElementById('mmd-model-select');
         
-        if (!pmFrequencyDisplay || !modelSelect) return;
+        if (!pmFrequencySelect || !modelSelect) return;
+
+        // Ensure PM frequencies are loaded
+        if (pmFrequencySelect.options.length <= 1) {
+            await this.loadPMFrequencies();
+        }
 
         if (!modelId) {
-            this.clearPMFrequency();
+            pmFrequencySelect.value = '';
+            const pmFrequencyDaysInput = document.getElementById('mmd-pm-frequency-days');
+            if (pmFrequencyDaysInput) pmFrequencyDaysInput.value = '';
+            this.selectedPMFrequency = null;
             return;
         }
 
@@ -324,13 +364,9 @@ class MMDAssetFormManager {
             await window.assetDepreciationHandler.loadProfileForModel(modelId);
         }
 
-        if (pmFrequencyId && pmFrequencyName) {
-            pmFrequencyDisplay.className = 'form-input bg-green-50 text-gray-700';
-            pmFrequencyDisplay.innerHTML = `
-                <span class="font-semibold">${this.escapeHtml(pmFrequencyName)}</span>
-                ${pmFrequencyDays ? `<span class="text-sm text-gray-600 ml-2">(${pmFrequencyDays} days)</span>` : ''}
-                <span class="text-xs text-green-600 ml-2"><i class="fas fa-check-circle"></i> Auto-populated</span>
-            `;
+        // Set PM frequency dropdown value if model has one
+        if (pmFrequencyId) {
+            pmFrequencySelect.value = pmFrequencyId;
             this.selectedPMFrequency = {
                 id: pmFrequencyId,
                 name: pmFrequencyName,
@@ -343,31 +379,43 @@ class MMDAssetFormManager {
                 pmFrequencyDaysInput.value = pmFrequencyDays || '';
             }
             
-            // Visual state updates removed - using standard form styling now
-            
             // Trigger next maintenance calculation if last maintenance is set
             if (typeof calculateNextMaintenance === 'function') {
                 calculateNextMaintenance();
             }
         } else {
-            pmFrequencyDisplay.className = 'form-input bg-amber-50 text-amber-800';
-            pmFrequencyDisplay.innerHTML = `
-                <span class="text-sm"><i class="fas fa-exclamation-triangle mr-1"></i>No PM frequency assigned</span>
-            `;
+            // Model doesn't have PM frequency, clear selection
+            pmFrequencySelect.value = '';
             this.selectedPMFrequency = null;
         }
+
+        // Update days when user manually changes PM frequency
+        pmFrequencySelect.addEventListener('change', () => {
+            const selectedFreqOption = pmFrequencySelect.options[pmFrequencySelect.selectedIndex];
+            const days = selectedFreqOption.dataset.days;
+            const pmFrequencyDaysInput = document.getElementById('mmd-pm-frequency-days');
+            if (pmFrequencyDaysInput && days) {
+                pmFrequencyDaysInput.value = days;
+            }
+            if (typeof calculateNextMaintenance === 'function') {
+                calculateNextMaintenance();
+            }
+        });
 
         this.updateSummary();
     }
 
     /**
-     * Clear PM Frequency display
+     * Clear PM Frequency
      */
     clearPMFrequency() {
-        const pmFrequencyDisplay = document.getElementById('mmd-pm-frequency-display');
-        if (pmFrequencyDisplay) {
-            pmFrequencyDisplay.className = 'form-input bg-gray-50 text-gray-600';
-            pmFrequencyDisplay.innerHTML = '<span class="text-sm italic">Select a model to see PM frequency</span>';
+        const pmFrequencySelect = document.getElementById('mmd-pm-frequency-select');
+        if (pmFrequencySelect) {
+            pmFrequencySelect.value = '';
+        }
+        const pmFrequencyDaysInput = document.getElementById('mmd-pm-frequency-days');
+        if (pmFrequencyDaysInput) {
+            pmFrequencyDaysInput.value = '';
         }
         this.selectedPMFrequency = null;
     }
